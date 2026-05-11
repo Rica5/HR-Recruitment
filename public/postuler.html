@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="solumada">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Postuler — Recrutement</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+/* ── Layout ── */
+.p-page {
+  min-height:100vh;
+  background:var(--bg);
+  background-image: radial-gradient(circle at 1px 1px, rgba(148,163,184,.3) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+/* ── Topbar ── */
+.p-topbar {
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(16px) saturate(1.8);
+  -webkit-backdrop-filter:blur(16px) saturate(1.8);
+  border-bottom:1px solid rgba(226,232,240,.7);
+  padding:0 32px;
+  height:64px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:50;
+  box-shadow:0 1px 16px rgba(15,23,42,.05);
+}
+.p-logo { display:flex; align-items:center; gap:10px; }
+.p-logo-mark {
+  width:38px; height:38px;
+  background:linear-gradient(140deg, var(--grad-start), var(--grad-end));
+  border-radius:11px;
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:800; font-size:16px;
+  box-shadow:0 4px 14px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.2);
+  transition:all var(--transition);
+}
+.p-logo-mark:hover { transform:rotate(-4deg) scale(1.06); }
+.p-logo-name { font-size:15px; font-weight:800; color:var(--text); letter-spacing:-.02em; }
+.p-logo-sub  { font-size:10px; color:var(--text-3); letter-spacing:.08em; font-weight:600; margin-top:1px; }
+.p-theme-btns { display:flex; gap:6px; }
+
+/* ── Hero offre ── */
+.p-hero {
+  background:linear-gradient(140deg, var(--accent-dark) 0%, var(--grad-mid) 50%, var(--grad-start) 100%);
+  padding:52px 32px 44px;
+  color:#fff;
+  position:relative; overflow:hidden;
+}
+.p-hero::before {
+  content:'';
+  position:absolute; top:-100px; right:-80px;
+  width:380px; height:380px; border-radius:50%;
+  background:rgba(255,255,255,.07);
+  pointer-events:none;
+}
+.p-hero::after {
+  content:'';
+  position:absolute; bottom:-70px; left:-50px;
+  width:240px; height:240px; border-radius:50%;
+  background:rgba(255,255,255,.04);
+  pointer-events:none;
+}
+/* subtle grid on hero */
+.p-hero-inner {
+  max-width:820px; margin:0 auto;
+  position:relative; z-index:1;
+}
+.p-hero-label {
+  font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.12em;
+  opacity:.75; margin-bottom:14px;
+  display:inline-flex; align-items:center; gap:6px;
+}
+.p-hero-label::before { content:''; width:20px; height:1px; background:rgba(255,255,255,.6); }
+.p-hero-title { font-size:30px; font-weight:800; line-height:1.25; margin-bottom:20px; letter-spacing:-.03em; }
+.p-hero-tags  { display:flex; flex-wrap:wrap; gap:10px; }
+.p-hero-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(6px);
+  padding:7px 15px;
+  border-radius:99px;
+  font-size:13px; font-weight:600;
+  transition:all var(--transition);
+}
+.p-hero-tag:hover { background:rgba(255,255,255,.25); transform:translateY(-1px); }
+
+/* ── Contenu principal ── */
+.p-content { max-width:820px; margin:0 auto; padding:36px 32px 64px; }
+
+/* ── Section title ── */
+.p-section-title {
+  font-size:11px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.1em;
+  color:var(--accent-mid);
+  margin-bottom:18px;
+  display:flex; align-items:center; gap:10px;
+}
+.p-section-title svg { flex-shrink:0; }
+.p-section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg, var(--border), transparent); }
+
+/* ── Grille détails ── */
+.p-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:28px; }
+.p-detail-item {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:16px 18px;
+  transition:all var(--transition);
+  box-shadow:var(--shadow-xs);
+}
+.p-detail-item:hover { border-color:var(--accent-light); box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+.p-detail-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-3); margin-bottom:6px; }
+.p-detail-value { font-size:14px; font-weight:700; color:var(--text); letter-spacing:-.01em; }
+
+/* ── Prose blocks ── */
+.p-prose-block {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:22px 24px; margin-bottom:16px;
+  box-shadow:var(--shadow-xs);
+}
+.p-prose-block p { font-size:14px; color:var(--text-2); line-height:1.85; white-space:pre-line; }
+
+.p-skills { display:flex; flex-wrap:wrap; gap:6px; }
+
+/* ── Séparateur ── */
+.p-divider { border:none; border-top:2px dashed var(--border); margin:40px 0; }
+
+/* ── Formulaire card ── */
+.p-form-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.p-form-header {
+  background:linear-gradient(135deg, var(--accent-light) 0%, rgba(255,255,255,.6) 100%);
+  border-bottom:1px solid var(--border-soft);
+  padding:24px 28px;
+  display:flex; align-items:center; gap:16px;
+  position:relative; overflow:hidden;
+}
+.p-form-header::after {
+  content:'';
+  position:absolute; top:-40px; right:-40px;
+  width:120px; height:120px; border-radius:50%;
+  background:var(--accent-light); opacity:.6;
+  pointer-events:none;
+}
+.p-form-header-icon {
+  width:48px; height:48px;
+  background:linear-gradient(140deg, var(--grad-start), var(--grad-end));
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; flex-shrink:0;
+  box-shadow:0 4px 14px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,.25);
+  position:relative; z-index:1;
+}
+.p-form-header-title { font-size:17px; font-weight:800; color:var(--accent-text); letter-spacing:-.02em; position:relative; z-index:1; }
+.p-form-header-sub   { font-size:12px; color:var(--accent-text); opacity:.7; margin-top:3px; font-weight:500; position:relative; z-index:1; }
+.p-form-body { padding:28px; }
+
+/* ── Upload grid ── */
+.p-upload-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+.p-upload-label { font-size:12px; font-weight:700; color:var(--text-2); margin-bottom:8px; display:block; letter-spacing:.01em; }
+
+.p-upload-zone {
+  border:2px dashed var(--border);
+  border-radius:var(--r-lg);
+  padding:28px 16px;
+  text-align:center;
+  cursor:pointer;
+  transition:all var(--transition);
+  background:var(--surface-2);
+  min-height:120px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  position:relative; overflow:hidden;
+}
+.p-upload-zone::before {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(135deg, var(--accent-light), rgba(255,255,255,.3));
+  opacity:0; transition:opacity var(--transition);
+}
+.p-upload-zone:hover { border-color:var(--accent); border-style:solid; transform:translateY(-2px); box-shadow:0 4px 16px var(--accent-glow); }
+.p-upload-zone:hover::before { opacity:1; }
+.p-upload-zone.drag-over { border-color:var(--accent); border-style:solid; background:var(--accent-light); transform:scale(1.02); }
+.p-upload-zone.has-file {
+  border-color:var(--accent-mid); border-style:solid;
+  background:linear-gradient(135deg, var(--accent-light), rgba(255,255,255,.8));
+  box-shadow:0 4px 16px var(--accent-glow);
+}
+.p-upload-icon { font-size:28px; position:relative; z-index:1; }
+.p-upload-text { font-size:12px; font-weight:700; color:var(--text-2); position:relative; z-index:1; }
+.p-upload-hint { font-size:11px; color:var(--text-3); position:relative; z-index:1; font-weight:500; }
+.p-upload-name { font-size:11px; color:var(--accent-mid); font-weight:700; word-break:break-all; max-width:150px; position:relative; z-index:1; }
+
+/* ── Alert ── */
+#p-alert {
+  display:none;
+  padding:12px 16px;
+  border-radius:var(--r);
+  background:#fff1f2;
+  color:#dc2626;
+  font-size:13px;
+  margin-bottom:20px;
+  border:1.5px solid #fecaca;
+  font-weight:600;
+}
+
+/* ── Succès ── */
+.p-success {
+  display:none;
+  text-align:center;
+  padding:64px 32px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-2xl);
+  box-shadow:var(--shadow-lg);
+  position:relative; overflow:hidden;
+}
+.p-success::before {
+  content:'';
+  position:absolute; top:-60px; left:50%; transform:translateX(-50%);
+  width:240px; height:240px; border-radius:50%;
+  background:var(--accent-light); opacity:.5;
+  pointer-events:none;
+}
+.p-success-icon  { font-size:72px; margin-bottom:20px; animation:bounceIn .6s cubic-bezier(.34,1.56,.64,1); position:relative; z-index:1; }
+.p-success-title { font-size:26px; font-weight:800; color:var(--text); margin-bottom:10px; letter-spacing:-.03em; position:relative; z-index:1; }
+.p-success-sub   { font-size:14px; color:var(--text-2); line-height:1.75; max-width:440px; margin:0 auto 28px; position:relative; z-index:1; }
+.p-success-note  {
+  display:inline-flex; align-items:center; gap:10px;
+  background:linear-gradient(135deg, var(--accent-light), rgba(255,255,255,.8));
+  color:var(--accent-text);
+  border-radius:var(--r-lg); padding:13px 22px;
+  font-size:13px; font-weight:700;
+  border:1px solid var(--accent-light);
+  box-shadow:0 4px 16px var(--accent-glow);
+  position:relative; z-index:1;
+}
+@keyframes bounceIn { 0%{transform:scale(.5);opacity:0} 65%{transform:scale(1.12)} 80%{transform:scale(.96)} 100%{transform:scale(1);opacity:1} }
+
+/* ── Loader ── */
+.p-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:16px; }
+.p-loader-text { font-size:14px; color:var(--text-3); font-weight:500; }
+
+/* ── Erreur ── */
+.p-error { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; text-align:center; gap:12px; }
+.p-error-icon  { font-size:56px; }
+.p-error-title { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-.03em; }
+.p-error-sub   { font-size:14px; color:var(--text-2); font-weight:500; }
+
+/* ── Footer ── */
+.p-footer { text-align:center; padding:20px 32px; font-size:12px; color:var(--text-3); border-top:1px solid var(--border-soft); font-weight:500; }
+
+/* ── Responsive ── */
+@media(max-width:768px) {
+  .p-topbar { padding:0 20px; height:58px; }
+  .p-hero { padding:40px 24px 32px; }
+  .p-hero-title { font-size:24px; }
+  .p-content { padding:28px 20px 52px; }
+  .p-form-body { padding:24px 20px; }
+  .p-form-header { padding:20px 22px; gap:12px; }
+  .p-success { padding:48px 24px; }
+}
+@media(max-width:640px) {
+  .p-topbar { padding:0 16px; height:54px; }
+  .p-hero { padding:32px 16px 28px; }
+  .p-hero-title { font-size:20px; }
+  .p-content { padding:20px 14px 44px; }
+  .p-detail-grid { grid-template-columns:1fr; }
+  .p-upload-grid { grid-template-columns:1fr; }
+  .p-form-body { padding:20px 14px; }
+  .p-form-header { padding:16px 18px; gap:10px; }
+  .p-success { padding:44px 20px; }
+  .p-success-title { font-size:21px; }
+}
+@media(max-width:420px) {
+  .p-hero-title { font-size:17px; }
+  .p-hero-tags { gap:6px; }
+  .p-hero-tag { font-size:12px; padding:5px 10px; }
+  .p-theme-btns .theme-btn { font-size:10px; padding:5px 8px; }
+  .p-logo-sub { display:none; }
+  .p-footer { padding:16px; font-size:11px; }
+}
+</style>
+</head>
+<body>
+<div class="p-page">
+
+  <!-- ── Topbar ── -->
+  <header class="p-topbar">
+    <div class="p-logo">
+      <div class="p-logo-mark" id="logo-mark">S</div>
+      <div>
+        <div class="p-logo-name" id="logo-name">Solumada</div>
+        <div class="p-logo-sub">RECRUTEMENT RH</div>
+      </div>
+    </div>
+    <div class="p-theme-btns">
+      <button class="theme-btn active" data-theme="solumada" onclick="setTheme('solumada')">🌿 Solumada</button>
+      <button class="theme-btn" data-theme="optimum" onclick="setTheme('optimum')">🔵 Optimum</button>
+    </div>
+  </header>
+
+  <!-- ── Loader ── -->
+  <div id="view-loader" class="p-loader">
+    <div class="spinner" style="width:36px;height:36px"></div>
+    <div class="p-loader-text">Chargement de l'offre…</div>
+  </div>
+
+  <!-- ── Erreur ── -->
+  <div id="view-error" style="display:none">
+    <div class="p-error">
+      <div class="p-error-icon">😕</div>
+      <div class="p-error-title">Offre indisponible</div>
+      <div class="p-error-sub" id="error-msg">Cette offre est introuvable ou n'est plus active.</div>
+    </div>
+  </div>
+
+  <!-- ── Contenu principal ── -->
+  <div id="view-main" style="display:none">
+
+    <!-- Hero offre -->
+    <div class="p-hero">
+      <div class="p-hero-inner">
+        <div class="p-hero-label">Offre d'emploi</div>
+        <div class="p-hero-title" id="hero-titre">—</div>
+        <div class="p-hero-tags" id="hero-tags"></div>
+      </div>
+    </div>
+
+    <!-- Détails + Formulaire -->
+    <div class="p-content">
+
+      <!-- ── Détails de l'offre ── -->
+      <div id="section-offre">
+
+        <div class="p-section-title">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          Informations sur le poste
+        </div>
+
+        <div class="p-detail-grid" id="detail-grid"></div>
+
+        <div id="bloc-description" style="display:none">
+          <div class="p-section-title">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>
+            Missions principales
+          </div>
+          <div class="p-prose-block">
+            <p id="texte-description"></p>
+          </div>
+        </div>
+
+        <div id="bloc-profil" style="display:none">
+          <div class="p-section-title">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            Profil souhaité
+          </div>
+          <div class="p-prose-block">
+            <p id="texte-profil"></p>
+          </div>
+        </div>
+
+        <div id="bloc-competences" style="display:none">
+          <div class="p-section-title">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+            Diplôme(s) et compétences requis
+          </div>
+          <div class="p-prose-block">
+            <div class="p-skills" id="skills-list"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <hr class="p-divider">
+
+      <!-- ── Formulaire de candidature ── -->
+      <div id="section-form">
+        <div class="p-section-title">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          Votre candidature
+        </div>
+
+        <div class="p-form-card">
+          <div class="p-form-header">
+            <div class="p-form-header-icon">📝</div>
+            <div>
+              <div class="p-form-header-title">Postuler pour ce poste</div>
+              <div class="p-form-header-sub">Remplissez le formulaire ci-dessous — tous les champs marqués * sont requis</div>
+            </div>
+          </div>
+
+          <div class="p-form-body">
+            <div id="p-alert"></div>
+
+            <!-- Infos personnelles -->
+            <div class="form-grid" style="margin-bottom:20px">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Nom complet <span class="req">*</span></label>
+                <input class="form-control" type="text" id="f-nom" placeholder="Votre nom et prénom" autocomplete="name">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Adresse email <span class="req">*</span></label>
+                <input class="form-control" type="email" id="f-email" placeholder="votre@email.com" autocomplete="email">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Téléphone</label>
+                <input class="form-control" type="tel" id="f-tel" placeholder="+261 XX XX XXX XX" autocomplete="tel">
+              </div>
+            </div>
+
+            <!-- Upload fichiers -->
+            <div class="p-upload-grid">
+              <!-- CV -->
+              <div>
+                <span class="p-upload-label">CV <span class="req">*</span> <span style="font-weight:400;color:var(--text-3)">(PDF ou Word, max 10 Mo)</span></span>
+                <div class="p-upload-zone" id="zone-cv" onclick="document.getElementById('input-cv').click()"
+                     ondragover="dzOver(event,'zone-cv')" ondragleave="dzLeave('zone-cv')" ondrop="dzDrop(event,'zone-cv','input-cv')">
+                  <div class="p-upload-icon" id="icon-cv">📄</div>
+                  <div class="p-upload-text">Déposer ou cliquer</div>
+                  <div class="p-upload-hint">PDF, DOC, DOCX</div>
+                  <div class="p-upload-name" id="name-cv"></div>
+                </div>
+                <input type="file" id="input-cv" accept=".pdf,.doc,.docx" onchange="fileChange('input-cv','zone-cv','icon-cv','name-cv','📄')">
+              </div>
+
+              <!-- Lettre -->
+              <div>
+                <span class="p-upload-label">Lettre de motivation <span style="font-weight:400;color:var(--text-3)">(optionnelle)</span></span>
+                <div class="p-upload-zone" id="zone-lettre" onclick="document.getElementById('input-lettre').click()"
+                     ondragover="dzOver(event,'zone-lettre')" ondragleave="dzLeave('zone-lettre')" ondrop="dzDrop(event,'zone-lettre','input-lettre')">
+                  <div class="p-upload-icon" id="icon-lettre">📝</div>
+                  <div class="p-upload-text">Déposer ou cliquer</div>
+                  <div class="p-upload-hint">PDF, DOC, DOCX</div>
+                  <div class="p-upload-name" id="name-lettre"></div>
+                </div>
+                <input type="file" id="input-lettre" accept=".pdf,.doc,.docx" onchange="fileChange('input-lettre','zone-lettre','icon-lettre','name-lettre','📝')">
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;justify-content:center" id="btn-submit" onclick="submitCandidature()">
+              Envoyer ma candidature
+            </button>
+            <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--text-3)">
+              Vos données sont traitées de manière confidentielle et ne seront utilisées qu'à des fins de recrutement.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Succès ── -->
+      <div class="p-success" id="view-success">
+        <div class="p-success-icon">🎉</div>
+        <div class="p-success-title">Candidature envoyée !</div>
+        <div class="p-success-sub" id="success-msg"></div>
+        <div class="p-success-note">
+          <span>📧</span> Un accusé de réception a été envoyé à votre adresse email. Votre dossier sera analysé dans les meilleurs délais.
+        </div>
+      </div>
+
+    </div><!-- /p-content -->
+
+    <footer class="p-footer">
+      Plateforme Recrutement RH · Toutes vos données sont traitées de manière confidentielle.
+    </footer>
+  </div><!-- /view-main -->
+
+</div>
+
+<script>
+// ── Thème ──
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('logo-mark').textContent = t === 'optimum' ? 'O' : 'S';
+  document.getElementById('logo-name').textContent = t === 'optimum' ? 'Optimum' : 'Solumada';
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+  localStorage.setItem('rh_theme', t);
+}
+// Appliquer le thème sauvegardé
+setTheme(localStorage.getItem('rh_theme') || 'solumada');
+
+// ── Helpers ──
+function getParam(name) { return new URLSearchParams(location.search).get(name); }
+
+function showAlert(msg) {
+  const el = document.getElementById('p-alert');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 5000);
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// ── Upload drag-and-drop ──
+function dzOver(e, zoneId)  { e.preventDefault(); document.getElementById(zoneId).classList.add('drag-over'); }
+function dzLeave(zoneId)    { document.getElementById(zoneId).classList.remove('drag-over'); }
+function dzDrop(e, zoneId, inputId) {
+  e.preventDefault(); dzLeave(zoneId);
+  const input = document.getElementById(inputId);
+  const dt = new DataTransfer();
+  if (e.dataTransfer.files[0]) dt.items.add(e.dataTransfer.files[0]);
+  input.files = dt.files; input.dispatchEvent(new Event('change'));
+}
+function fileChange(inputId, zoneId, iconId, nameId, defaultIcon) {
+  const f = document.getElementById(inputId).files[0];
+  const zone = document.getElementById(zoneId);
+  zone.classList.toggle('has-file', !!f);
+  document.getElementById(iconId).textContent = f ? '✅' : defaultIcon;
+  document.getElementById(nameId).textContent = f ? f.name : '';
+}
+
+// ── Chargement offre ──
+const offreId = getParam('offre_id');
+let offre = null;
+
+function show(viewId) {
+  ['view-loader','view-error','view-main'].forEach(id => {
+    document.getElementById(id).style.display = id === viewId ? (id === 'view-main' ? 'block' : 'flex') : 'none';
+  });
+}
+
+function buildDetailGrid(o) {
+  const items = [
+    ['📋 Contrat', o.type_contrat],
+    ['📍 Localisation', o.localisation],
+    o.annees_experience ? ['🕐 Expérience', o.annees_experience] : null,
+    o.langues_requises  ? ['🌍 Langues', o.langues_requises] : null,
+    o.salaire           ? ['💰 Salaire', o.salaire] : null,
+    ['📅 Publiée le', new Date(o.date_creation).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })],
+    o.date_butoire      ? ['⏰ Date limite', new Date(o.date_butoire).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })] : null,
+  ].filter(Boolean);
+  return items.map(([label, value]) => `
+    <div class="p-detail-item">
+      <div class="p-detail-label">${label}</div>
+      <div class="p-detail-value">${value}</div>
+    </div>`).join('');
+}
+
+function buildHeroTags(o) {
+  return [
+    `<span class="p-hero-tag">📋 ${o.type_contrat}</span>`,
+    `<span class="p-hero-tag">📍 ${o.localisation}</span>`,
+    o.salaire           ? `<span class="p-hero-tag">💰 ${o.salaire}</span>` : '',
+    o.annees_experience ? `<span class="p-hero-tag">🕐 ${o.annees_experience}</span>` : '',
+    o.langues_requises  ? `<span class="p-hero-tag">🌍 ${o.langues_requises}</span>` : '',
+  ].filter(Boolean).join('');
+}
+
+async function init() {
+  if (!offreId) {
+    document.getElementById('error-msg').textContent = 'Aucun identifiant d\'offre dans le lien.';
+    show('view-error'); return;
+  }
+  try {
+    const res = await fetch(`/api/public/offre/${offreId}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Offre introuvable');
+    offre = data.offre;
+
+    // Hero
+    document.title = `Postuler — ${offre.titre_poste}`;
+    document.getElementById('hero-titre').textContent = offre.titre_poste;
+    document.getElementById('hero-tags').innerHTML = buildHeroTags(offre);
+
+    // Grille infos
+    document.getElementById('detail-grid').innerHTML = buildDetailGrid(offre);
+
+    // Missions principales
+    if (offre.missions_principales) {
+      document.getElementById('texte-description').textContent = offre.missions_principales;
+      document.getElementById('bloc-description').style.display = 'block';
+    }
+
+    // Profil souhaité
+    if (offre.profil_souhaite) {
+      document.getElementById('texte-profil').textContent = offre.profil_souhaite;
+      document.getElementById('bloc-profil').style.display = 'block';
+    }
+
+    // Compétences
+    if (offre.competences_requises) {
+      const skills = offre.competences_requises.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+      document.getElementById('skills-list').innerHTML = skills.length > 1
+        ? skills.map(s => `<span class="skill-tag">${s}</span>`).join('')
+        : `<p style="font-size:13px;color:var(--text-2);line-height:1.8">${offre.competences_requises}</p>`;
+      document.getElementById('bloc-competences').style.display = 'block';
+    }
+
+    // Vérifier date butoire côté client pour bloquer le formulaire
+    if (offre.date_butoire) {
+      const butoire = new Date(offre.date_butoire);
+      const now     = new Date();
+      const diffMs  = butoire - now;
+      const diffJ   = Math.ceil(diffMs / 86400000);
+
+      if (now > butoire) {
+        // Deadline dépassée — remplacer le formulaire par un message d'expiration
+        document.getElementById('section-form').innerHTML = `
+          <div style="background:#fee2e2;border:1px solid #fecaca;border-radius:var(--r-xl);padding:36px;text-align:center">
+            <div style="font-size:48px;margin-bottom:16px">⛔</div>
+            <div style="font-size:18px;font-weight:700;color:#991b1b;margin-bottom:8px">Candidatures closes</div>
+            <div style="font-size:14px;color:#b91c1c">La date limite de candidature était le <strong>${butoire.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</strong>.<br>Cette offre n'accepte plus de nouvelles candidatures.</div>
+          </div>`;
+        document.querySelector('.p-divider').style.display = 'none';
+      } else if (diffJ <= 3) {
+        // Deadline dans ≤ 3 jours — afficher une bannière d'urgence
+        const urgenceBar = document.createElement('div');
+        urgenceBar.style.cssText = 'background:#fef3c7;border:1px solid #fde68a;border-radius:var(--r-lg);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#92400e';
+        urgenceBar.innerHTML = `<span style="font-size:20px">⏰</span> Attention : il ne reste que <strong style="color:#dc2626">${diffJ} jour${diffJ>1?'s':''}</strong> pour postuler — date limite le ${butoire.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}.`;
+        document.getElementById('section-form').prepend(urgenceBar);
+      }
+    }
+
+    show('view-main');
+  } catch (err) {
+    document.getElementById('error-msg').textContent = err.message;
+    show('view-error');
+  }
+}
+
+// ── Soumission ──
+async function submitCandidature() {
+  const nom   = document.getElementById('f-nom').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const tel   = document.getElementById('f-tel').value.trim();
+  const cv    = document.getElementById('input-cv').files[0];
+
+  if (!nom)                                      { showAlert('Le nom complet est requis.'); return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('Adresse email invalide.'); return; }
+  if (!cv)                                       { showAlert('Veuillez joindre votre CV.'); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-top-color:#fff"></div> Envoi en cours…`;
+
+  const fd = new FormData();
+  fd.append('offre_id', offreId);
+  fd.append('candidat_nom', nom);
+  fd.append('candidat_email', email);
+  if (tel) fd.append('candidat_telephone', tel);
+  fd.append('cv', cv);
+  const lettre = document.getElementById('input-lettre').files[0];
+  if (lettre) fd.append('lettre', lettre);
+
+  try {
+    const res  = await fetch('/api/public/candidature', { method:'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('section-offre').style.display = 'none';
+      document.querySelector('.p-divider').style.display = 'none';
+      document.getElementById('section-form').style.display = 'none';
+      const formule = data.formule_remerciement || `Merci ${nom}, votre candidature pour le poste de ${offre.titre_poste} a bien été reçue. Notre équipe analysera votre dossier et vous contactera prochainement.`;
+      document.getElementById('success-msg').textContent = formule;
+      document.getElementById('view-success').style.display = 'block';
+      window.scrollTo({ top: 0, behavior:'smooth' });
+    } else {
+      showAlert(data.error || 'Une erreur est survenue, veuillez réessayer.');
+      btn.disabled = false;
+      btn.innerHTML = 'Envoyer ma candidature';
+    }
+  } catch {
+    showAlert('Erreur réseau. Vérifiez votre connexion et réessayez.');
+    btn.disabled = false;
+    btn.innerHTML = 'Envoyer ma candidature';
+  }
+}
+
+init();
+</script>
+</body>
+</html>

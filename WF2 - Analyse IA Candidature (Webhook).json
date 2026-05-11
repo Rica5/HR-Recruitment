@@ -1,0 +1,999 @@
+{
+  "name": "WF2 - Analyse IA Candidature (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "candidature-reception",
+        "options": {}
+      },
+      "id": "73f0b22c-5717-4922-a468-7807f2fc4a2c",
+      "name": "01 - Webhook Candidature",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        10464,
+        9440
+      ],
+      "webhookId": "candidature-reception-solumada"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{ json: {\n  candidat_nom:         body.candidat_nom,\n  candidat_email:       body.candidat_email,\n  candidat_telephone:   body.candidat_telephone || '',\n  offre_id:             body.offre_id,\n  titre_poste:          body.titre_poste,\n  description_poste:    body.description_poste || '',\n  competences_requises: body.competences_requises || '',\n  annees_experience:    body.annees_experience || '',\n  langues_requises:     body.langues_requises || '',\n  exigences_ia:         body.exigences_ia || '',\n  type_contrat:         body.type_contrat || '',\n  localisation:         body.localisation || '',\n  email_recruteur:      body.email_recruteur,\n  cv_base64:            body.cv_base64 || '',\n  cv_mimetype:          body.cv_mimetype || 'application/pdf',\n  lettre_base64:        body.lettre_base64 || '',\n  lettre_mimetype:      body.lettre_mimetype || 'application/pdf',\n  date_candidature:     body.date_candidature || new Date().toISOString(),\n  candidature_id:       body.candidature_id || '',\n  callback_url:         body.callback_url || '',\n  test_requis:          body.test_requis === true || body.test_requis === 'true',\n  lien_calendar:        body.lien_calendar || '',\n  callback_secret:      body.callback_secret || ''\n}}];"
+      },
+      "id": "cad1f1dc-0826-4fcc-beef-d96f8ab2885e",
+      "name": "02 - Extraire données",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10704,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst prompt = 'Tu es un expert RH. Analyse le CV et la lettre ci-joints.\\n\\n'\n  + '=== FICHE DE POSTE ===\\n'\n  + 'Titre: ' + d.titre_poste + '\\n'\n  + 'Description: ' + d.description_poste + '\\n'\n  + 'Competences: ' + d.competences_requises + '\\n'\n  + 'Experience: ' + (d.annees_experience || 'Non specifie') + '\\n'\n  + 'Langues: ' + (d.langues_requises || 'Non specifie') + '\\n'\n  + 'Contrat: ' + d.type_contrat + '\\n'\n  + 'Lieu: ' + d.localisation + '\\n'\n  + (d.exigences_ia ? '\\n=== EXIGENCES PRIORITAIRES ===\\n' + d.exigences_ia + '\\n' : '')\n  + '\\nRepondre UNIQUEMENT en JSON valide:\\n'\n  + '{\"score\":7,\"competences_detectees\":[\"X\"],\"competences_manquantes\":[\"Y\"],\"experience_annees\":3,\"niveau_education\":\"Licence\",\"adequation_poste\":\"Bon profil.\",\"points_forts\":\"Experience pertinente.\",\"points_faibles\":\"Peu de management.\",\"resume_analyse\":\"Candidat interessant.\",\"recommandation\":\"QUALIFIE\"}\\n'\n  + 'Score>=7=QUALIFIE, 4-6=A_REVOIR, <4=NON_SELECTIONNE\\n'\n  + 'IMPORTANT: Reponds UNIQUEMENT avec le JSON brut. Pas de bloc markdown, pas de backticks, pas de texte avant ou apres.';\nconst content = [];\nif (d.cv_base64) {\n  if ((d.cv_mimetype||'').includes('pdf'))\n    content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:d.cv_base64}});\n  else\n    content.push({type:'text',text:'=== CV ===\\n'+Buffer.from(d.cv_base64,'base64').toString('utf-8')});\n}\nif (d.lettre_base64) {\n  if ((d.lettre_mimetype||'').includes('pdf'))\n    content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:d.lettre_base64}});\n  else\n    content.push({type:'text',text:'=== Lettre ===\\n'+Buffer.from(d.lettre_base64,'base64').toString('utf-8')});\n}\ncontent.push({type:'text',text:prompt});\nreturn [{json:{...d, requestBody:{model:'claude-sonnet-4-6',max_tokens:2048,messages:[{role:'user',content}]}}}];"
+      },
+      "id": "b8c17247-704e-462f-b41d-3774bcd4994c",
+      "name": "03 - Préparer prompt Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10896,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {}
+      },
+      "id": "358acd28-e20e-4a53-a8b9-83215c9612d9",
+      "name": "04 - Appel Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        11072,
+        9440
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ykeQbTxUUvlcEX7d",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst raw = (item.content && item.content[0] && item.content[0].text) ? item.content[0].text : '';\n// Supprimer le bloc markdown ```json ... ``` si présent\nconst match = raw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nconst jsonStr = match ? match[1].trim() : raw.trim();\nlet analyse;\ntry {\n  analyse = JSON.parse(jsonStr);\n} catch(e) {\n  throw new Error('Impossible de parser la réponse Claude : ' + e.message + ' — Réponse brute : ' + raw.slice(0, 200));\n}\nreturn [{ json: { ...item, analyse } }];"
+      },
+      "id": "1587f91d-309e-4ef9-805d-0d55edc94cae",
+      "name": "04b - Extraire JSON Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11248,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "candidat_nom",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.candidat_nom }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "candidat_email",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.candidat_email }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "candidat_telephone",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.candidat_telephone }}",
+              "type": "string"
+            },
+            {
+              "id": "p4",
+              "name": "titre_poste",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.titre_poste }}",
+              "type": "string"
+            },
+            {
+              "id": "p5",
+              "name": "offre_id",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.offre_id }}",
+              "type": "string"
+            },
+            {
+              "id": "p6",
+              "name": "email_recruteur",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.email_recruteur }}",
+              "type": "string"
+            },
+            {
+              "id": "p7",
+              "name": "date_candidature",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.date_candidature }}",
+              "type": "string"
+            },
+            {
+              "id": "p8",
+              "name": "candidature_id",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.candidature_id }}",
+              "type": "string"
+            },
+            {
+              "id": "p19",
+              "name": "callback_url",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.callback_url }}",
+              "type": "string"
+            },
+            {
+              "id": "p9",
+              "name": "score",
+              "value": "={{ $json.analyse.score }}",
+              "type": "number"
+            },
+            {
+              "id": "p10",
+              "name": "recommandation",
+              "value": "={{ $json.analyse.recommandation }}",
+              "type": "string"
+            },
+            {
+              "id": "p11",
+              "name": "resume_analyse",
+              "value": "={{ $json.analyse.resume_analyse }}",
+              "type": "string"
+            },
+            {
+              "id": "p12",
+              "name": "competences_detectees",
+              "value": "={{ $json.analyse.competences_detectees.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "p13",
+              "name": "competences_manquantes",
+              "value": "={{ $json.analyse.competences_manquantes.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "p14",
+              "name": "adequation_poste",
+              "value": "={{ $json.analyse.adequation_poste }}",
+              "type": "string"
+            },
+            {
+              "id": "p15",
+              "name": "experience_annees",
+              "value": "={{ $json.analyse.experience_annees }}",
+              "type": "number"
+            },
+            {
+              "id": "p16",
+              "name": "niveau_education",
+              "value": "={{ $json.analyse.niveau_education }}",
+              "type": "string"
+            },
+            {
+              "id": "p17",
+              "name": "points_forts",
+              "value": "={{ $json.analyse.points_forts }}",
+              "type": "string"
+            },
+            {
+              "id": "p18",
+              "name": "points_faibles",
+              "value": "={{ JSON.parse($json.content[0].text).points_faibles }}",
+              "type": "string"
+            },
+            {
+              "id": "p20",
+              "name": "test_requis",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.test_requis }}",
+              "type": "boolean"
+            },
+            {
+              "id": "p21",
+              "name": "lien_calendar",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.lien_calendar }}",
+              "type": "string"
+            },
+            {
+              "id": "p22",
+              "name": "callback_secret",
+              "value": "={{ $('03 - Préparer prompt Claude').item.json.callback_secret }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0ad94b63-bd97-41ff-8465-ba6ad29d9595",
+      "name": "05 - Parser réponse Claude",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        11424,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.callback_url + \"/\" + $json.candidature_id + \"/analyse\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Callback-Secret",
+              "value": "={{ $json.callback_secret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ score: $json.score, recommandation: $json.recommandation, resume_analyse: $json.resume_analyse, adequation_poste: $json.adequation_poste, competences_detectees: $json.competences_detectees, competences_manquantes: $json.competences_manquantes, experience_annees: $json.experience_annees, niveau_education: $json.niveau_education, points_forts: $json.points_forts, points_faibles: $json.points_faibles }) }}",
+        "options": {}
+      },
+      "id": "227ca77d-3002-47d8-b202-2c396c999381",
+      "name": "06 - Mettre à jour MongoDB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        11600,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=✅ Candidature reçue — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><div style=\"background:linear-gradient(135deg,#15803d,#16a34a);padding:24px;text-align:center;border-radius:12px 12px 0 0\"><h2 style=\"color:#fff;margin:0\">Candidature reçue ✅</h2></div><div style=\"padding:24px;background:#fff;border:1px solid #dcfce7;border-radius:0 0 12px 12px\"><p>Bonjour <strong>{{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</strong>,</p><p>Nous avons bien reçu votre candidature pour le poste de <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>.</p><p>Votre dossier est en cours d'analyse. Nous reviendrons vers vous sous <strong>48h ouvrées</strong>.</p><br><p>Cordialement,<br><strong>L'équipe Recrutement</strong></p></div></div>",
+        "options": {}
+      },
+      "id": "cac7b634-56a2-45d0-9ff4-2e35262fa8aa",
+      "name": "07 - Email accusé candidat",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        11776,
+        9440
+      ],
+      "webhookId": "c7c5ce39-9a29-4973-bffc-d20a63026303",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "t1",
+              "leftValue": "={{ $('05 - Parser réponse Claude').item.json.test_requis }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "38973eea-7e36-4b16-9e77-0d7bac1ec8fd",
+      "name": "07b - Test requis ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        11984,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "q1",
+              "leftValue": "={{ $('05 - Parser réponse Claude').item.json.score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0e220388-3f28-4d1a-8cd1-061c0c2f2ab7",
+      "name": "08 - Qualifié (>= 7) ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        12192,
+        9456
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.email_recruteur }}",
+        "subject": "=🟢 Candidat qualifié — {{ $('05 - Parser réponse Claude').item.json.candidat_nom }} ({{ $('05 - Parser réponse Claude').item.json.score }}/10)",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:700px\"><h2 style=\"color:#16a34a\">🟢 Nouveau candidat qualifié</h2><table style=\"border-collapse:collapse;width:100%;margin:15px 0\"><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold;width:35%\">Nom</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Email</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.candidat_email }}</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Téléphone</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.candidat_telephone }}</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Score IA</td><td style=\"padding:8px;border:1px solid #ddd\"><strong style=\"color:#16a34a\">{{ $('05 - Parser réponse Claude').item.json.score }}/10</strong></td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Compétences détectées</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.competences_detectees }}</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Compétences manquantes</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.competences_manquantes }}</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Points forts</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.points_forts }}</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;background:#f9fafb;font-weight:bold\">Points faibles</td><td style=\"padding:8px;border:1px solid #ddd\">{{ $('05 - Parser réponse Claude').item.json.points_faibles }}</td></tr></table><p><strong>Résumé IA :</strong> {{ $('05 - Parser réponse Claude').item.json.resume_analyse }}</p></div>",
+        "options": {}
+      },
+      "id": "aab53b0b-10fc-46f0-aee2-4964ac2cc214",
+      "name": "09a - Notifier recruteur (qualifié)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        12416,
+        9184
+      ],
+      "webhookId": "5f31f47e-c197-46d7-aadc-5e0abcefd228",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=📅 Invitation entretien — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><div style=\"background:linear-gradient(135deg,#15803d,#16a34a);padding:24px;text-align:center;border-radius:12px 12px 0 0\"><h2 style=\"color:#fff;margin:0\">Félicitations !</h2></div><div style=\"padding:24px;background:#fff;border:1px solid #dcfce7;border-radius:0 0 12px 12px\"><p>Bonjour <strong>{{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</strong>,</p><p>Après analyse de votre candidature pour <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>, nous souhaitons vous inviter à un entretien.</p><p style=\"text-align:center;margin:24px 0\"><a href=\"{{ $('05 - Parser réponse Claude').item.json.lien_calendar }}\" style=\"background:#15803d;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold\">📅 Planifier mon entretien</a></p><p>Merci de réserver dans les <strong>48 heures</strong>.</p><br><p>Cordialement,<br><strong>L'équipe Recrutement</strong></p></div></div>",
+        "options": {}
+      },
+      "id": "d37d4d67-24f8-436a-a45c-e9f767f99c11",
+      "name": "09b - Invitation entretien",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        12384,
+        9440
+      ],
+      "webhookId": "f630150b-5ded-48a0-9d98-ee3e7a0796a9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      },
+      "id": "fae80379-30c5-4a33-a771-00be8baad292",
+      "name": "10 - Attendre 48h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        12624,
+        9440
+      ],
+      "webhookId": "wait-48h-rdv"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v1/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bb889223-e648-4799-8b04-85480125266b",
+      "name": "11 - Vérifier Cal.com",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        12864,
+        9440
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parser réponse Claude').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "b4f05fe5-5a0a-49c3-85ef-688299c6295d",
+      "name": "12 - RDV trouvé ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        13104,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r1",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c726e389-ad66-4166-865d-0cbecc2e0ca5",
+      "name": "13 - Pas de RDV ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        13360,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=⏰ Rappel entretien — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><h2 style=\"color:#f59e0b\">Rappel — {{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</h2><p>Nous vous avons invité à planifier un entretien pour <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>.</p><p style=\"text-align:center;margin:20px 0\"><a href=\"{{ $('05 - Parser réponse Claude').item.json.lien_calendar }}\" style=\"background:#f59e0b;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold\">📅 Planifier mon entretien</a></p><p><em>Rappel 1/2 — Merci de réserver rapidement.</em></p></div>",
+        "options": {}
+      },
+      "id": "f1f9ee6f-bd92-444e-ac53-6a931d800fe2",
+      "name": "14 - Relance 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        13600,
+        9440
+      ],
+      "webhookId": "c1c5038a-3fb2-4093-88b8-0a42930a4f32",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "id": "511eeb01-2af0-4c33-804e-8033da7dba7d",
+      "name": "15 - Attendre 24h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        13840,
+        9440
+      ],
+      "webhookId": "wait-24h-relance2"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v1/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a8c01990-59a8-43a9-9cc3-85497a1e5f83",
+      "name": "16 - Vérifier Cal.com 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        14080,
+        9440
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parser réponse Claude').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "0a68a184-5084-4c6f-8b54-07386f7c2ce7",
+      "name": "17 - RDV trouvé 2 ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        14320,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r2",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "68996f5f-18fc-462e-928e-d3f0729655bf",
+      "name": "18 - Pas de RDV 2 ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        14560,
+        9440
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=🔴 Dernier rappel — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><h2 style=\"color:#ef4444\">Dernier rappel — {{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</h2><p>Ceci est notre dernier rappel pour l'entretien <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>.</p><p style=\"text-align:center;margin:20px 0\"><a href=\"{{ $('05 - Parser réponse Claude').item.json.lien_calendar }}\" style=\"background:#ef4444;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold\">📅 Dernier rappel</a></p><p><em>Sans réponse, votre candidature sera considérée comme abandonnée.</em></p></div>",
+        "options": {}
+      },
+      "id": "5c491444-6acd-469a-ba38-e931f2634c64",
+      "name": "19 - Relance 2 finale",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        14800,
+        9440
+      ],
+      "webhookId": "8103efc9-4adc-4cc8-9c15-38d58926ca9d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "a1",
+              "leftValue": "={{ $('05 - Parser réponse Claude').item.json.score }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6386449d-1564-4908-a412-ade3493bea98",
+      "name": "20 - À revoir (>= 4) ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        12384,
+        9664
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.email_recruteur }}",
+        "subject": "=🟡 À revoir — {{ $('05 - Parser réponse Claude').item.json.candidat_nom }} ({{ $('05 - Parser réponse Claude').item.json.score }}/10)",
+        "message": "=<div style=\"font-family:Arial,sans-serif\"><h2 style=\"color:#f59e0b\">🟡 Candidat à revoir</h2><p><strong>Nom :</strong> {{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</p><p><strong>Email :</strong> {{ $('05 - Parser réponse Claude').item.json.candidat_email }}</p><p><strong>Score :</strong> {{ $('05 - Parser réponse Claude').item.json.score }}/10</p><p><strong>Résumé :</strong> {{ $('05 - Parser réponse Claude').item.json.resume_analyse }}</p><p><strong>Action requise :</strong> Revue manuelle nécessaire.</p></div>",
+        "options": {}
+      },
+      "id": "cf540492-5c9b-49ce-965b-bdac2b5fb498",
+      "name": "21 - Notifier recruteur (à revoir)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        12624,
+        9600
+      ],
+      "webhookId": "a562cd36-92a8-4fff-becf-50e01f0e8f95",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=Suite de votre candidature — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><p>Bonjour <strong>{{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</strong>,</p><p>Nous avons examiné votre candidature pour <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>.</p><p>Malheureusement, nous ne pouvons pas donner suite à votre candidature pour ce poste.</p><p>Nous vous souhaitons le meilleur dans vos recherches.</p><br><p>Cordialement,<br><strong>L'équipe Recrutement</strong></p></div>",
+        "options": {}
+      },
+      "id": "9e4e0332-f3e8-4f45-aa38-ca46008c8ad1",
+      "name": "22 - Email de refus",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        12624,
+        9776
+      ],
+      "webhookId": "b141befb-2006-47b2-9650-ccbd18e9bacb",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 - Webhook Candidature": {
+      "main": [
+        [
+          {
+            "node": "02 - Extraire données",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 - Extraire données": {
+      "main": [
+        [
+          {
+            "node": "03 - Préparer prompt Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 - Préparer prompt Claude": {
+      "main": [
+        [
+          {
+            "node": "04 - Appel Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 - Appel Claude API": {
+      "main": [
+        [
+          {
+            "node": "04b - Extraire JSON Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04b - Extraire JSON Claude": {
+      "main": [
+        [
+          {
+            "node": "05 - Parser réponse Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 - Parser réponse Claude": {
+      "main": [
+        [
+          {
+            "node": "06 - Mettre à jour MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 - Mettre à jour MongoDB": {
+      "main": [
+        [
+          {
+            "node": "07 - Email accusé candidat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 - Email accusé candidat": {
+      "main": [
+        [
+          {
+            "node": "07b - Test requis ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07b - Test requis ?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "08 - Qualifié (>= 7) ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08 - Qualifié (>= 7) ?": {
+      "main": [
+        [
+          {
+            "node": "09a - Notifier recruteur (qualifié)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "09b - Invitation entretien",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "20 - À revoir (>= 4) ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09b - Invitation entretien": {
+      "main": [
+        [
+          {
+            "node": "10 - Attendre 48h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 - Attendre 48h": {
+      "main": [
+        [
+          {
+            "node": "11 - Vérifier Cal.com",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11 - Vérifier Cal.com": {
+      "main": [
+        [
+          {
+            "node": "12 - RDV trouvé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 - RDV trouvé ?": {
+      "main": [
+        [
+          {
+            "node": "13 - Pas de RDV ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13 - Pas de RDV ?": {
+      "main": [
+        [
+          {
+            "node": "14 - Relance 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14 - Relance 1": {
+      "main": [
+        [
+          {
+            "node": "15 - Attendre 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15 - Attendre 24h": {
+      "main": [
+        [
+          {
+            "node": "16 - Vérifier Cal.com 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "16 - Vérifier Cal.com 2": {
+      "main": [
+        [
+          {
+            "node": "17 - RDV trouvé 2 ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "17 - RDV trouvé 2 ?": {
+      "main": [
+        [
+          {
+            "node": "18 - Pas de RDV 2 ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18 - Pas de RDV 2 ?": {
+      "main": [
+        [
+          {
+            "node": "19 - Relance 2 finale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20 - À revoir (>= 4) ?": {
+      "main": [
+        [
+          {
+            "node": "21 - Notifier recruteur (à revoir)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "22 - Email de refus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ad37a825-5918-48a8-be35-958cc70b158f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "afc83c8eed816bd60e45cedd7670d3e536b7e09132dc39868b3fdc725f0a61b3"
+  },
+  "id": "Dln7pMm9P8tiA0Ju",
+  "tags": []
+}

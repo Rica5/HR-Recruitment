@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="solumada">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connexion — Recrutement</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+/* Login page specific */
+.login-page {
+  background-image: radial-gradient(circle at 1px 1px, rgba(148,163,184,.3) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+.orb { position:absolute; border-radius:50%; filter:blur(90px); opacity:.3; pointer-events:none; }
+.orb1 { width:440px; height:440px; background:var(--accent); top:-120px; right:-120px; animation:orbFloat 8s ease-in-out infinite; }
+.orb2 { width:340px; height:340px; background:var(--accent-mid); bottom:-100px; left:-100px; animation:orbFloat 10s ease-in-out infinite reverse; }
+@keyframes orbFloat { 0%,100%{transform:translate(0,0)} 50%{transform:translate(12px,-12px)} }
+
+.setup-link { text-align:center; margin-top:18px; font-size:12px; color:var(--text-3); font-weight:500; }
+.setup-link a { color:var(--accent-mid); font-weight:700; }
+.setup-link a:hover { color:var(--accent-dark); }
+
+/* Eye toggle button */
+#eye-btn { line-height:1; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; transition:background var(--transition); }
+#eye-btn:hover { background:var(--surface-2); }
+
+@media(max-width:480px){
+  .orb1 { width:240px; height:240px; top:-70px; right:-70px; }
+  .orb2 { width:180px; height:180px; bottom:-50px; left:-50px; }
+}
+</style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-bg">
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+  </div>
+
+  <div style="width:100%;max-width:420px;padding:16px;position:relative">
+    <!-- Theme selector -->
+    <div style="display:flex;justify-content:center;gap:8px;margin-bottom:20px">
+      <button class="theme-btn active" data-theme="solumada" onclick="switchLoginTheme('solumada')">🌿 Solumada</button>
+      <button class="theme-btn" data-theme="optimum" onclick="switchLoginTheme('optimum')">🔵 Optimum</button>
+    </div>
+
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-mark" id="logo-mark">S</div>
+        <div>
+          <div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.02em" id="brand-name">Solumada</div>
+          <div style="font-size:11px;color:var(--text-3);font-weight:600;letter-spacing:.04em">PLATEFORME RH</div>
+        </div>
+      </div>
+
+      <div class="login-title">
+        <h1>Bon retour 👋</h1>
+        <p>Connectez-vous à votre espace recrutement</p>
+      </div>
+
+      <div id="alert" style="display:none;padding:11px 14px;border-radius:var(--r);background:#fff1f2;color:#dc2626;font-size:13px;font-weight:600;margin-bottom:16px;border:1.5px solid #fecaca"></div>
+
+      <div class="form-group">
+        <label class="form-label">Adresse email</label>
+        <input class="form-control" type="email" id="email" placeholder="admin@solumada.mg" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <div style="position:relative">
+          <input class="form-control" type="password" id="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:40px">
+          <button onclick="togglePwd()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);font-size:14px" id="eye-btn">👁</button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;padding:12px" id="btn-login" onclick="doLogin()">
+        Se connecter
+      </button>
+
+      <div class="setup-link">
+        Première connexion ? <a href="#" onclick="showSetup()">Créer le compte admin</a>
+      </div>
+    </div>
+
+    <!-- Setup panel (caché par défaut) -->
+    <div class="login-card" id="setup-panel" style="display:none;margin-top:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:18px">Créer le compte administrateur</div>
+      <div class="form-group">
+        <label class="form-label">Nom complet</label>
+        <input class="form-control" type="text" id="s-nom" placeholder="Jean Dupont">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-control" type="email" id="s-email" placeholder="admin@solumada.mg">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mot de passe</label>
+        <input class="form-control" type="password" id="s-pwd" placeholder="Minimum 6 caractères">
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="doSetup()">Créer le compte</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+if (Auth.isLogged()) location.href = '/dashboard';
+applyTheme(localStorage.getItem('rh_theme') || 'solumada');
+
+function switchLoginTheme(t) {
+  applyTheme(t);
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+  document.getElementById('logo-mark').textContent = t === 'optimum' ? 'O' : 'S';
+  document.getElementById('brand-name').textContent = t === 'optimum' ? 'Optimum' : 'Solumada';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+async function doLogin() {
+  const btn = document.getElementById('btn-login');
+  const alert = document.getElementById('alert');
+  const email = document.getElementById('email').value.trim();
+  const pwd = document.getElementById('password').value;
+  if (!email || !pwd) { showAlert('Veuillez remplir tous les champs'); return; }
+  btn.disabled = true; btn.innerHTML = '<div class="spinner" style="border-top-color:#fff;width:16px;height:16px"></div> Connexion…';
+  const r = await api.post('/api/auth/login', { email, password: pwd });
+  btn.disabled = false; btn.innerHTML = 'Se connecter';
+  if (r?.success) {
+    Auth.save(r.token, r.user);
+    applyTheme(r.user.theme || 'solumada');
+    location.href = '/dashboard';
+  } else {
+    showAlert(r?.error || 'Erreur de connexion');
+  }
+}
+
+async function doSetup() {
+  const nom = document.getElementById('s-nom').value.trim();
+  const email = document.getElementById('s-email').value.trim();
+  const password = document.getElementById('s-pwd').value;
+  if (!nom || !email || !password) { showAlert('Tous les champs sont requis'); return; }
+  const r = await api.post('/api/auth/setup', { nom, email, password });
+  if (r?.success) { Auth.save(r.token, r.user); location.href = '/dashboard'; }
+  else showAlert(r?.error || 'Erreur setup');
+}
+
+function showAlert(msg) {
+  const el = document.getElementById('alert');
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+function showSetup() { document.getElementById('setup-panel').style.display = 'block'; }
+function togglePwd() {
+  const input = document.getElementById('password');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
+</body>
+</html>

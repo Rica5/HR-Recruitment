@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment variables — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Uploaded files — use external storage (S3/Cloudinary) in production
+uploads/
+
+# IDE / OS
+.claude/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+{routes,models,middleware,public
