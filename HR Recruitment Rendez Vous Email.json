@@ -1,0 +1,485 @@
+{
+  "name": "HR Recruitment Rendez Vous Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "candidature-mailing",
+        "options": {}
+      },
+      "id": "cf76bb05-cf9a-4f61-b7bf-2fe879d87ff0",
+      "name": "01 - Webhook Candidature",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4512,
+        816
+      ],
+      "webhookId": "candidature-reception-solumada"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=📅 Invitation entretien — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><div style=\"background:linear-gradient(135deg,#15803d,#16a34a);padding:24px;text-align:center;border-radius:12px 12px 0 0\"><h2 style=\"color:#fff;margin:0\">Félicitations !</h2></div><div style=\"padding:24px;background:#fff;border:1px solid #dcfce7;border-radius:0 0 12px 12px\"><p>Bonjour <strong>{{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</strong>,</p><p>Après analyse de votre candidature pour <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>, nous souhaitons vous inviter à un entretien.</p><p style=\"text-align:center;margin:24px 0\"><a href=\"{{ $('05 - Parser réponse Claude').item.json.lien_calendar }}\" style=\"background:#15803d;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold\">📅 Planifier mon entretien</a></p><p>Merci de réserver dans les <strong>48 heures</strong>.</p><br><p>Cordialement,<br><strong>L'équipe Recrutement</strong></p></div></div>",
+        "options": {}
+      },
+      "id": "8be6f4e6-bd54-4fbb-b02e-dc08aae6d179",
+      "name": "09b - Invitation entretien",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -4256,
+        816
+      ],
+      "webhookId": "f630150b-5ded-48a0-9d98-ee3e7a0796a9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "13514e1c-9882-4327-a6f6-8397603af593",
+      "name": "10 - Attendre 48h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3952,
+        816
+      ],
+      "webhookId": "wait-48h-rdv"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v2/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0f5ca5e1-c35f-4e1d-8bd4-85e574867210",
+      "name": "11 - Vérifier Cal.com",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3712,
+        816
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "U6I46FCPhVS501xg",
+          "name": "Bearer Auth account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parser réponse Claude').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "ecc9c077-7c7a-4bcb-a93c-43bc66dbfb73",
+      "name": "12 - RDV trouvé ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3472,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r1",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e160a269-a653-4fad-9b59-f9bf608e2514",
+      "name": "13 - Pas de RDV ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3216,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=⏰ Rappel entretien — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><h2 style=\"color:#f59e0b\">Rappel — {{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</h2><p>Nous vous avons invité à planifier un entretien pour <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>.</p><p style=\"text-align:center;margin:20px 0\"><a href=\"{{ $('05 - Parser réponse Claude').item.json.lien_calendar }}\" style=\"background:#f59e0b;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold\">📅 Planifier mon entretien</a></p><p><em>Rappel 1/2 — Merci de réserver rapidement.</em></p></div>",
+        "options": {}
+      },
+      "id": "de08cf99-f218-4558-addd-01bc215e85b3",
+      "name": "14 - Relance 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -2976,
+        816
+      ],
+      "webhookId": "c1c5038a-3fb2-4093-88b8-0a42930a4f32",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "17d51092-e329-4a32-b582-86634a313cd3",
+      "name": "15 - Attendre 24h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2736,
+        816
+      ],
+      "webhookId": "wait-24h-relance2"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v2/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4d1acd6f-4a8c-46b2-9402-68884db3dd27",
+      "name": "16 - Vérifier Cal.com 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2496,
+        816
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "lMpYHVsaRAI5f7SJ",
+          "name": "Bearer Auth account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parser réponse Claude').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "78e5c4be-6cb7-49ab-960a-c82a9e81534f",
+      "name": "17 - RDV trouvé 2 ?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2256,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r2",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5ae34569-d463-4f35-9aed-57d65b8e6b12",
+      "name": "18 - Pas de RDV 2 ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2016,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('05 - Parser réponse Claude').item.json.candidat_email }}",
+        "subject": "=🔴 Dernier rappel — {{ $('05 - Parser réponse Claude').item.json.titre_poste }}",
+        "message": "=<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto\"><h2 style=\"color:#ef4444\">Dernier rappel — {{ $('05 - Parser réponse Claude').item.json.candidat_nom }}</h2><p>Ceci est notre dernier rappel pour l'entretien <strong>{{ $('05 - Parser réponse Claude').item.json.titre_poste }}</strong>.</p><p style=\"text-align:center;margin:20px 0\"><a href=\"{{ $('05 - Parser réponse Claude').item.json.lien_calendar }}\" style=\"background:#ef4444;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold\">📅 Dernier rappel</a></p><p><em>Sans réponse, votre candidature sera considérée comme abandonnée.</em></p></div>",
+        "options": {}
+      },
+      "id": "8ea5a577-115f-49b0-9169-33ad2d04bbb3",
+      "name": "19 - Relance 2 finale",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1776,
+        816
+      ],
+      "webhookId": "8103efc9-4adc-4cc8-9c15-38d58926ca9d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cyy41r4396oHURCU",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+    ,
+    {
+      "parameters": {
+        "jsCode": "const wh     = $('01 - Webhook Candidature').item.json;\nconst email  = wh.candidat_email.toLowerCase();\nconst url    = wh.base_url + '/api/public/candidature/' + wh.candidature_id + '/rdv-confirme';\nconst secret = wh.callback_secret;\n\nlet bookings = [];\ntry {\n  const d16 = $('16 - Vérifier Cal.com 2').item.json;\n  bookings = d16?.data?.bookings || d16?.bookings || [];\n} catch(e) {}\nif (!bookings.length) {\n  try {\n    const d11 = $('11 - Vérifier Cal.com').item.json;\n    bookings = d11?.data?.bookings || d11?.bookings || [];\n  } catch(e) {}\n}\n\nconst booking = bookings.find(b =>\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\n\nlet date = null, heure = '', lieu = '';\nif (booking) {\n  const start = new Date(booking.startTime || booking.start);\n  date  = start.toISOString();\n  heure = start.toISOString().slice(11, 16);\n  lieu  = booking.location || '';\n}\n\nreturn [{ json: { url, secret, date, heure, lieu } }];"
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "13b - Statut Entretien planifié",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1540, 1100]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "X-Callback-Secret", "value": "={{ $json.secret }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date: $json.date, heure: $json.heure, lieu: $json.lieu }) }}",
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "13c - Envoyer RDV confirmé",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1300, 1100]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 - Webhook Candidature": {
+      "main": [
+        [
+          {
+            "node": "09b - Invitation entretien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09b - Invitation entretien": {
+      "main": [
+        [
+          {
+            "node": "10 - Attendre 48h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 - Attendre 48h": {
+      "main": [
+        [
+          {
+            "node": "11 - Vérifier Cal.com",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11 - Vérifier Cal.com": {
+      "main": [
+        [
+          {
+            "node": "12 - RDV trouvé ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 - RDV trouvé ?": {
+      "main": [
+        [
+          {
+            "node": "13 - Pas de RDV ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13 - Pas de RDV ?": {
+      "main": [
+        [
+          {
+            "node": "14 - Relance 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13b - Statut Entretien planifié",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14 - Relance 1": {
+      "main": [
+        [
+          {
+            "node": "15 - Attendre 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15 - Attendre 24h": {
+      "main": [
+        [
+          {
+            "node": "16 - Vérifier Cal.com 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "16 - Vérifier Cal.com 2": {
+      "main": [
+        [
+          {
+            "node": "17 - RDV trouvé 2 ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "17 - RDV trouvé 2 ?": {
+      "main": [
+        [
+          {
+            "node": "18 - Pas de RDV 2 ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18 - Pas de RDV 2 ?": {
+      "main": [
+        [
+          {
+            "node": "19 - Relance 2 finale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13b - Statut Entretien planifié",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13b - Statut Entretien planifié": {
+      "main": [
+        [
+          {
+            "node": "13c - Envoyer RDV confirmé",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "54883aa8-d9a1-4672-9f2f-e21cfc74935d",
+  "meta": {
+    "instanceId": "afc83c8eed816bd60e45cedd7670d3e536b7e09132dc39868b3fdc725f0a61b3"
+  },
+  "id": "dZAJoxswTTVuKWlF",
+  "tags": []
+}

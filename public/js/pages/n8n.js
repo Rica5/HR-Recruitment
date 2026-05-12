@@ -12,27 +12,27 @@ async function renderN8n() {
   <div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent)">
     <div class="card-header"><span class="card-title">⚡ Architecture actuelle</span></div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div style="background:var(--surface-2);border-radius:var(--r);padding:16px">
-          <div style="font-size:12px;font-weight:700;color:var(--accent-mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Application Node.js</div>
-          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>Formulaire création offre</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>Enregistrement MongoDB</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>Email lien offre → recruteur</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>Formulaire candidature</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>Upload CV + lettre</div>
-            <div style="display:flex;align-items:center;gap:8px;color:var(--accent-mid);font-weight:600"><span style="font-size:16px">→</span>Déclenche WF2 via Webhook</div>
+      <div class="pg-grid-2">
+        <div class="pg-surface">
+          <div class="pg-label">Application Node.js</div>
+          <div class="pg-col-8">
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Formulaire création offre</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Enregistrement MongoDB</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Email lien offre → recruteur</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Formulaire candidature</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Upload CV + lettre</div>
+            <div class="pg-flex-8" style="color:var(--accent-mid);font-weight:600"><span style="font-size:16px">→</span>Déclenche WF2 via Webhook</div>
           </div>
         </div>
-        <div style="background:var(--surface-2);border-radius:var(--r);padding:16px">
-          <div style="font-size:12px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">n8n WF2 (Webhook)</div>
-          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>Reçoit CV + lettre (base64)</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>Analyse Claude IA (score /10)</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>Met à jour MongoDB (PATCH)</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>Email accusé → candidat</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>Email résultat → recruteur</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>Relances agenda (48h + 24h)</div>
+        <div class="pg-surface">
+          <div class="pg-label" style="color:#7c3aed">n8n WF2 (Webhook)</div>
+          <div class="pg-col-8">
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Reçoit CV + lettre (base64)</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Analyse Claude IA (score /10)</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Met à jour MongoDB (PATCH)</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Email accusé → candidat</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Email résultat → recruteur</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Relances agenda (48h + 24h)</div>
           </div>
         </div>
       </div>
@@ -46,12 +46,12 @@ async function renderN8n() {
       <a href="https://optimumdev.app.n8n.cloud/workflow/4LmZn4gtORYnL1mP" target="_blank" class="btn btn-secondary btn-sm">Ouvrir dans n8n ↗</a>
     </div>
     <div class="card-body">
-      <div style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--surface-2);border-radius:var(--r)">
-        <div style="width:12px;height:12px;border-radius:50%;flex-shrink:0;background:${wf2Data?.active ? '#22c55e' : '#94a3b8'};${wf2Data?.active ? 'box-shadow:0 0 0 3px rgba(34,197,94,.2)' : ''}"></div>
+      <div class="pg-status-row">
+        <div class="pg-dot" style="background:${wf2Data?.active ? '#22c55e' : '#94a3b8'};${wf2Data?.active ? 'box-shadow:0 0 0 3px rgba(34,197,94,.2)' : ''}; width:12px; height:12px;"></div>
         <div>
-          <div style="font-weight:600;font-size:14px">${wf2Data?.error ? '⚠️ Erreur de connexion' : wf2Data?.active ? 'Actif — En attente de candidatures' : 'Inactif'}</div>
-          <div style="font-size:12px;color:var(--text-3);margin-top:2px">
-            URL Webhook : <code style="background:var(--surface);padding:1px 6px;border-radius:4px;font-size:11px">https://optimumdev.app.n8n.cloud/webhook/candidature-reception</code>
+          <div class="pg-title">${wf2Data?.error ? '⚠️ Erreur de connexion' : wf2Data?.active ? 'Actif — En attente de candidatures' : 'Inactif'}</div>
+          <div class="pg-muted">
+            URL Webhook : <code class="pg-code">https://optimumdev.app.n8n.cloud/webhook/candidature-reception</code>
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ async function renderN8n() {
       <span class="badge badge-amber">Données de test</span>
     </div>
     <div class="card-body">
-      <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">
+      <p class="pg-text-sm" style="margin-bottom:16px">
         Envoie une candidature de test à n8n pour vérifier que le webhook fonctionne correctement.
         Sélectionnez d'abord une offre existante.
       </p>
@@ -79,9 +79,9 @@ async function renderN8n() {
         <label class="form-label">Email candidat test</label>
         <input class="form-control" id="test-email" value="test@example.com" style="max-width:300px">
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
+      <div class="pg-flex-10">
         <button class="btn btn-primary" id="btn-test-wh" onclick="testWebhook()">🚀 Envoyer test</button>
-        <span id="test-result" style="font-size:13px;color:var(--text-3)"></span>
+        <span id="test-result" class="pg-text-xs"></span>
       </div>
     </div>
   </div>
@@ -116,19 +116,19 @@ async function loadExecutions() {
   const response = await api.get(`/api/n8n/executions/${WF2_ID}`);
   const executions = response?.executions || [];
   if (!executions.length) {
-    el.innerHTML = `<div style="text-align:center;font-size:13px;color:var(--text-3);padding:16px">Aucune exécution récente</div>`;
+    el.innerHTML = `<div class="pg-text-xs" style="text-align:center;padding:16px">Aucune exécution récente</div>`;
     return;
   }
-  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">
+  el.innerHTML = `<div class="pg-col-6">
     ${executions.slice(0, 10).map(e => {
       const status = e.status || (e.finished ? 'success' : 'running');
       const colors = { success: '#22c55e', error: '#ef4444', running: '#f59e0b', waiting: '#94a3b8' };
       const icons  = { success: '✅', error: '❌', running: '⏳', waiting: '⏸️' };
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border-radius:var(--r);font-size:13px">
-        <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${colors[status]||'#94a3b8'}"></div>
+      return `<div class="pg-exec-row">
+        <div class="pg-dot" style="background:${colors[status]||'#94a3b8'}"></div>
         <span style="font-weight:600">${icons[status]||'—'} ${status}</span>
-        <span style="color:var(--text-3);margin-left:auto">${timeAgo(e.startedAt||e.createdAt)}</span>
-        ${e.id ? `<span style="font-family:var(--mono);font-size:11px;color:var(--text-3)">#${e.id.slice(-8)}</span>` : ''}
+        <span class="pg-text-xs" style="margin-left:auto">${timeAgo(e.startedAt||e.createdAt)}</span>
+        ${e.id ? `<span class="pg-mono-xs">#${e.id.slice(-8)}</span>` : ''}
       </div>`;
     }).join('')}
   </div>`;

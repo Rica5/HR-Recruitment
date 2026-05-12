@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 
 const rdvManuelSchema = new mongoose.Schema({
-  date:  { type: Date,   default: null },
-  heure: { type: String, default: '' },
-  lieu:  { type: String, default: '' },
-  note:  { type: String, default: '' },
+  date:     { type: Date,   default: null },
+  heure:    { type: String, default: '' },
+  lieu:     { type: String, default: '' },
+  note:     { type: String, default: '' },
+  type_rdv: { type: String, default: '', enum: ['', 'visio', 'presentiel'] },
 }, { _id: false });
 
 const candidatureSchema = new mongoose.Schema({

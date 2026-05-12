@@ -79,7 +79,6 @@ router.post('/candidature', applicationRateLimiter, upload.fields([{ name: 'cv',
 
     const candidature = await Candidature.create(data);
 
-    // Trigger AI analysis via n8n (fire & forget) — WF2 also sends the acknowledgment
     triggerAIAnalysis(candidature, offre).catch(e =>
       console.warn('WF2 not triggered:', e.message)
     );
@@ -110,8 +109,22 @@ router.patch('/candidature/:id/analyse', async (req, res) => {
       if (req.body[key] !== undefined) update[key] = req.body[key];
     }
 
-    if (update.recommandation === 'QUALIFIE')            update.statut = 'Entretien planifié';
-    else if (update.recommandation === 'NON_SELECTIONNE') update.statut = 'Refusé';
+    // Scénario A (auto, pas de test) → statut auto selon reco IA
+    // Scénario B (test_requis ou qualification manuelle) → statut reste 'En cours', le recruteur décide
+    // Scénario C (saisie manuelle) → pas d'analyse IA donc ce callback n'est pas appelé
+    const cand = await Candidature.findById(req.params.id).select('offre_id');
+    const offre = cand ? await Offre.findOne({ offre_id: cand.offre_id }).select('test_requis automatisation_active') : null;
+    // Scénario A uniquement : automatisation complète ET pas de test requis
+    const scenarioA = offre?.automatisation_active !== false && !offre?.test_requis;
+
+    if (scenarioA) {
+      // QUALIFIE → "En cours" : n8n passera à "Entretien planifié" directement en DB quand le RDV cal.com est confirmé
+      if (update.recommandation === 'QUALIFIE')             update.statut = 'En cours';
+      else if (update.recommandation === 'NON_SELECTIONNE') update.statut = 'Refusé';
+    } else {
+      // Scénario B/C : recruteur confirme toujours — l'IA informe, ne décide pas
+      update.statut = 'En cours';
+    }
 
     const candidature = await Candidature.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!candidature) return res.status(404).json({ success: false, error: 'Candidature introuvable' });
@@ -119,6 +132,43 @@ router.patch('/candidature/:id/analyse', async (req, res) => {
     logAudit({ action: 'ANALYSE_IA_RECUE', entity_type: 'candidature', entity_id: req.params.id, entity_label: candidature.candidat_nom, user_email: 'n8n', details: { score: update.score, recommandation: update.recommandation } });
 
     res.json({ success: true, candidature });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/public/candidature/:id/rdv-confirme — n8n callback quand RDV cal.com confirmé
+router.patch('/candidature/:id/rdv-confirme', async (req, res) => {
+  const secret   = req.headers['x-callback-secret'];
+  const expected = process.env.N8N_CALLBACK_SECRET;
+  if (expected && secret !== expected) {
+    console.warn(`[CALLBACK RDV] Invalid secret from ${req.ip}`);
+    return res.status(403).json({ success: false, error: 'Accès non autorisé' });
+  }
+
+  try {
+    const { date, heure, lieu } = req.body;
+
+    const update = {
+      statut:   'Entretien planifié',
+      rdv_pris: true,
+    };
+    if (date || heure || lieu) {
+      update.rdv_manuel = {
+        date:     date  || null,
+        heure:    heure || '',
+        lieu:     lieu  || '',
+        note:     '',
+        type_rdv: '',
+      };
+    }
+
+    const candidature = await Candidature.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!candidature) return res.status(404).json({ success: false, error: 'Candidature introuvable' });
+
+    logAudit({ action: 'RDV_CONFIRME_N8N', entity_type: 'candidature', entity_id: req.params.id, entity_label: candidature.candidat_nom, user_email: 'n8n', details: { date, heure, lieu } });
+
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

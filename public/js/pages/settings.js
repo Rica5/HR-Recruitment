@@ -3,17 +3,17 @@ async function renderSettings() {
   const el = document.getElementById('page-content');
 
   el.innerHTML = `
-  <div style="max-width:680px;display:flex;flex-direction:column;gap:20px">
+  <div class="pg-page-wrap">
 
     <!-- Profil -->
     <div class="card">
       <div class="card-header"><span class="card-title">👤 Profil administrateur</span></div>
       <div class="card-body">
-        <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border-soft)">
+        <div class="pg-flex-16" style="margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border-soft)">
           <div class="avatar" style="width:56px;height:56px;font-size:20px">${initials(user?.nom||'?')}</div>
           <div>
             <div style="font-size:16px;font-weight:700;color:var(--text)">${user?.nom||'—'}</div>
-            <div style="font-size:13px;color:var(--text-3)">${user?.email||'—'}</div>
+            <div class="pg-text-xs" style="font-size:13px">${user?.email||'—'}</div>
             <span class="badge badge-accent" style="margin-top:6px">Administrateur</span>
           </div>
         </div>
@@ -53,7 +53,7 @@ async function renderSettings() {
     <div class="card">
       <div class="card-header"><span class="card-title">🎨 Thème de l'interface</span></div>
       <div class="card-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div class="pg-grid-2" style="gap:14px;margin-bottom:16px">
           <div id="theme-card-solumada" onclick="selectTheme('solumada')" style="border:2px solid ${(user?.theme||'solumada')==='solumada'?'var(--accent)':'var(--border)'};border-radius:var(--r-lg);padding:18px;cursor:pointer;transition:all var(--transition);background:${(user?.theme||'solumada')==='solumada'?'var(--accent-light)':'var(--surface-2)'}">
             <div style="width:36px;height:36px;background:#22c55e;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">S</div>
             <div style="font-size:14px;font-weight:700">Solumada</div>
@@ -67,7 +67,7 @@ async function renderSettings() {
             <div style="display:flex;gap:4px;margin-top:10px">${['#62A5D2','#2b7ab0','#e0f0fa','#f0f8ff'].map(c=>`<div style="width:18px;height:18px;border-radius:4px;background:${c}"></div>`).join('')}</div>
           </div>
         </div>
-        <p style="font-size:12px;color:var(--text-3)">Le thème est sauvegardé dans votre profil et appliqué sur tous vos appareils.</p>
+        <p class="pg-text-xs">Le thème est sauvegardé dans votre profil et appliqué sur tous vos appareils.</p>
       </div>
     </div>
 
@@ -87,17 +87,17 @@ async function renderSettings() {
           <label class="form-label">WF2 — ID Workflow candidature</label>
           <input class="form-control" value="4LmZn4gtORYnL1mP" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
         </div>
-        <p style="font-size:12px;color:var(--text-3)">Pour modifier ces valeurs, éditez le fichier <code style="background:var(--surface-2);padding:1px 6px;border-radius:4px">.env</code> sur le serveur.</p>
+        <p class="pg-text-xs">Pour modifier ces valeurs, éditez le fichier <code class="pg-code">.env</code> sur le serveur.</p>
       </div>
     </div>
 
     <!-- Déconnexion -->
     <div class="card">
       <div class="card-header"><span class="card-title">🚪 Session</span></div>
-      <div class="card-body" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="card-body pg-flex-between">
         <div>
-          <div style="font-size:13px;font-weight:600">Connecté en tant qu'administrateur</div>
-          <div style="font-size:12px;color:var(--text-3);margin-top:2px">Dernière connexion : ${formatDatetime(user?.lastLogin||new Date())}</div>
+          <div class="pg-title">Connecté en tant qu'administrateur</div>
+          <div class="pg-muted">Dernière connexion : ${formatDatetime(user?.lastLogin||new Date())}</div>
         </div>
         <button class="btn btn-danger" onclick="logout()">Se déconnecter</button>
       </div>
