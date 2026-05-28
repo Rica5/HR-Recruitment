@@ -16,7 +16,7 @@ function verifyToken(req, res, next) {
 }
 
 function signToken(user) {
-  return jwt.sign({ id: user._id, email: user.email, nom: user.nom, role: user.role, theme: user.theme }, SECRET, { expiresIn: '7d' });
+  return jwt.sign({ id: user._id, email: user.email, nom: user.nom, role: user.role, theme: user.theme, company: user.company }, SECRET, { expiresIn: '7d' });
 }
 
 module.exports = { verifyToken, signToken };

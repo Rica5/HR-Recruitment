@@ -37,9 +37,11 @@ const ADMIN_EDITABLE = new Set([
   "a_appeler",
   "rdv_pris",
   "non_interesse",
+  "candidat_potentiel",
   "email_invitation_envoye_le",
   "relance_1_envoyee_le",
   "relance_2_envoyee_le",
+  "commentaire",
 ]);
 
 const storage = multer.diskStorage({
@@ -73,11 +75,18 @@ router.post(
     try {
       const data = { ...req.body };
 
-      const offre = await Offre.findOne({ offre_id: data.offre_id });
+      const offre = await Offre.findOne({ offre_id: data.offre_id, company: req.user.company });
       if (!offre)
         return res
           .status(404)
           .json({ success: false, error: "Offre introuvable" });
+
+      if (offre.automatisation_active && !data.candidat_email) {
+        return res.status(400).json({
+          success: false,
+          error: "Email requis — cette offre utilise l'automatisation complète",
+        });
+      }
 
       if (offre.date_butoire && new Date() > new Date(offre.date_butoire)) {
         const dateStr = new Date(offre.date_butoire).toLocaleDateString(
@@ -117,6 +126,7 @@ router.post(
 
       data.titre_poste = offre.titre_poste;
       data.email_recruteur = offre.email_recruteur;
+      data.company = offre.company;
       data.canal_candidature = data.canal_candidature || "plateforme";
       data.a_email = !!data.candidat_email;
       data.a_appeler = !data.candidat_email;
@@ -125,8 +135,9 @@ router.post(
 
       // AI analysis only if a CV is attached
       if (candidature.cv_path) {
-        triggerManualWorkflow(candidature, offre).catch((e) =>
-          console.warn("Manual WF not triggered:", e.message),
+        const trigger = offre.automatisation_active ? triggerAIAnalysis : triggerManualWorkflow;
+        trigger(candidature, offre).catch((e) =>
+          console.warn("WF not triggered:", e.message),
         );
       }
 
@@ -158,7 +169,7 @@ router.get("/", async (req, res) => {
     const limit = Math.min(100, parseInt(req.query.limit) || 50);
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    const filter = { company: req.user.company };
     if (offre_id) filter.offre_id = offre_id;
     if (recommandation) filter.recommandation = recommandation;
     if (a_appeler === "true") filter.a_appeler = true;
@@ -304,7 +315,7 @@ router.get("/calcom/slots", async (req, res) => {
 // GET /api/candidatures/:id
 router.get("/:id", async (req, res) => {
   try {
-    const candidature = await Candidature.findById(req.params.id);
+    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
     if (!candidature)
       return res
         .status(404)
@@ -327,8 +338,8 @@ router.patch("/:id", async (req, res) => {
         .status(400)
         .json({ success: false, error: "Aucun champ modifiable fourni" });
 
-    const candidature = await Candidature.findByIdAndUpdate(
-      req.params.id,
+    const candidature = await Candidature.findOneAndUpdate(
+      { _id: req.params.id, company: req.user.company },
       update,
       { new: true },
     );
@@ -454,7 +465,9 @@ router.post("/:id/convoquer-test", async (req, res) => {
         .status(404)
         .json({ success: false, error: "Offre introuvable" });
 
-    await sendTestSummons({ candidature, offre });
+    sendTestSummons({ candidature, offre }).catch(e =>
+      console.warn("sendTestSummons failed:", e.message)
+    );
     res.json({
       success: true,
       message: "Convocation test envoyée",
@@ -687,9 +700,40 @@ router.post("/:id/relancer-workflow", async (req, res) => {
 });
 
 // DELETE /api/candidatures/:id
+// POST /api/candidatures/:id/upload-cv
+router.post("/:id/upload-cv", upload.single("cv"), async (req, res) => {
+  try {
+    const c = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
+    if (!c) return res.status(404).json({ success: false, error: "Candidature introuvable" });
+    if (!req.file) return res.status(400).json({ success: false, error: "Aucun fichier reçu" });
+
+    if (c.cv_path) {
+      const oldFile = path.join(__dirname, "..", c.cv_path);
+      if (fs.existsSync(oldFile)) fs.unlinkSync(oldFile);
+    }
+
+    c.cv_filename = req.file.filename;
+    c.cv_path = `/uploads/${req.file.filename}`;
+    await c.save();
+
+    logAudit({
+      action: "CV_UPLOADE",
+      entity_type: "candidature",
+      entity_id: c._id.toString(),
+      entity_label: c.candidat_nom,
+      user_email: req.user.email,
+      details: { filename: req.file.filename },
+    });
+
+    res.json({ success: true, cv_path: c.cv_path, cv_filename: c.cv_filename });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   try {
-    const c = await Candidature.findByIdAndDelete(req.params.id);
+    const c = await Candidature.findOneAndDelete({ _id: req.params.id, company: req.user.company });
     if (c?.cv_path) {
       const f = path.join(__dirname, "..", c.cv_path);
       if (fs.existsSync(f)) fs.unlinkSync(f);

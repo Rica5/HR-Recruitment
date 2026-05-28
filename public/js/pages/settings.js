@@ -27,7 +27,7 @@ async function renderSettings() {
             <input class="form-control" id="s-email" type="email" value="${user?.email||''}" disabled style="opacity:.6;cursor:not-allowed">
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="saveProfile()">Enregistrer</button>
+        <button class="btn btn-primary btn-sm" onclick="saveProfile(this)">Enregistrer</button>
       </div>
     </div>
 
@@ -45,29 +45,21 @@ async function renderSettings() {
             <input class="form-control" type="password" id="s-pwd2" placeholder="Répétez le mot de passe">
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="changePassword()">Mettre à jour</button>
+        <button class="btn btn-secondary btn-sm" onclick="changePassword(this)">Mettre à jour</button>
       </div>
     </div>
 
-    <!-- Thème -->
+    <!-- Société -->
     <div class="card">
-      <div class="card-header"><span class="card-title">🎨 Thème de l'interface</span></div>
+      <div class="card-header"><span class="card-title">🏢 Société</span></div>
       <div class="card-body">
-        <div class="pg-grid-2" style="gap:14px;margin-bottom:16px">
-          <div id="theme-card-solumada" onclick="selectTheme('solumada')" style="border:2px solid ${(user?.theme||'solumada')==='solumada'?'var(--accent)':'var(--border)'};border-radius:var(--r-lg);padding:18px;cursor:pointer;transition:all var(--transition);background:${(user?.theme||'solumada')==='solumada'?'var(--accent-light)':'var(--surface-2)'}">
-            <div style="width:36px;height:36px;background:#22c55e;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">S</div>
-            <div style="font-size:14px;font-weight:700">Solumada</div>
-            <div style="font-size:12px;color:var(--text-3);margin-top:3px">Vert naturel #22c55e</div>
-            <div style="display:flex;gap:4px;margin-top:10px">${['#22c55e','#16a34a','#dcfce7','#f0fdf4'].map(c=>`<div style="width:18px;height:18px;border-radius:4px;background:${c}"></div>`).join('')}</div>
-          </div>
-          <div id="theme-card-optimum" onclick="selectTheme('optimum')" style="border:2px solid ${user?.theme==='optimum'?'#62A5D2':'var(--border)'};border-radius:var(--r-lg);padding:18px;cursor:pointer;transition:all var(--transition);background:${user?.theme==='optimum'?'#e0f0fa':'var(--surface-2)'}">
-            <div style="width:36px;height:36px;background:#62A5D2;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">O</div>
-            <div style="font-size:14px;font-weight:700">Optimum</div>
-            <div style="font-size:12px;color:var(--text-3);margin-top:3px">Bleu professionnel #62A5D2</div>
-            <div style="display:flex;gap:4px;margin-top:10px">${['#62A5D2','#2b7ab0','#e0f0fa','#f0f8ff'].map(c=>`<div style="width:18px;height:18px;border-radius:4px;background:${c}"></div>`).join('')}</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <img src="${(COMPANY_CONFIG[user?.company] || COMPANY_CONFIG.solumada).logo}" alt="${(COMPANY_CONFIG[user?.company] || COMPANY_CONFIG.solumada).name}" style="max-height:40px;max-width:140px;object-fit:contain">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">${(COMPANY_CONFIG[user?.company] || COMPANY_CONFIG.solumada).name}</div>
+            <div style="font-size:12px;color:var(--text-3);margin-top:2px">Le thème et les données sont associés à votre société.</div>
           </div>
         </div>
-        <p class="pg-text-xs">Le thème est sauvegardé dans votre profil et appliqué sur tous vos appareils.</p>
       </div>
     </div>
 
@@ -106,42 +98,32 @@ async function renderSettings() {
   </div>`;
 }
 
-async function saveProfile() {
+async function saveProfile(btn) {
   const nom = document.getElementById('s-nom')?.value?.trim();
   if (!nom) { toast('Le nom est requis', 'error'); return; }
-  const r = await api.patch('/api/auth/me', { nom });
-  if (r?.success) {
-    const u = Auth.user(); u.nom = nom; Auth.save(Auth.token(), u);
-    toast('Profil mis à jour !', 'success');
-    document.getElementById('user-name').textContent = nom;
-    document.getElementById('user-avatar').textContent = initials(nom);
-  } else toast(r?.error || 'Erreur', 'error');
+  return withLoading(btn, async () => {
+    const r = await api.patch('/api/auth/me', { nom });
+    if (r?.success) {
+      const u = Auth.user(); u.nom = nom; Auth.save(Auth.token(), u);
+      toast('Profil mis à jour !', 'success');
+      document.getElementById('user-name').textContent = nom;
+      document.getElementById('user-avatar').textContent = initials(nom);
+    } else toast(r?.error || 'Erreur', 'error');
+  });
 }
 
-async function changePassword() {
+async function changePassword(btn) {
   const newPassword  = document.getElementById('s-pwd')?.value;
   const confirmPassword = document.getElementById('s-pwd2')?.value;
   if (!newPassword || newPassword.length < 6) { toast('Minimum 6 caractères', 'error'); return; }
   if (newPassword !== confirmPassword) { toast('Les mots de passe ne correspondent pas', 'error'); return; }
-  const r = await api.patch('/api/auth/me', { password: newPassword });
-  if (r?.success) { toast('Mot de passe mis à jour !', 'success'); document.getElementById('s-pwd').value = ''; document.getElementById('s-pwd2').value = ''; }
-  else toast(r?.error || 'Erreur', 'error');
+  return withLoading(btn, async () => {
+    const r = await api.patch('/api/auth/me', { password: newPassword });
+    if (r?.success) { toast('Mot de passe mis à jour !', 'success'); document.getElementById('s-pwd').value = ''; document.getElementById('s-pwd2').value = ''; }
+    else toast(r?.error || 'Erreur', 'error');
+  });
 }
 
-async function selectTheme(theme) {
-  await switchTheme(theme);
-  // Update card visuals
-  ['solumada','optimum'].forEach(t => {
-    const card = document.getElementById(`theme-card-${t}`);
-    if (!card) return;
-    const isActive = t === theme;
-    const borderColor = t === 'optimum' ? '#62A5D2' : 'var(--accent)';
-    const bgColor = t === 'optimum' ? '#e0f0fa' : 'var(--accent-light)';
-    card.style.border = `2px solid ${isActive ? borderColor : 'var(--border)'}`;
-    card.style.background = isActive ? bgColor : 'var(--surface-2)';
-  });
-  toast(`Thème ${theme} appliqué !`, 'success');
-}
 
 function logout() {
   if (confirm('Se déconnecter ?')) { Auth.clear(); location.href = '/login'; }

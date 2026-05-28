@@ -9,6 +9,15 @@ router.post('/', async (req, res) => {
   try {
     const data = req.body;
     if (!data.offre_id) data.offre_id = Date.now().toString();
+    data.company = req.user.company;
+
+    if (data.statut === 'Active' && (!data.lien_rdv || !data.lien_rdv.trim())) {
+      return res.status(400).json({ success: false, error: "Un lien de calendrier (RDV) est requis pour activer l'offre." });
+    }
+    if (data.statut === 'Active' && data.company !== 'optimum' && !data.approbation_inspection?.approuvee) {
+      return res.status(403).json({ success: false, error: "Offre non approuvée par l'Inspection du Travail. Cochez l'approbation avant d'activer l'offre." });
+    }
+
     const offre = await Offre.create(data);
     const applicationLink = `${process.env.BASE_URL || 'http://localhost:3000'}/postuler?offre_id=${offre.offre_id}`;
     sendJobOfferEmail({ offre, applicationLink }).catch(e => console.warn('Email not sent:', e.message));
@@ -22,13 +31,14 @@ router.post('/', async (req, res) => {
 
 router.get('/stats/summary', async (req, res) => {
   try {
+    const co = req.user.company;
     const [totalOffers, activeOffers, totalApplications, qualified, toReview, rejected] = await Promise.all([
-      Offre.countDocuments(),
-      Offre.countDocuments({ statut: 'Active' }),
-      Candidature.countDocuments(),
-      Candidature.countDocuments({ recommandation: 'QUALIFIE' }),
-      Candidature.countDocuments({ recommandation: 'A_REVOIR' }),
-      Candidature.countDocuments({ recommandation: 'NON_SELECTIONNE' }),
+      Offre.countDocuments({ company: co }),
+      Offre.countDocuments({ company: co, statut: 'Active' }),
+      Candidature.countDocuments({ company: co }),
+      Candidature.countDocuments({ company: co, recommandation: 'QUALIFIE' }),
+      Candidature.countDocuments({ company: co, recommandation: 'A_REVOIR' }),
+      Candidature.countDocuments({ company: co, recommandation: 'NON_SELECTIONNE' }),
     ]);
     res.json({ success: true, stats: { totalOffers, activeOffers, totalApplications, qualified, toReview, rejected } });
   } catch (err) {
@@ -39,6 +49,7 @@ router.get('/stats/summary', async (req, res) => {
 // Madagascar HR process compliance statistics
 router.get('/stats/madagascar', async (req, res) => {
   try {
+    const co = req.user.company;
     const [
       totalOffers,
       activeOffers,
@@ -53,18 +64,18 @@ router.get('/stats/madagascar', async (req, res) => {
       notInterested,
       channels,
     ] = await Promise.all([
-      Offre.countDocuments(),
-      Offre.countDocuments({ statut: 'Active' }),
-      Offre.countDocuments({ statut: 'En pause' }),
-      Offre.countDocuments({ statut: 'Fermée' }),
-      Offre.countDocuments({ 'approbation_inspection.approuvee': true }),
-      Candidature.countDocuments(),
-      Candidature.countDocuments({ a_appeler: true, rdv_pris: false, non_interesse: false }),
-      Candidature.countDocuments({ statut: 'Test convoqué' }),
-      Candidature.countDocuments({ statut: 'Test passé' }),
-      Candidature.countDocuments({ rdv_pris: true }),
-      Candidature.countDocuments({ non_interesse: true }),
-      Candidature.aggregate([{ $group: { _id: '$canal_candidature', count: { $sum: 1 } } }]),
+      Offre.countDocuments({ company: co }),
+      Offre.countDocuments({ company: co, statut: 'Active' }),
+      Offre.countDocuments({ company: co, statut: 'En pause' }),
+      Offre.countDocuments({ company: co, statut: 'Fermée' }),
+      Offre.countDocuments({ company: co, 'approbation_inspection.approuvee': true }),
+      Candidature.countDocuments({ company: co }),
+      Candidature.countDocuments({ company: co, a_appeler: true, rdv_pris: false, non_interesse: false }),
+      Candidature.countDocuments({ company: co, statut: 'Test convoqué' }),
+      Candidature.countDocuments({ company: co, statut: 'Test passé' }),
+      Candidature.countDocuments({ company: co, rdv_pris: true }),
+      Candidature.countDocuments({ company: co, non_interesse: true }),
+      Candidature.aggregate([{ $match: { company: co } }, { $group: { _id: '$canal_candidature', count: { $sum: 1 } } }]),
     ]);
     res.json({
       success: true,
@@ -82,7 +93,7 @@ router.get('/stats/madagascar', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { statut, q } = req.query;
-    const filter = {};
+    const filter = { company: req.user.company };
     if (statut) filter.statut = statut;
     if (q) filter.$or = [{ titre_poste: { $regex: q, $options: 'i' } }, { localisation: { $regex: q, $options: 'i' } }];
     const jobOffers = await Offre.find(filter).sort({ date_creation: -1 });
@@ -94,7 +105,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const offre = await Offre.findOne({ offre_id: req.params.id });
+    const offre = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
     if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
     res.json({ success: true, offre });
   } catch (err) {
@@ -104,7 +115,9 @@ router.get('/:id', async (req, res) => {
 
 router.get('/:id/candidatures', async (req, res) => {
   try {
-    const applications = await Candidature.find({ offre_id: req.params.id }).sort({ score: -1, date_candidature: -1 });
+    const offre = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
+    const applications = await Candidature.find({ offre_id: req.params.id, company: req.user.company }).sort({ score: -1, date_candidature: -1 });
     res.json({ success: true, candidatures: applications });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -113,18 +126,28 @@ router.get('/:id/candidatures', async (req, res) => {
 
 router.patch('/:id', async (req, res) => {
   try {
-    // Block setting to "Active" if not approved by Labour Inspection
     if (req.body.statut === 'Active') {
-      const current = await Offre.findOne({ offre_id: req.params.id });
+      const current = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
       if (!current) return res.status(404).json({ success: false, error: 'Offre introuvable' });
-      if (!current.approbation_inspection?.approuvee) {
+      // Lien de calendrier obligatoire pour activer
+      const lienRdv = req.body.lien_rdv ?? current.lien_rdv;
+      if (!lienRdv || !lienRdv.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Un lien de calendrier (RDV) est requis pour activer l'offre.",
+        });
+      }
+      // Inspection du travail non requise pour Optimum
+      if (current.company !== 'optimum' && !current.approbation_inspection?.approuvee) {
         return res.status(403).json({
           success: false,
-          error: 'Offre non approuvée par l\'Inspection du Travail. Cochez l\'approbation avant d\'activer l\'offre.',
+          error: "Offre non approuvée par l'Inspection du Travail. Cochez l'approbation avant d'activer l'offre.",
         });
       }
     }
-    const offre = await Offre.findOneAndUpdate({ offre_id: req.params.id }, req.body, { new: true });
+    // Prevent changing company via PATCH
+    delete req.body.company;
+    const offre = await Offre.findOneAndUpdate({ offre_id: req.params.id, company: req.user.company }, req.body, { new: true });
     if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
     logAudit({ action: 'OFFRE_MODIFIEE', entity_type: 'offre', entity_id: req.params.id, entity_label: offre.titre_poste, user_email: req.user.email, details: { fields: Object.keys(req.body).join(', ') } });
     res.json({ success: true, offre });
@@ -135,9 +158,10 @@ router.patch('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const offre = await Offre.findOneAndDelete({ offre_id: req.params.id });
-    await Candidature.deleteMany({ offre_id: req.params.id });
-    logAudit({ action: 'OFFRE_SUPPRIMEE', entity_type: 'offre', entity_id: req.params.id, entity_label: offre?.titre_poste || req.params.id, user_email: req.user.email });
+    const offre = await Offre.findOneAndDelete({ offre_id: req.params.id, company: req.user.company });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
+    await Candidature.deleteMany({ offre_id: req.params.id, company: req.user.company });
+    logAudit({ action: 'OFFRE_SUPPRIMEE', entity_type: 'offre', entity_id: req.params.id, entity_label: offre.titre_poste, user_email: req.user.email });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

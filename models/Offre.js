@@ -31,6 +31,7 @@ const offreSchema = new mongoose.Schema({
   automatisation_active: { type: Boolean, default: true },
   formule_remerciement:  { type: String,  default: '' },
   approbation_inspection:{ type: approbationSchema, default: () => ({}) },
+  company:               { type: String,  required: true, enum: ['solumada', 'optimum'], index: true },
   statut:                { type: String,  default: 'En pause', enum: ['Active','Fermée','En pause'] },
   date_creation:         { type: Date,    default: Date.now },
 }, { timestamps: true });

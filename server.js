@@ -12,9 +12,11 @@ const candidaturesRouter = require("./routes/candidatures");
 const n8nRouter          = require("./routes/n8n");
 const publicRouter       = require("./routes/public");
 const auditRouter        = require("./routes/audit");
+const usersRouter        = require("./routes/users");
 const { verifyToken }    = require("./middleware/auth");
 const Offre              = require("./models/Offre");
 const Candidature        = require("./models/Candidature");
+const User               = require("./models/User");
 
 const app        = express();
 const PORT       = process.env.PORT || 3000;
@@ -53,6 +55,7 @@ app.use("/api/offres",       verifyToken, offresRouter);
 app.use("/api/candidatures", verifyToken, candidaturesRouter);
 app.use("/api/n8n",          verifyToken, n8nRouter);
 app.use("/api/audit",        verifyToken, auditRouter);
+app.use("/api/users",        verifyToken, usersRouter);
 
 // ── Public pages ──
 app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
@@ -65,8 +68,13 @@ app.get("/postuler", (req, res) => res.sendFile(path.join(__dirname, "public", "
 // ── MongoDB connection + startup ──
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/solumada_recruitment")
-  .then(() => {
+  .then(async () => {
     console.log("✅ MongoDB connected");
+
+    // ── One-time migration: set default company on legacy documents ──
+    await User.updateMany({ company: { $exists: false } }, { $set: { company: 'solumada', theme: 'solumada' } });
+    await Offre.updateMany({ company: { $exists: false } }, { $set: { company: 'solumada' } });
+    await Candidature.updateMany({ company: { $exists: false } }, { $set: { company: 'solumada' } });
 
     // ── Cron 1: auto-close expired job offers ──
     async function closeExpiredJobOffers() {

@@ -72,6 +72,7 @@ router.post('/candidature', applicationRateLimiter, upload.fields([{ name: 'cv',
 
     data.titre_poste     = offre.titre_poste;
     data.email_recruteur = offre.email_recruteur;
+    data.company         = offre.company;
     // Platform channel + contact flags
     data.canal_candidature = 'plateforme';
     data.a_email   = !!data.candidat_email;

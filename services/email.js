@@ -223,6 +223,63 @@ async function sendRejectionEmail({ candidature, offre }) {
   console.log(`[EMAIL] Rejection email sent to ${candidature.candidat_email}`);
 }
 
+// ── New user credentials ──
+async function sendCredentialsEmail({ nom, email, password, loginUrl, companyName }) {
+  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: `"Recrutement RH" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `🎉 Bienvenue sur la plateforme RH — ${companyName}`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#1e293b,#334155);padding:28px;text-align:center">
+        <h2 style="color:#fff;margin:0">Bienvenue, ${nom} !</h2>
+        <p style="color:#94a3b8;margin:8px 0 0;font-size:14px">${companyName} — Plateforme RH</p>
+      </div>
+      <div style="padding:28px;background:#fff">
+        <p>Bonjour <strong>${nom}</strong>,</p>
+        <p>Votre compte administrateur a été créé. Voici vos identifiants de connexion :</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:20px 0">
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:8px 12px;font-weight:600;color:#64748b;width:40%">Email</td><td style="padding:8px 12px;font-weight:700;color:#0f172a">${email}</td></tr>
+            <tr><td style="padding:8px 12px;font-weight:600;color:#64748b">Mot de passe</td><td style="padding:8px 12px;font-weight:700;color:#0f172a;font-family:monospace;font-size:15px">${password}</td></tr>
+          </table>
+        </div>
+        <p style="text-align:center;margin:24px 0">
+          <a href="${loginUrl}" style="background:#1e293b;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block">Se connecter</a>
+        </p>
+        <p style="color:#94a3b8;font-size:12px;border-top:1px solid #f1f5f9;padding-top:16px;margin-top:16px">Pour des raisons de sécurité, nous vous recommandons de changer votre mot de passe après votre première connexion.</p>
+      </div>
+    </div>`,
+  });
+  console.log(`[EMAIL] Credentials sent to ${email}`);
+}
+
+// ── Password reset ──
+async function sendPasswordResetEmail({ nom, email, resetUrl }) {
+  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: `"Recrutement RH" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `🔒 Réinitialisation de votre mot de passe`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);padding:28px;text-align:center">
+        <h2 style="color:#fff;margin:0">Réinitialisation du mot de passe</h2>
+      </div>
+      <div style="padding:28px;background:#fff">
+        <p>Bonjour <strong>${nom}</strong>,</p>
+        <p>Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous :</p>
+        <p style="text-align:center;margin:28px 0">
+          <a href="${resetUrl}" style="background:#7c3aed;color:#fff;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block">Réinitialiser mon mot de passe</a>
+        </p>
+        <p style="color:#94a3b8;font-size:13px">Ce lien est valable <strong>1 heure</strong>. Si vous n'avez pas fait cette demande, ignorez cet email.</p>
+      </div>
+    </div>`,
+  });
+  console.log(`[EMAIL] Password reset sent to ${email}`);
+}
+
 module.exports = {
   sendJobOfferEmail,
   sendAcknowledgmentEmail,
@@ -230,4 +287,6 @@ module.exports = {
   sendInterviewReminder,
   sendTestSummons,
   sendRejectionEmail,
+  sendCredentialsEmail,
+  sendPasswordResetEmail,
 };

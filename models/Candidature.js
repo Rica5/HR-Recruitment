@@ -15,7 +15,7 @@ const candidatureSchema = new mongoose.Schema({
   candidat_nom:           { type: String,  required: true },
   candidat_email:         { type: String,  default: '', index: true },
   candidat_telephone:     { type: String,  default: '' },
-  canal_candidature:      { type: String,  default: 'plateforme', enum: ['plateforme','email','telephone','physique'] },
+  canal_candidature:      { type: String,  default: 'plateforme', enum: ['plateforme','telephone','physique'] },
   a_email:                { type: Boolean, default: false },
   a_appeler:              { type: Boolean, default: false },
   cv_filename:            { type: String,  default: '' },
@@ -38,6 +38,9 @@ const candidatureSchema = new mongoose.Schema({
   rdv_pris:               { type: Boolean, default: false },
   non_interesse:          { type: Boolean, default: false },
   rdv_manuel:             { type: rdvManuelSchema, default: null },
+  candidat_potentiel:     { type: Boolean, default: false },
+  commentaire:            { type: String,  default: '' },
+  company:                { type: String,  enum: ['solumada', 'optimum'], index: true },
   statut: {
     type: String,
     default: 'Nouveau',

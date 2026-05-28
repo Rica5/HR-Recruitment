@@ -1,3 +1,9 @@
+/* ── Company branding config ── */
+const COMPANY_CONFIG = {
+  solumada: { logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', name: 'Solumada', theme: 'solumada' },
+  optimum:  { logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', name: 'Optimum Solutions', theme: 'optimum' },
+};
+
 /* ── Auth ── */
 const Auth = {
   token: () => localStorage.getItem('rh_token'),
@@ -27,6 +33,18 @@ const api = {
   patch:  (url, data)     => api._fetch(url, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (url)           => api._fetch(url, { method: 'DELETE' }),
 };
+
+/* ── Anti double-click: disable button while async action runs ── */
+function withLoading(btn, asyncFn) {
+  if (!btn || btn.disabled) return Promise.resolve();
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner" style="width:13px;height:13px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:2px"></span>`;
+  return Promise.resolve(asyncFn()).finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  });
+}
 
 /* ── Theme ── */
 function applyTheme(theme) {
@@ -88,7 +106,7 @@ function offerStatusBadge(s) {
   return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
 }
 function channelBadge(channel) {
-  const map = { plateforme: ['badge-blue','🌐 Plateforme'], email: ['badge-accent','📧 Email'], telephone: ['badge-amber','📞 Téléphone'], physique: ['badge-gray','🤝 Physique'] };
+  const map = { plateforme: ['badge-blue','🌐 Plateforme'], telephone: ['badge-amber','📞 Téléphone'], physique: ['badge-gray','🤝 Physique'] };
   const [cls, label] = map[channel] || ['badge-gray', channel || '—'];
   return `<span class="badge ${cls}" style="font-size:10px">${label}</span>`;
 }

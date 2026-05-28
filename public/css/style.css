@@ -963,6 +963,65 @@ select.form-control {
 .pg-mono-xs      { font-family:var(--mono); font-size:11px; color:var(--text-3); }
 
 /* ══════════════════════════════════════════════
+   DASHBOARD — KPI cards & tables
+══════════════════════════════════════════════ */
+.db-kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+.db-kpi { border-radius:16px; padding:22px 20px; cursor:pointer; position:relative; overflow:hidden; transition:transform .2s, box-shadow .2s; border:1px solid rgba(255,255,255,.15); }
+.db-kpi:hover { transform:translateY(-3px); }
+.db-kpi::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.08),transparent); pointer-events:none; }
+.db-kpi-icon { width:44px; height:44px; border-radius:12px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+.db-kpi-val { font-size:36px; font-weight:800; color:#fff; letter-spacing:-.04em; line-height:1; }
+.db-kpi-label { font-size:13px; font-weight:600; color:rgba(255,255,255,.75); margin-top:6px; }
+.db-kpi-sub { font-size:11px; color:rgba(255,255,255,.45); margin-top:3px; }
+.db-kpi-arrow { position:absolute; top:18px; right:18px; opacity:.4; transition:opacity .2s, transform .2s; }
+.db-kpi:hover .db-kpi-arrow { opacity:.9; transform:translate(2px,-2px); }
+
+.db-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+.db-card { background:var(--surface); border-radius:16px; border:1px solid var(--border-soft); overflow:hidden; }
+.db-card-head { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border-soft); flex-wrap:wrap; gap:8px; }
+.db-card-title { font-size:14px; font-weight:700; color:var(--text); }
+.db-card-link { font-size:12px; color:var(--accent-mid); font-weight:600; background:none; border:none; cursor:pointer; padding:0; font-family:inherit; transition:opacity .2s; }
+.db-card-link:hover { opacity:.7; }
+.db-card-body { padding:8px 12px; }
+
+.db-offer-row { display:flex; align-items:center; gap:12px; padding:10px; border-radius:10px; cursor:pointer; transition:background .18s; }
+.db-offer-row:hover { background:var(--surface-2); }
+.db-offer-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; box-shadow:0 0 6px var(--accent-glow); }
+.db-offer-name { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:3px; }
+.db-offer-meta { font-size:11px; color:var(--text-3); }
+.db-offer-bar-wrap { margin-top:4px; height:3px; background:var(--border-soft); border-radius:99px; overflow:hidden; }
+.db-offer-bar { height:100%; background:linear-gradient(to right,var(--grad-start),var(--grad-end)); border-radius:99px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+.db-offer-count { text-align:right; flex-shrink:0; min-width:36px; }
+.db-offer-num { font-size:16px; font-weight:800; color:var(--text); }
+.db-offer-lbl { font-size:10px; color:var(--text-3); }
+
+.db-cand-row { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:10px; cursor:pointer; transition:background .18s; }
+.db-cand-row:hover { background:var(--surface-2); }
+
+.db-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.db-table { width:100%; border-collapse:collapse; min-width:600px; }
+.db-table th { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-3); padding:10px 16px; text-align:left; border-bottom:1px solid var(--border-soft); }
+.db-table td { padding:12px 16px; border-bottom:1px solid var(--border-soft); font-size:13px; vertical-align:middle; }
+.db-table tr:last-child td { border-bottom:none; }
+.db-table tbody tr { cursor:pointer; transition:background .15s; }
+.db-table tbody tr:hover { background:var(--surface-2); }
+.db-bar-cell { display:flex; align-items:center; gap:8px; }
+.db-mini-bar { flex:1; height:6px; background:var(--border-soft); border-radius:99px; overflow:hidden; min-width:40px; }
+.db-mini-fill { height:100%; border-radius:99px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+
+.db-mdg-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.db-mdg-item { background:var(--surface-2); border-radius:12px; padding:14px 16px; border:1px solid var(--border-soft); }
+.db-mdg-val { font-size:24px; font-weight:800; margin-bottom:2px; }
+.db-mdg-label { font-size:12px; font-weight:600; color:var(--text); margin-bottom:1px; }
+.db-mdg-sub { font-size:11px; color:var(--text-3); margin-bottom:6px; }
+.db-mdg-bar { height:4px; background:var(--border-soft); border-radius:99px; overflow:hidden; }
+.db-mdg-fill { height:100%; border-radius:99px; }
+
+.db-canal-pill { background:var(--surface-2); border:1px solid var(--border-soft); border-radius:10px; padding:10px 16px; text-align:center; min-width:90px; }
+.db-canal-val { font-size:18px; font-weight:800; color:var(--text); }
+.db-canal-lbl { font-size:11px; color:var(--text-3); margin-top:2px; }
+
+/* ══════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════ */
 @media (max-width: 1280px) {
@@ -975,6 +1034,10 @@ select.form-control {
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
   .page-content { padding: 20px; }
   .topbar { padding: 0 20px; }
+  .db-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .db-grid { grid-template-columns: 1fr; }
+  .db-mdg-grid { grid-template-columns: repeat(2, 1fr); }
+  .db-kpi-val { font-size: 30px; }
 }
 
 @media (max-width: 768px) {
@@ -993,28 +1056,211 @@ select.form-control {
   .card-body { padding: 16px; }
   .form-grid { grid-template-columns: 1fr; }
   .offre-card { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .offre-card > div:last-child { width: 100%; justify-content: space-between; flex-wrap: wrap; }
   .workflow-card { flex-wrap: wrap; gap: 12px; }
-  .filters-bar { flex-direction: column; gap: 8px; }
-  .filter-input { min-width: 0; width: 100%; }
-  .filter-select { width: 100%; }
-  table { min-width: 520px; }
+
+  /* Filters — full-width stack */
+  .filters-bar { flex-direction: column; gap: 8px; align-items: stretch; }
+  .filter-input, .filter-select { min-width: 0; width: 100%; }
+  .filters-bar .btn { width: 100%; justify-content: center; }
+  .filters-bar .btn-sm { padding: 9px 14px; font-size: 13px; }
+
+  /* Tables — horizontal scroll */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 560px; }
+  th, td { padding: 10px 12px; font-size: 12px; }
+
+  /* Modals — bottom sheet */
+  #modal-offre,
+  #modal-cand,
+  #modal-create-offre,
+  #modal-nouveau-cand,
+  #modal-user { padding: 0 !important; align-items: flex-end !important; }
+  .modal-card {
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: var(--r-2xl) var(--r-2xl) 0 0 !important;
+    width: 100% !important;
+  }
+  #modal-rdv-calcom { padding: 0 !important; align-items: flex-end !important; }
+  #modal-rdv-calcom > div {
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: var(--r-2xl) var(--r-2xl) 0 0 !important;
+    width: 100% !important;
+  }
+
+  /* Modal hero title — smaller on phone */
+  #modal-offre-title { font-size: 17px !important; }
+  #modal-cand-hero-name { font-size: 16px !important; }
+
+  /* Info grids inside modals — 1 col */
+  #offre-panel-cal > div { grid-template-columns: 1fr 1fr !important; }
+
+  /* Pagination — compress */
+  #cands-pagination > div { flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+  /* Dashboard stat cards clickable feel */
+  .stat-card { cursor: pointer; transition: transform var(--transition), box-shadow var(--transition); }
+  .stat-card:active { transform: scale(.98); }
+
+  /* Dashboard — KPI & tables */
+  .db-kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .db-kpi { padding: 16px 14px; }
+  .db-kpi-val { font-size: 28px; }
+  .db-kpi-icon { width: 36px; height: 36px; margin-bottom: 12px; }
+  .db-grid { grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
+  .db-mdg-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .db-table th, .db-table td { padding: 8px 12px; font-size: 12px; }
+
+  /* n8n page — 2-col → 1-col */
+  .pg-grid-2 { grid-template-columns: 1fr; }
+
+  /* Users table — ensure scroll */
+  .table-wrap table { min-width: 500px; }
+
+  /* Settings — stack flex-between on mobile */
+  .pg-flex-between { flex-wrap: wrap; gap: 12px; }
+
+  /* Audit table — compact */
+  #audit-body table { min-width: 600px; }
+
+  /* Form grid in modals — 2 col email/phone → 1 col */
   .detail-hero { padding: 22px 18px; }
   .detail-hero .page-title { font-size: 18px; }
   .login-card { padding: 30px 24px; }
+
+  /* postuler.html responsive */
+  .p-detail-grid { grid-template-columns: 1fr !important; }
+  .p-upload-grid { grid-template-columns: 1fr !important; }
+  .p-hero { padding: 36px 20px 30px; }
+  .p-hero-title { font-size: 22px; }
+  .p-content { padding: 24px 16px 48px; }
+  .p-topbar { padding: 0 16px; }
 }
 
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; gap: 10px; }
   .stat-card { padding: 16px 18px; }
   .stat-value { font-size: 28px; }
-  .page-content { padding: 12px; }
-  .topbar { padding: 0 12px; }
+  .page-content { padding: 10px; }
+  .topbar { padding: 0 10px; }
   .topbar-title { font-size: 14px; }
   .topbar-sub { display: none; }
-  .toast-container { right: 12px; left: 12px; bottom: 16px; }
+  .toast-container { right: 10px; left: 10px; bottom: 16px; }
   .toast { max-width: 100%; }
   .login-card { padding: 26px 18px; max-width: calc(100% - 24px); }
   .login-title h1 { font-size: 21px; }
   .orb1 { width:240px; height:240px; top:-70px; right:-70px; }
   .orb2 { width:180px; height:180px; bottom:-50px; left:-50px; }
+
+  /* Modals fully fullscreen */
+  .modal-card { max-height: 100% !important; border-radius: 0 !important; }
+  #modal-rdv-calcom > div { max-height: 100% !important; border-radius: 0 !important; }
+
+  /* Offre card buttons — wrap nicely */
+  .offre-count { min-width: 48px; }
+
+  /* Cal chips 1 col */
+  #offre-panel-cal > div { grid-template-columns: 1fr !important; }
+
+  /* Candidature decision grid — 2 col on small */
+  #cand-panel-decision > div:first-child { grid-template-columns: 1fr 1fr !important; }
+
+  /* Form 3-col calendar → 1 col */
+  #fo-test-section { grid-template-columns: 1fr !important; }
+
+  /* Dashboard — single column on very small screens */
+  .db-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .db-kpi-val { font-size: 24px; }
+  .db-kpi-icon { width: 32px; height: 32px; font-size: 14px; }
+  .db-mdg-grid { grid-template-columns: 1fr 1fr; }
+  .db-mdg-val { font-size: 20px; }
+
+  /* n8n — stack status row */
+  .pg-status-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .pg-flex-between { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ── Sidebar logo image containment ── */
+.sidebar-logo img { max-height: 40px; max-width: 150px; object-fit: contain; display: block; }
+
+/* ── Sidebar logo box — same rule as login page ── */
+.sidebar-logo-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  padding: 8px 18px;
+  transition: background .3s, box-shadow .3s;
+}
+[data-theme="solumada"] .sidebar-logo-box {
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(0,0,0,.22);
+}
+
+/* ══════════════════════════════════════════════
+   USERS PAGE
+══════════════════════════════════════════════ */
+.users-page { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+
+.users-table { width: 100%; border-collapse: collapse; }
+.users-table th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border-soft); white-space: nowrap; }
+.users-table td { padding: 13px 16px; border-bottom: 1px solid var(--border-soft); font-size: 13px; vertical-align: middle; }
+.users-table tr:last-child td { border-bottom: none; }
+.users-table tbody tr { transition: background .15s; }
+.users-table tbody tr:hover { background: var(--surface-2); }
+
+.users-user-cell { display: flex; align-items: center; gap: 10px; }
+.users-user-info { display: flex; flex-direction: column; }
+.users-user-name { font-weight: 600; font-size: 13px; color: var(--text); }
+.users-user-role { font-size: 11px; color: var(--text-3); }
+.users-email { font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.users-date  { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+.users-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* Responsive — hide less important columns on mobile */
+@media (max-width: 768px) {
+  .users-col-date   { display: none; }
+  .users-table th,
+  .users-table td   { padding: 10px 12px; }
+}
+@media (max-width: 540px) {
+  .users-col-company { display: none; }
+  .users-email { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* ── Modal card base (JS applies class="modal-card") ── */
+.modal-card { transition: none; }
+
+/* ── Filters bar — ensure buttons don't stretch too far on tablet ── */
+@media (min-width: 481px) and (max-width: 768px) {
+  .filters-bar { flex-wrap: wrap; }
+  .filters-bar .btn { flex: 1 1 calc(50% - 4px); min-width: 140px; justify-content: center; }
+}
+
+/* ── Offre card meta — wrap on tablet ── */
+@media (max-width: 900px) {
+  .offre-meta { flex-wrap: wrap; gap: 4px 12px; }
+  .offre-count-val { font-size: 20px; }
+}
+
+/* ── Create modal calendar grid — responsive ── */
+@media (max-width: 640px) {
+  /* Force 3-col calendar grids in create modal to 1 col */
+  #modal-create-offre [style*="grid-template-columns:1fr 1fr 1fr"],
+  #modal-create-offre [style*="grid-template-columns: 1fr 1fr 1fr"] { display: flex !important; flex-direction: column !important; }
+  #modal-create-offre [style*="grid-template-columns:1fr 1fr"],
+  #modal-create-offre [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  /* Hero in modals — smaller padding */
+  #modal-offre [style*="padding:26px"],
+  #modal-cand [style*="padding:22px 24px 18px"] { padding: 18px 18px 14px !important; }
+  #modal-offre-title { font-size: 16px !important; padding-right: 36px !important; }
+  #modal-cand-hero-name { font-size: 15px !important; }
+  #modal-cand-hero-avatar { width: 42px !important; height: 42px !important; font-size: 15px !important; }
+
+  /* Tab bars — reduce padding */
+  #modal-offre [id^="tab-offre"],
+  #modal-cand [id^="tab-cand"] { padding: 11px 12px !important; font-size: 12px !important; }
 }

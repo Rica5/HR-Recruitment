@@ -45,11 +45,11 @@ function drawApplicationsList(applications, jobOffers) {
     <select class="filter-select" id="f-canal" onchange="filterApplications()">
       <option value="">Tous canaux</option>
       <option value="plateforme">🌐 Plateforme</option>
-      <option value="email">📧 Email</option>
       <option value="telephone">📞 Téléphone</option>
       <option value="physique">🤝 Physique</option>
     </select>
     ${toCallCount > 0 ? `<button class="btn btn-sm" style="background:#fef3c7;color:#854d0e;border:1.5px solid #fde68a;font-weight:700;white-space:nowrap" onclick="toggleCallFilter()" id="btn-appeler">📞 À appeler (${toCallCount})</button>` : ''}
+    <button class="btn btn-sm" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #e9d5ff;font-weight:700;white-space:nowrap" onclick="togglePotentielsFilter()" id="btn-potentiels">⭐ Potentiels</button>
     <button class="btn btn-secondary btn-sm" onclick="exportCSV()">📥 Export CSV</button>
     <button class="btn btn-primary btn-sm" onclick="openNewApplication()">+ Nouvelle candidature</button>
   </div>
@@ -75,6 +75,11 @@ function drawApplicationsList(applications, jobOffers) {
   </div>
   ${applicationModalHTML()}`;
   filterApplications();
+  if (window._pendingCandDetail) {
+    const id = window._pendingCandDetail;
+    window._pendingCandDetail = null;
+    setTimeout(() => showApplicationDetail(id), 50);
+  }
   if (_pendingNewApplicationOfferId) {
     const offerId = _pendingNewApplicationOfferId;
     _pendingNewApplicationOfferId = null;
@@ -87,6 +92,14 @@ function toggleCallFilter() {
   _filterToCall = !_filterToCall;
   const btn = document.getElementById('btn-appeler');
   if (btn) btn.style.background = _filterToCall ? '#fde68a' : '#fef3c7';
+  filterApplications();
+}
+
+let _filterPotentiels = false;
+function togglePotentielsFilter() {
+  _filterPotentiels = !_filterPotentiels;
+  const btn = document.getElementById('btn-potentiels');
+  if (btn) btn.style.background = _filterPotentiels ? '#e9d5ff' : '#fdf4ff';
   filterApplications();
 }
 
@@ -104,6 +117,7 @@ function filterApplications() {
   if (offre)   results = results.filter(c => c.offre_id === offre);
   if (channel) results = results.filter(c => c.canal_candidature === channel);
   if (_filterToCall) results = results.filter(c => c.a_appeler && !c.rdv_pris && !c.non_interesse);
+  if (_filterPotentiels) results = results.filter(c => c.candidat_potentiel);
   _filteredList = results;
   _currentPage  = 1;
   renderPage();
@@ -131,6 +145,7 @@ function renderPage() {
             <div>
               <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:4px">
                 ${c.candidat_nom}
+                ${c.candidat_potentiel ? '<span class="badge" style="font-size:9px;padding:1px 5px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe">⭐ Potentiel</span>' : ''}
                 ${c.a_appeler && !c.rdv_pris && !c.non_interesse ? '<span class="badge badge-amber" style="font-size:9px;padding:1px 5px">📞 APPELER</span>' : ''}
               </div>
               <div style="font-size:11px;color:var(--text-3)">${c.candidat_email || (c.candidat_telephone ? '📞 '+c.candidat_telephone : '—')}</div>
@@ -147,8 +162,8 @@ function renderPage() {
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             ${c.cv_path     ? `<a href="${fileUrl(c.cv_path)}"     target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="CV">📄</a>` : ''}
             ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="Lettre">📝</a>` : ''}
-            <button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE')" title="Qualifier">✓</button>
-            <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE')" title="Éliminer">✗</button>
+            <button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="Qualifier">✓</button>
+            <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE',this)" title="Éliminer">✗</button>
             <button class="btn-icon" onclick="event.stopPropagation();relaunchWorkflow('${c._id}')" title="Relancer l'analyse IA">🔄</button>
             <button class="btn-icon" onclick="event.stopPropagation();if(confirm('Supprimer cette candidature ?'))deleteApplication('${c._id}')" title="Supprimer">🗑️</button>
           </div>
@@ -237,142 +252,254 @@ function exportCSV() {
   toast('Export CSV téléchargé !', 'success');
 }
 
+// ── Switch candidature tabs ──
+function switchCandTab(tab) {
+  document.querySelectorAll('.cand-tab-panel').forEach(p => p.style.display = 'none');
+  ['analyse','decision','infos'].forEach(t => {
+    const btn = document.getElementById('tab-cand-'+t);
+    if (btn) { btn.style.color = 'var(--text-3)'; btn.style.borderBottomColor = 'transparent'; }
+  });
+  const panel = document.getElementById('cand-panel-'+tab);
+  if (panel) panel.style.display = 'block';
+  const activeBtn = document.getElementById('tab-cand-'+tab);
+  if (activeBtn) { activeBtn.style.color = 'var(--accent)'; activeBtn.style.borderBottomColor = 'var(--accent)'; }
+}
+
 // ── Application detail modal ──
 function showApplicationDetail(id) {
   const c = _applications.find(x => x._id === id); if (!c) return;
   const offer = _jobOffersMap[c.offre_id] || {};
   const modal = document.getElementById('modal-cand');
-  document.getElementById('modal-cand-title').textContent = c.candidat_nom;
+
+  // Update hero
+  const heroAvatar = document.getElementById('modal-cand-hero-avatar');
+  const heroName   = document.getElementById('modal-cand-hero-name');
+  const heroBadges = document.getElementById('modal-cand-hero-badges');
+  const heroScore  = document.getElementById('modal-cand-hero-score');
+  if (heroAvatar) heroAvatar.textContent = initials(c.candidat_nom);
+  if (heroName)   heroName.textContent   = c.candidat_nom;
+  if (heroBadges) heroBadges.innerHTML = `
+    ${channelBadge(c.canal_candidature)}
+    ${c.recommandation ? renderBadge(c.recommandation) : ''}
+    ${(c.canal_candidature !== 'plateforme' || c.a_appeler) && !c.rdv_pris && !c.non_interesse ? '<span class="badge badge-amber" style="font-size:10px">📞 À APPELER</span>' : ''}
+    ${c.rdv_pris ? '<span class="badge badge-green" style="font-size:10px">📅 RDV pris</span>' : ''}
+    ${c.non_interesse ? '<span class="badge badge-gray" style="font-size:10px">✗ Non intéressé</span>' : ''}
+  `;
+  if (heroScore) {
+    if (c.score != null) {
+      heroScore.style.display = 'block';
+      heroScore.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <div style="flex:1;height:5px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${c.score*10}%;background:white;border-radius:99px;transition:width .8s cubic-bezier(.22,1,.36,1)"></div>
+          </div>
+          <span style="font-family:var(--mono);font-size:15px;font-weight:800;color:white">${c.score}/10</span>
+        </div>`;
+    } else {
+      heroScore.style.display = 'none';
+      heroScore.innerHTML = '';
+    }
+  }
+
+  // Body with all three tab panels
   document.getElementById('modal-cand-body').innerHTML = `
-  <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border-soft)">
-    <div class="avatar" style="width:52px;height:52px;font-size:18px" id="cand-avatar">${initials(c.candidat_nom)}</div>
-    <div style="flex:1;min-width:0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-        <input id="cand-edit-nom" value="${c.candidat_nom}" style="font-size:17px;font-weight:700;border:none;border-bottom:2px solid transparent;background:transparent;flex:1;min-width:0;padding:2px 0;outline:none;color:var(--text);transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'">
-        <button class="btn btn-primary btn-sm" style="flex-shrink:0;font-size:12px;padding:4px 10px" onclick="saveCandidatInfo('${c._id}')">Enregistrer</button>
+
+    <!-- ── Tab: Analyse IA ── -->
+    <div class="cand-tab-panel" id="cand-panel-analyse">
+      ${!c.score && !c.recommandation ? `
+      <div style="text-align:center;padding:48px 20px">
+        <div style="font-size:52px;margin-bottom:14px">🤖</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">Analyse IA en cours…</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:20px">Le workflow n8n analyse la candidature.<br>Revenez dans quelques instants.</div>
+        <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">🔄 Relancer l'analyse</button>
+      </div>` : `
+      ${c.adequation_poste ? `<p style="font-size:13px;color:var(--text-2);line-height:1.85;margin-bottom:20px;padding:16px 18px;background:var(--surface-2);border-radius:var(--r-lg);border-left:3px solid var(--accent)">${c.adequation_poste}</p>` : ''}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        ${c.niveau_education ? `<div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">🎓 Éducation</div><div style="font-size:13px;font-weight:600">${c.niveau_education}</div></div>` : ''}
+        ${c.experience_annees!=null ? `<div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">🕐 Expérience</div><div style="font-size:13px;font-weight:600">${c.experience_annees} an${c.experience_annees>1?'s':''}</div></div>` : ''}
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:4px">
-        <input id="cand-edit-email" value="${c.candidat_email || ''}" placeholder="Email" style="font-size:13px;color:var(--text-3);border:none;border-bottom:1px solid var(--border);background:transparent;flex:1;min-width:0;padding:2px 0;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-        <input id="cand-edit-tel" value="${c.candidat_telephone || ''}" placeholder="Téléphone" style="font-size:13px;color:var(--text-3);border:none;border-bottom:1px solid var(--border);background:transparent;width:130px;padding:2px 0;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+
+      ${c.competences_detectees ? `
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">✅ Compétences détectées</div>
+        <div>${c.competences_detectees.split(',').map(s=>`<span class="skill-tag">${s.trim()}</span>`).join('')}</div>
+      </div>` : ''}
+
+      ${c.competences_manquantes ? `
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">⚠️ Compétences manquantes</div>
+        <div>${c.competences_manquantes.split(',').map(s=>`<span class="skill-tag missing">${s.trim()}</span>`).join('')}</div>
+      </div>` : ''}
+
+      ${(c.points_forts || c.points_faibles) ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        ${c.points_forts ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-lg);padding:16px"><div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">✅ Points forts</div><p style="font-size:12px;color:var(--text-2);line-height:1.7">${c.points_forts}</p></div>` : ''}
+        ${c.points_faibles ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-lg);padding:16px"><div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">⚠️ Points faibles</div><p style="font-size:12px;color:var(--text-2);line-height:1.7">${c.points_faibles}</p></div>` : ''}
+      </div>` : ''}
+
+      ${c.resume_analyse ? `
+      <div style="padding:14px 18px;background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 var(--r-lg) var(--r-lg) 0;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">Résumé de l'analyse</div>
+        <p style="font-size:13px;color:var(--text-2);line-height:1.85;font-style:italic">${c.resume_analyse}</p>
+      </div>` : ''}
+      `}
+    </div>
+
+    <!-- ── Tab: Décision ── -->
+    <div class="cand-tab-panel" id="cand-panel-decision" style="display:none">
+
+      <!-- Decision buttons -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+        <button onclick="applyDecision('${c._id}','QUALIFIE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#dcfce7;color:#166534;border:2px solid #bbf7d0;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#bbf7d0';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#dcfce7';this.style.transform='none'"><span style="font-size:24px">✅</span>Qualifier</button>
+        <button onclick="applyDecision('${c._id}','A_REVOIR',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fef9c3;color:#854d0e;border:2px solid #fde68a;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fde68a';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fef9c3';this.style.transform='none'"><span style="font-size:24px">🔄</span>À revoir</button>
+        <button onclick="applyDecision('${c._id}','NON_SELECTIONNE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fee2e2;color:#991b1b;border:2px solid #fecaca;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fecaca';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fee2e2';this.style.transform='none'"><span style="font-size:24px">❌</span>Éliminer</button>
       </div>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        ${channelBadge(c.canal_candidature)}
-        ${c.a_appeler && !c.rdv_pris && !c.non_interesse ? '<span class="badge badge-amber">📞 À APPELER</span>' : ''}
-        ${c.rdv_pris ? '<span class="badge badge-green">📅 RDV pris</span>' : ''}
-        ${c.non_interesse ? '<span class="badge badge-gray">✗ Non intéressé</span>' : ''}
-        ${c.recommandation ? renderBadge(c.recommandation) : ''}
-        ${c.score!=null ? `<span style="font-family:var(--mono);font-weight:700;color:${scoreColor(c.score)};font-size:15px">${c.score}/10</span>` : ''}
+
+      <!-- Secondary actions -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
+        <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">🔄 Relancer l'analyse IA</button>
+        ${offer.test_requis ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:600" onclick="scheduleTest('${c._id}')">📋 Convoquer au test</button>` : ''}
+        ${offer.lien_rdv ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;border:none;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)" onclick="openRdvCalcom('${c._id}','${c.offre_id}')">📅 Prise de RDV cal.com</button>` : ''}
+        ${!c.non_interesse ? `<button class="btn btn-sm" style="background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0;font-weight:500" onclick="markNotInterested('${c._id}')">✗ Pas intéressé</button>` : ''}
+      </div>
+
+      <!-- Status selector -->
+      <div style="margin-bottom:20px;padding:16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
+        <label class="form-label" style="margin-bottom:10px;display:block">Statut de suivi</label>
+        <select class="form-control" id="cand-statut-sel" onchange="updateApplicationStatus('${c._id}',this.value)">
+          ${['Nouveau','En cours','Entretien planifié','Test convoqué','Test passé','Accepté','Refusé','Pas intéressé'].map(s=>`<option ${c.statut===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+
+      <!-- Candidat potentiel toggle -->
+      <div style="padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px">Vivier</div>
+        <button id="btn-potentiel-toggle" onclick="togglePotentiel('${c._id}',this)"
+          style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;border-radius:var(--r-lg);cursor:pointer;font-size:13px;font-weight:600;border:2px solid;transition:all .15s;${c.candidat_potentiel ? 'background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe' : 'background:var(--surface);color:var(--text-2);border-color:var(--border)'}">
+          <span style="font-size:20px">⭐</span>
+          <div style="text-align:left">
+            <div>${c.candidat_potentiel ? 'Candidat potentiel' : 'Marquer comme potentiel'}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${c.candidat_potentiel ? 'Cliquer pour retirer du vivier' : 'À considérer pour de futures offres'}</div>
+          </div>
+          ${c.candidat_potentiel ? '<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">Actif</span>' : ''}
+        </button>
+      </div>
+
+      <!-- Manual RDV (hidden) -->
+    </div>
+
+    <!-- ── Tab: Infos ── -->
+    <div class="cand-tab-panel" id="cand-panel-infos" style="display:none">
+
+      <!-- Edit candidate info -->
+      <div style="background:var(--surface-2);border-radius:var(--r-lg);padding:18px;margin-bottom:16px;border:1px solid var(--border-soft)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:14px">Informations du candidat</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <div>
+            <label class="form-label">Nom complet</label>
+            <input class="form-control" id="cand-edit-nom" value="${c.candidat_nom}" placeholder="Prénom Nom">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label class="form-label">Email</label>
+              <input class="form-control" id="cand-edit-email" value="${c.candidat_email || ''}" placeholder="email@exemple.com" type="email">
+            </div>
+            <div>
+              <label class="form-label">Téléphone</label>
+              <input class="form-control" id="cand-edit-tel" value="${c.candidat_telephone || ''}" placeholder="032 XX XXX XX">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveCandidatInfo('${c._id}',this)">💾 Enregistrer</button>
+      </div>
+
+      <!-- Documents -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">Documents</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          ${c.cv_path
+            ? `<a href="${fileUrl(c.cv_path)}" target="_blank" class="btn btn-secondary btn-sm">📄 Voir le CV</a>`
+            : `<div style="display:flex;align-items:center;gap:8px;width:100%;flex-wrap:wrap">
+                <label style="flex:1;min-width:160px;display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface-2);border:1.5px dashed var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;color:var(--text-2)" for="cv-upload-${c._id}">
+                  📎 <span id="cv-upload-label-${c._id}">Choisir un CV (PDF, Word…)</span>
+                </label>
+                <input type="file" id="cv-upload-${c._id}" accept=".pdf,.doc,.docx" style="display:none" onchange="document.getElementById('cv-upload-label-${c._id}').textContent=this.files[0]?.name||'Choisir un CV'">
+                <button class="btn btn-primary btn-sm" onclick="uploadCvForCandidate('${c._id}',this)">⬆️ Uploader</button>
+               </div>`
+          }
+          ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn btn-secondary btn-sm">📝 Lettre de motivation</a>` : ''}
+        </div>
+      </div>
+
+      <!-- Meta info -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:6px">Canal</div>
+          <div>${channelBadge(c.canal_candidature)}</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">Date candidature</div>
+          <div style="font-size:12px;font-weight:600">${formatDatetime(c.date_candidature)}</div>
+        </div>
+      </div>
+
+      <!-- Email tracking -->
+      ${(c.email_invitation_envoye_le || c.relance_1_envoyee_le || c.relance_2_envoyee_le) ? `
+      <div style="margin-bottom:16px;padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">📧 Suivi emails entretien</div>
+        ${c.email_invitation_envoye_le ? `<div style="font-size:12px;margin-bottom:4px">✉️ Invitation — <strong>${formatDatetime(c.email_invitation_envoye_le)}</strong></div>` : ''}
+        ${c.relance_1_envoyee_le ? `<div style="font-size:12px;margin-bottom:4px">🔔 Relance 1 — <strong>${formatDatetime(c.relance_1_envoyee_le)}</strong></div>` : ''}
+        ${c.relance_2_envoyee_le ? `<div style="font-size:12px">🔔 Relance 2 — <strong>${formatDatetime(c.relance_2_envoyee_le)}</strong></div>` : ''}
+      </div>` : ''}
+
+      <!-- RDV Manuel confirmed -->
+      ${c.rdv_manuel?.date ? `
+      <div style="margin-bottom:16px;padding:14px 16px;background:#f0fdf4;border-radius:var(--r-lg);border:1px solid #bbf7d0">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#166534;margin-bottom:6px">📅 RDV Manuel confirmé</div>
+        <div style="font-size:13px;font-weight:600">${c.rdv_manuel.date?.includes('T') ? formatDatetime(c.rdv_manuel.date) : (formatDate(c.rdv_manuel.date) + (c.rdv_manuel.heure ? ' à ' + c.rdv_manuel.heure : ''))}${c.rdv_manuel.lieu ? ' — '+c.rdv_manuel.lieu : ''}</div>
+        ${c.rdv_manuel.note ? `<div style="font-size:12px;color:var(--text-2);margin-top:4px">${c.rdv_manuel.note}</div>` : ''}
+      </div>` : ''}
+
+      <!-- Recruiter note -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">📝 Note recruteur (interne)</div>
+        <textarea id="cand-commentaire-${c._id}" rows="4" class="form-control" style="resize:vertical;font-size:13px" placeholder="Observations internes sur ce candidat…" onblur="saveCommentaire('${c._id}',this.value)">${c.commentaire || ''}</textarea>
       </div>
     </div>
-  </div>
+  `;
 
-  ${c.score!=null ? `
-  <div style="margin-bottom:18px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <div style="flex:1;height:10px;background:var(--surface-2);border-radius:99px;overflow:hidden">
-        <div style="height:100%;width:${c.score*10}%;background:${scoreColor(c.score)};border-radius:99px;transition:width .7s"></div>
-      </div>
-      <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:${scoreColor(c.score)}">${c.score}/10</span>
-    </div>
-    ${c.adequation_poste ? `<p style="font-size:13px;color:var(--text-2);line-height:1.7">${c.adequation_poste}</p>` : ''}
-  </div>` : ''}
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    ${c.niveau_education ? detailRowModal('🎓 Éducation',c.niveau_education) : ''}
-    ${c.experience_annees!=null ? detailRowModal('🕐 Expérience',c.experience_annees+' ans') : ''}
-    ${detailRowModal('📋 Poste',c.titre_poste)}
-    ${detailRowModal('📅 Date',formatDatetime(c.date_candidature))}
-  </div>
-
-  ${c.competences_detectees ? `<div style="margin-bottom:14px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);font-weight:600;margin-bottom:6px">Compétences détectées</div>${c.competences_detectees.split(',').map(s=>`<span class="skill-tag">${s.trim()}</span>`).join('')}</div>` : ''}
-  ${c.competences_manquantes ? `<div style="margin-bottom:14px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);font-weight:600;margin-bottom:6px">Compétences manquantes</div>${c.competences_manquantes.split(',').map(s=>`<span class="skill-tag missing">${s.trim()}</span>`).join('')}</div>` : ''}
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-    ${c.points_forts ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r);padding:14px"><div style="font-size:11px;font-weight:600;color:#166534;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">✅ Points forts</div><p style="font-size:12px;color:var(--text-2);line-height:1.6">${c.points_forts}</p></div>` : ''}
-    ${c.points_faibles ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r);padding:14px"><div style="font-size:11px;font-weight:600;color:#dc2626;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">⚠️ Points faibles</div><p style="font-size:12px;color:var(--text-2);line-height:1.6">${c.points_faibles}</p></div>` : ''}
-  </div>
-
-  ${c.resume_analyse ? `<div style="border-left:3px solid var(--accent);padding-left:14px;margin-bottom:16px"><p style="font-size:13px;color:var(--text-2);line-height:1.8;font-style:italic">${c.resume_analyse}</p></div>` : ''}
-
-  <!-- Email follow-up tracking -->
-  ${(c.email_invitation_envoye_le || c.relance_1_envoyee_le || c.relance_2_envoyee_le) ? `
-  <div style="margin-bottom:16px;padding:12px 14px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border-soft)">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">📧 Suivi emails entretien</div>
-    <div style="display:flex;flex-direction:column;gap:4px">
-      ${c.email_invitation_envoye_le ? `<div style="font-size:12px">✉️ Invitation envoyée le <strong>${formatDatetime(c.email_invitation_envoye_le)}</strong></div>` : ''}
-      ${c.relance_1_envoyee_le ? `<div style="font-size:12px">🔔 Relance 1 envoyée le <strong>${formatDatetime(c.relance_1_envoyee_le)}</strong></div>` : ''}
-      ${c.relance_2_envoyee_le ? `<div style="font-size:12px">🔔 Relance 2 envoyée le <strong>${formatDatetime(c.relance_2_envoyee_le)}</strong></div>` : ''}
-    </div>
-  </div>` : ''}
-
-  <!-- Manual appointment -->
-  ${c.rdv_manuel?.date ? `
-  <div style="margin-bottom:16px;padding:12px 14px;background:#f0fdf4;border-radius:var(--r);border:1px solid #bbf7d0">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#166534;margin-bottom:6px">📅 RDV Manuel</div>
-    <div style="font-size:13px;font-weight:600">${c.rdv_manuel.date?.includes('T') ? formatDatetime(c.rdv_manuel.date) : (formatDate(c.rdv_manuel.date) + (c.rdv_manuel.heure ? ' à ' + c.rdv_manuel.heure : ''))}${c.rdv_manuel.lieu ? ' — '+c.rdv_manuel.lieu : ''}</div>
-    ${c.rdv_manuel.note ? `<div style="font-size:12px;color:var(--text-2);margin-top:4px">${c.rdv_manuel.note}</div>` : ''}
-  </div>` : ''}
-
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-    ${c.cv_path     ? `<a href="${fileUrl(c.cv_path)}"     target="_blank" class="btn btn-secondary btn-sm">📄 Voir le CV</a>` : ''}
-    ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn btn-secondary btn-sm">📝 Lettre de motivation</a>` : ''}
-  </div>
-
-  <!-- Manual decision -->
-  <div style="margin-bottom:18px;padding:16px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border-soft)">
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);font-weight:600;margin-bottom:10px">Décision manuelle</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:600" onclick="applyDecision('${c._id}','QUALIFIE')">✅ Qualifier</button>
-      <button class="btn btn-sm" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;font-weight:600" onclick="applyDecision('${c._id}','A_REVOIR')">~ À revoir</button>
-      <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-weight:600" onclick="applyDecision('${c._id}','NON_SELECTIONNE')">❌ Éliminer</button>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">🔄 Relancer l'analyse IA</button>
-      ${offer.test_requis ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;font-weight:600" onclick="scheduleTest('${c._id}')">📋 Convoquer au test</button>` : ''}
-      ${offer.lien_rdv ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;border:none;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)" onclick="openRdvCalcom('${c._id}','${c.offre_id}')">📅 Prise de rendez-vous</button>` : ''}
-      ${!c.non_interesse ? `<button class="btn btn-sm" style="background:#f8fafc;color:#64748b;border:1px solid #e2e8f0" onclick="markNotInterested('${c._id}')">✗ Pas intéressé</button>` : ''}
-    </div>
-  </div>
-
-  <div>
-    <label class="form-label">Statut suivi</label>
-    <select class="form-control" id="cand-statut-sel" style="max-width:240px" onchange="updateApplicationStatus('${c._id}',this.value)">
-      ${['Nouveau','En cours','Entretien planifié','Test convoqué','Test passé','Accepté','Refusé','Pas intéressé'].map(s=>`<option ${c.statut===s?'selected':''}>${s}</option>`).join('')}
-    </select>
-  </div>
-
-  <!-- Inline manual appointment form -->
-  <div id="rdv-manuel-form" style="display:none;margin-top:16px;padding:16px;background:var(--surface-2);border-radius:var(--r);border:1px solid #bae6fd">
-    <div style="font-size:13px;font-weight:700;color:#0369a1;margin-bottom:12px">📅 Planifier un RDV manuel</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div><label class="form-label">Date</label><input class="form-control" type="date" id="rdv-date"></div>
-      <div><label class="form-label">Heure</label><input class="form-control" id="rdv-heure" placeholder="Ex: 10h00"></div>
-      <div><label class="form-label">Lieu</label><input class="form-control" id="rdv-lieu" placeholder="Salle réunion A"></div>
-      <div><label class="form-label">Note</label><input class="form-control" id="rdv-note" placeholder="Optionnel…"></div>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="submitManualAppointment('${c._id}')">Confirmer le RDV</button>
-    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('rdv-manuel-form').style.display='none'">Annuler</button>
-  </div>`;
+  const defaultTab = (c.score != null || c.recommandation) ? 'analyse' : 'decision';
+  switchCandTab(defaultTab);
   modal.style.display = 'flex';
 }
 
-async function saveCandidatInfo(id) {
+async function saveCandidatInfo(id, btn) {
   const nom = document.getElementById('cand-edit-nom')?.value?.trim();
   const email = document.getElementById('cand-edit-email')?.value?.trim();
   const telephone = document.getElementById('cand-edit-tel')?.value?.trim();
   if (!nom) { toast('Le nom ne peut pas être vide', 'error'); return; }
-  const r = await api.patch(`/api/candidatures/${id}`, { candidat_nom: nom, candidat_email: email, candidat_telephone: telephone });
-  if (r?.success) {
-    const c = _applications.find(x => x._id === id);
-    if (c) { c.candidat_nom = nom; c.candidat_email = email; c.candidat_telephone = telephone; }
-    document.getElementById('modal-cand-title').textContent = nom;
-    const av = document.getElementById('cand-avatar');
-    if (av) av.textContent = initials(nom);
-    filterApplications();
-    toast('Informations candidat mises à jour', 'success');
-  } else {
-    toast(r?.error || 'Erreur mise à jour', 'error');
-  }
+  return withLoading(btn, async () => {
+    const r = await api.patch(`/api/candidatures/${id}`, { candidat_nom: nom, candidat_email: email, candidat_telephone: telephone });
+    if (r?.success) {
+      const c = _applications.find(x => x._id === id);
+      if (c) { c.candidat_nom = nom; c.candidat_email = email; c.candidat_telephone = telephone; }
+      const heroName = document.getElementById('modal-cand-hero-name');
+      if (heroName) heroName.textContent = nom;
+      const av = document.getElementById('modal-cand-hero-avatar');
+      if (av) av.textContent = initials(nom);
+      filterApplications();
+      toast('Informations candidat mises à jour', 'success');
+    } else {
+      toast(r?.error || 'Erreur mise à jour', 'error');
+    }
+  });
+}
+
+async function saveCommentaire(id, val) {
+  await api.patch(`/api/candidatures/${id}`, { commentaire: val });
+  const c = _applications.find(x => x._id === id);
+  if (c) c.commentaire = val;
 }
 
 async function updateApplicationStatus(id, statut) {
@@ -387,58 +514,68 @@ async function updateApplicationStatus(id, statut) {
   }
 }
 
-async function quickQualify(id, recommandation) {
-  const r = await api.patch(`/api/candidatures/${id}`, { recommandation });
-  if (r?.success) {
-    const c = _applications.find(x => x._id === id);
-    if (c) c.recommandation = recommandation;
-    filterApplications();
-    const labels = { QUALIFIE: '✅ Qualifié', A_REVOIR: '~ À revoir', NON_SELECTIONNE: '❌ Éliminé' };
-    toast(`Candidat marqué : ${labels[recommandation] || recommandation}`, 'success');
-    if (recommandation === 'QUALIFIE') {
-      api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {})
-        .then(re => { if (re?.success) toast('📧 Email d\'invitation envoyé', 'success'); else toast('⚠️ Email non envoyé : ' + (re?.error || 'erreur'), 'error'); })
-        .catch(() => toast('⚠️ Impossible d\'envoyer les emails', 'error'));
-    } else if (recommandation === 'NON_SELECTIONNE') {
-      api.post(`/api/candidatures/${id}/envoyer-email-refus`, {})
-        .then(re => { if (re?.success) toast('📧 Email de refus envoyé', 'success'); else toast('⚠️ Email non envoyé', 'error'); })
-        .catch(() => {});
+async function quickQualify(id, recommandation, btn) {
+  return withLoading(btn, async () => {
+    const r = await api.patch(`/api/candidatures/${id}`, { recommandation });
+    if (r?.success) {
+      const c = _applications.find(x => x._id === id);
+      if (c) c.recommandation = recommandation;
+      filterApplications();
+      const labels = { QUALIFIE: '✅ Qualifié', A_REVOIR: '~ À revoir', NON_SELECTIONNE: '❌ Éliminé' };
+      toast(`Candidat marqué : ${labels[recommandation] || recommandation}`, 'success');
+      if (recommandation === 'QUALIFIE') {
+        api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {})
+          .then(re => { if (re?.success) toast('📧 Email d\'invitation envoyé', 'success'); else toast('⚠️ Email non envoyé : ' + (re?.error || 'erreur'), 'error'); })
+          .catch(() => toast('⚠️ Impossible d\'envoyer les emails', 'error'));
+      } else if (recommandation === 'NON_SELECTIONNE') {
+        api.post(`/api/candidatures/${id}/envoyer-email-refus`, {})
+          .then(re => { if (re?.success) toast('📧 Email de refus envoyé', 'success'); else toast('⚠️ Email non envoyé', 'error'); })
+          .catch(() => {});
+      }
+    } else {
+      toast(r?.error || 'Erreur lors de la mise à jour', 'error');
     }
-  } else {
-    toast(r?.error || 'Erreur lors de la mise à jour', 'error');
-  }
+  });
 }
 
-async function applyDecision(id, recommandation) {
-  const r = await api.patch(`/api/candidatures/${id}`, { recommandation });
-  if (r?.success) {
-    const c = _applications.find(x => x._id === id);
-    if (c) c.recommandation = recommandation;
-    filterApplications();
-    toast(`Décision : ${{QUALIFIE:'✅ Qualifié',A_REVOIR:'~ À revoir',NON_SELECTIONNE:'❌ Éliminé'}[recommandation]||recommandation}`, 'success');
-    if (recommandation === 'QUALIFIE') {
-      api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {})
-        .then(re => { if (re?.success) toast('📧 Email d\'invitation envoyé', 'success'); else toast('⚠️ Email non envoyé : ' + (re?.error || 'erreur'), 'error'); })
-        .catch(() => {});
-    } else if (recommandation === 'NON_SELECTIONNE') {
-      api.post(`/api/candidatures/${id}/envoyer-email-refus`, {})
-        .then(re => { if (re?.success) toast('📧 Email de refus envoyé', 'success'); else toast('⚠️ Email non envoyé', 'error'); })
-        .catch(() => {});
+async function applyDecision(id, recommandation, btn) {
+  return withLoading(btn, async () => {
+    const statutMap = { QUALIFIE: 'En cours', A_REVOIR: 'En cours', NON_SELECTIONNE: 'Refusé' };
+    const newStatut = statutMap[recommandation];
+    const r = await api.patch(`/api/candidatures/${id}`, { recommandation, statut: newStatut });
+    if (r?.success) {
+      const c = _applications.find(x => x._id === id);
+      if (c) { c.recommandation = recommandation; c.statut = newStatut; }
+      filterApplications();
+      // Sync status selector in modal if visible
+      const sel = document.getElementById('cand-statut-sel');
+      if (sel) sel.value = newStatut;
+      toast(`Décision : ${{QUALIFIE:'✅ Qualifié',A_REVOIR:'~ À revoir',NON_SELECTIONNE:'❌ Éliminé'}[recommandation]||recommandation}`, 'success');
+      if (recommandation === 'QUALIFIE') {
+        api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {})
+          .then(re => { if (re?.success) toast('📧 Email d\'invitation envoyé', 'success'); else toast('⚠️ Email non envoyé : ' + (re?.error || 'erreur'), 'error'); })
+          .catch(() => {});
+      } else if (recommandation === 'NON_SELECTIONNE') {
+        api.post(`/api/candidatures/${id}/envoyer-email-refus`, {})
+          .then(re => { if (re?.success) toast('📧 Email de refus envoyé', 'success'); else toast('⚠️ Email non envoyé', 'error'); })
+          .catch(() => {});
+      }
+    } else {
+      toast(r?.error || 'Erreur', 'error');
     }
-  } else {
-    toast(r?.error || 'Erreur', 'error');
-  }
+  });
 }
 
 async function scheduleTest(id) {
   if (!confirm('Envoyer la convocation au test à ce candidat ?')) return;
   const r = await api.post(`/api/candidatures/${id}/convoquer-test`, {});
   if (r?.success) {
-    toast('📋 Convocation test envoyée !', 'success');
     const c = _applications.find(x => x._id === id);
     if (c) c.statut = 'Test convoqué';
     filterApplications();
-    showApplicationDetail(id);
+    const sel = document.getElementById('cand-statut-sel');
+    if (sel) sel.value = 'Test convoqué';
+    toast('📋 Convocation test envoyée !', 'success');
   } else {
     toast(r?.error || 'Erreur lors de la convocation', 'error');
   }
@@ -649,21 +786,23 @@ async function submitRdvCalcom() {
   }
 }
 
-async function submitManualAppointment(id) {
+async function submitManualAppointment(id, btn) {
   const date  = document.getElementById('rdv-date')?.value;
   const heure = document.getElementById('rdv-heure')?.value || '';
   const lieu  = document.getElementById('rdv-lieu')?.value || '';
   const note  = document.getElementById('rdv-note')?.value || '';
-  const r = await api.post(`/api/candidatures/${id}/rdv-manuel`, { date, heure, lieu, note });
-  if (r?.success) {
-    toast('📅 RDV manuel enregistré !', 'success');
-    const c = _applications.find(x => x._id === id);
-    if (c) { c.statut = 'Entretien planifié'; c.rdv_pris = true; c.rdv_manuel = r.candidature.rdv_manuel; }
-    filterApplications();
-    showApplicationDetail(id);
-  } else {
-    toast(r?.error || 'Erreur lors du RDV manuel', 'error');
-  }
+  return withLoading(btn, async () => {
+    const r = await api.post(`/api/candidatures/${id}/rdv-manuel`, { date, heure, lieu, note });
+    if (r?.success) {
+      toast('📅 RDV manuel enregistré !', 'success');
+      const c = _applications.find(x => x._id === id);
+      if (c) { c.statut = 'Entretien planifié'; c.rdv_pris = true; c.rdv_manuel = r.candidature.rdv_manuel; }
+      filterApplications();
+      showApplicationDetail(id);
+    } else {
+      toast(r?.error || 'Erreur lors du RDV manuel', 'error');
+    }
+  });
 }
 
 async function markAppointmentBooked(id) {
@@ -674,6 +813,32 @@ async function markAppointmentBooked(id) {
     filterApplications();
     toast('✅ RDV marqué comme pris', 'success');
     showApplicationDetail(id);
+  } else {
+    toast(r?.error || 'Erreur', 'error');
+  }
+}
+
+async function togglePotentiel(id, btn) {
+  const app = _applications.find(x => x._id === id);
+  if (!app) return;
+  const newVal = !app.candidat_potentiel;
+  const r = await api.patch(`/api/candidatures/${id}`, { candidat_potentiel: newVal });
+  if (r?.success) {
+    app.candidat_potentiel = newVal;
+    filterApplications();
+    // Update button in place without re-rendering the whole modal
+    if (btn) {
+      btn.style.background   = newVal ? '#f5f3ff' : 'var(--surface)';
+      btn.style.color        = newVal ? '#7c3aed' : 'var(--text-2)';
+      btn.style.borderColor  = newVal ? '#ddd6fe' : 'var(--border)';
+      btn.innerHTML = `<span style="font-size:20px">⭐</span>
+        <div style="text-align:left">
+          <div>${newVal ? 'Candidat potentiel' : 'Marquer comme potentiel'}</div>
+          <div style="font-size:11px;font-weight:400;opacity:.7">${newVal ? 'Cliquer pour retirer du vivier' : 'À considérer pour de futures offres'}</div>
+        </div>
+        ${newVal ? '<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">Actif</span>' : ''}`;
+    }
+    toast(newVal ? '⭐ Ajouté au vivier' : 'Retiré du vivier', 'success');
   } else {
     toast(r?.error || 'Erreur', 'error');
   }
@@ -692,19 +857,49 @@ async function markNotInterested(id) {
   }
 }
 
+async function uploadCvForCandidate(id, btn) {
+  const input = document.getElementById(`cv-upload-${id}`);
+  if (!input?.files?.[0]) { toast('Sélectionnez un fichier CV d\'abord', 'error'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Upload…'; }
+  const fd = new FormData();
+  fd.append('cv', input.files[0]);
+  try {
+    const resp = await fetch(`/api/candidatures/${id}/upload-cv`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${Auth.token()}` },
+      body: fd,
+    });
+    const data = await resp.json();
+    if (data.success) {
+      toast('CV uploadé avec succès', 'success');
+      const app = _applications.find(x => x._id === id);
+      if (app) { app.cv_path = data.cv_path; app.cv_filename = data.cv_filename; }
+      showApplicationDetail(id);
+    } else {
+      toast(data.error || 'Erreur lors de l\'upload', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '⬆️ Uploader'; }
+    }
+  } catch (e) {
+    toast('Erreur lors de l\'upload', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '⬆️ Uploader'; }
+  }
+}
+
 async function relaunchWorkflow(id) {
-  toast('Relancement du workflow en cours…', 'info');
   const c = _applications.find(x => x._id === id);
-  if (c) { c.score = null; c.recommandation = ''; filterApplications(); }
+  if (!c?.cv_path) { toast('Un CV est requis pour relancer l\'analyse IA', 'error'); return; }
+  toast('Relancement du workflow en cours…', 'info');
+  c.score = null; c.recommandation = ''; filterApplications();
   const r = await api.post(`/api/candidatures/${id}/relancer-workflow`, {});
   if (r?.success) { toast('🔄 Workflow relancé ! Analyse en cours…', 'success'); startPollingIfNeeded(); }
   else toast(r?.error || 'Erreur lors du relancement', 'error');
 }
 
 async function relaunchWorkflowFromModal(id) {
+  const c = _applications.find(x => x._id === id);
+  if (!c?.cv_path) { toast('Un CV est requis pour relancer l\'analyse IA', 'error'); return; }
   const btn = document.getElementById('btn-relancer-wf');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Relancement…'; }
-  const c = _applications.find(x => x._id === id);
   if (c) { c.score = null; c.recommandation = ''; filterApplications(); }
   const r = await api.post(`/api/candidatures/${id}/relancer-workflow`, {});
   if (r?.success) {
@@ -732,13 +927,35 @@ function applicationStatusBadge(s) {
 }
 
 function applicationModalHTML() {
-  return `<div id="modal-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeModal('modal-cand')">
-    <div style="background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)">
-      <div style="padding:20px 24px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:16px;font-weight:700" id="modal-cand-title"></div>
-        <button class="btn-icon" onclick="closeModal('modal-cand')">✕</button>
+  return `
+  <!-- ── Candidature DETAIL modal ── -->
+  <div id="modal-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeModal('modal-cand')">
+    <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.28);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
+
+      <!-- Gradient hero header -->
+      <div style="background:linear-gradient(135deg,var(--grad-start) 0%,var(--grad-end) 100%);padding:22px 24px 18px;position:relative;flex-shrink:0;overflow:hidden">
+        <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none"></div>
+        <div style="position:absolute;bottom:-50px;left:-20px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none"></div>
+        <button onclick="closeModal('modal-cand')" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:1;line-height:1" onmouseover="this.style.background='rgba(255,255,255,.35)'" onmouseout="this.style.background='rgba(255,255,255,.2)'">✕</button>
+        <div style="position:relative;z-index:1;display:flex;align-items:center;gap:16px">
+          <div id="modal-cand-hero-avatar" class="avatar" style="width:52px;height:52px;font-size:18px;flex-shrink:0;border:3px solid rgba(255,255,255,.35);box-shadow:0 4px 14px rgba(0,0,0,.2)"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:19px;font-weight:800;color:white;letter-spacing:-.02em;line-height:1.2;margin-bottom:7px" id="modal-cand-hero-name"></div>
+            <div id="modal-cand-hero-badges" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+            <div id="modal-cand-hero-score" style="display:none"></div>
+          </div>
+        </div>
       </div>
-      <div id="modal-cand-body" style="padding:22px 24px;overflow-y:auto;flex:1"></div>
+
+      <!-- Tab bar -->
+      <div style="display:flex;border-bottom:2px solid var(--border-soft);background:var(--surface);padding:0 16px;flex-shrink:0;overflow-x:auto">
+        <button id="tab-cand-analyse" onclick="switchCandTab('analyse')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">📊 Analyse IA</button>
+        <button id="tab-cand-decision" onclick="switchCandTab('decision')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">🎯 Décision</button>
+        <button id="tab-cand-infos" onclick="switchCandTab('infos')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">📝 Infos</button>
+      </div>
+
+      <!-- Scrollable body -->
+      <div id="modal-cand-body" style="padding:22px;overflow-y:auto;flex:1"></div>
     </div>
   </div>
 
@@ -816,14 +1033,21 @@ function applicationModalHTML() {
     </div>
   </div>
 
-  <!-- Manual application entry modal -->
-  <div id="modal-nouveau-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeModal('modal-nouveau-cand')">
-    <div style="background:var(--surface);border-radius:var(--r-xl);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)">
-      <div style="padding:20px 24px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:16px;font-weight:700">Nouvelle candidature</div>
+  <!-- ── Nouvelle candidature modal ── -->
+  <div id="modal-nouveau-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeModal('modal-nouveau-cand')">
+    <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:560px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.28);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
+
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,var(--surface-2),var(--surface));padding:20px 24px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:14px;flex-shrink:0">
+        <div style="width:42px;height:42px;background:linear-gradient(135deg,var(--grad-start),var(--grad-end));border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 4px 14px var(--accent-glow)">👤</div>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:800;color:var(--text)">Nouvelle candidature</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:1px">Saisie manuelle</div>
+        </div>
         <button class="btn-icon" onclick="closeModal('modal-nouveau-cand')">✕</button>
       </div>
-      <div style="padding:24px;overflow-y:auto;flex:1">
+
+      <div style="padding:22px 24px;overflow-y:auto;flex:1">
         <form id="form-nouveau-cand">
           <div class="form-grid">
             <div class="form-group" style="grid-column:1/-1">
@@ -847,9 +1071,8 @@ function applicationModalHTML() {
             <div class="form-group" style="grid-column:1/-1">
               <label class="form-label">Canal de candidature</label>
               <select class="form-control" id="nc-canal">
-                <option value="plateforme">🌐 Plateforme</option>
-                <option value="email">📧 Email</option>
-                <option value="telephone" selected>📞 Téléphone</option>
+                <option value="plateforme" selected>🌐 Plateforme</option>
+                <option value="telephone">📞 Téléphone</option>
                 <option value="physique">🤝 Physique</option>
               </select>
             </div>
@@ -862,12 +1085,13 @@ function applicationModalHTML() {
               <input class="form-control" id="nc-lettre" type="file" accept=".pdf,.doc,.docx" style="padding:6px">
             </div>
           </div>
-          <p style="font-size:12px;color:var(--text-3);margin-top:4px">Email ou téléphone requis. Si pas d'email, le candidat sera marqué "À appeler".</p>
+          <p style="font-size:12px;color:var(--text-3);margin-top:8px">Email ou téléphone requis. Sans email, le candidat sera marqué "À appeler".</p>
         </form>
       </div>
-      <div style="padding:16px 24px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:10px">
+
+      <div style="padding:14px 24px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:10px;background:var(--surface-2);flex-shrink:0">
         <button class="btn btn-secondary" onclick="closeModal('modal-nouveau-cand')">Annuler</button>
-        <button class="btn btn-primary" id="btn-submit-nc" onclick="submitNewApplication()">Enregistrer</button>
+        <button class="btn btn-primary" id="btn-submit-nc" onclick="submitNewApplication()">💾 Enregistrer</button>
       </div>
     </div>
   </div>`;
@@ -903,6 +1127,8 @@ async function submitNewApplication() {
   if (!offerId) return toast('Sélectionnez une offre', 'error');
   if (!name)    return toast('Nom du candidat requis', 'error');
   if (!email && !phone) return toast('Email ou téléphone requis', 'error');
+  const offre = _jobOffersMap[offerId];
+  if (offre?.automatisation_active && !email) return toast("Email requis — cette offre utilise l'automatisation complète", 'error');
 
   const fd = new FormData();
   fd.append('offre_id', offerId);
@@ -917,9 +1143,7 @@ async function submitNewApplication() {
   if (coverLetterFile) fd.append('lettre', coverLetterFile);
 
   const btn = document.getElementById('btn-submit-nc');
-  if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement…'; }
-
-  try {
+  return withLoading(btn, async () => {
     const res = await fetch('/api/candidatures', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${Auth.token()}` },
@@ -932,10 +1156,6 @@ async function submitNewApplication() {
       renderApplications();
     } else {
       toast(r.error || 'Erreur', 'error');
-      if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
     }
-  } catch {
-    toast('Erreur réseau', 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
-  }
+  });
 }
