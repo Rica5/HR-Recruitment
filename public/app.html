@@ -22,44 +22,48 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section">
-        <div class="nav-label">Principal</div>
+        <div class="nav-label" id="nav-label-main"></div>
         <button class="nav-item" data-page="dashboard" onclick="navigate('dashboard')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          Dashboard
+          <span id="nav-dashboard"></span>
         </button>
         <button class="nav-item" data-page="offres" onclick="navigate('offres')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          Offres d'emploi
+          <span id="nav-offres"></span>
           <span class="nav-badge" id="nb-offres">0</span>
         </button>
         <button class="nav-item" data-page="candidatures" onclick="navigate('candidatures')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
-          Candidatures
+          <span id="nav-candidatures"></span>
           <span class="nav-badge" id="nb-cands">0</span>
         </button>
       </div>
 
       <div class="nav-section">
-        <div class="nav-label">Suivi</div>
+        <div class="nav-label" id="nav-label-tracking"></div>
         <button class="nav-item" data-page="rendezvous" onclick="navigate('rendezvous')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Rendez-vous
+          <span id="nav-rendezvous"></span>
+        </button>
+        <button class="nav-item" data-page="batch-cv" onclick="navigate('batch-cv')">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          <span id="nav-batch-cv"></span>
         </button>
         <button class="nav-item" data-page="audit" onclick="navigate('audit')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-          Historique
+          <span id="nav-audit"></span>
         </button>
       </div>
 
       <div class="nav-section">
-        <div class="nav-label">Compte</div>
+        <div class="nav-label" id="nav-label-account"></div>
         <button class="nav-item" data-page="users" onclick="navigate('users')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          Utilisateurs
+          <span id="nav-users"></span>
         </button>
         <button class="nav-item" data-page="settings" onclick="navigate('settings')">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-          Paramètres
+          <span id="nav-settings"></span>
         </button>
       </div>
     </nav>
@@ -73,7 +77,7 @@
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
           <div class="user-name" id="user-name">—</div>
-          <div class="user-role">Administrateur</div>
+          <div class="user-role" id="nav-role-label"></div>
         </div>
         <svg style="margin-left:auto;width:14px;height:14px;color:var(--text-3);flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
       </div>
@@ -89,7 +93,7 @@
         </button>
         <div style="min-width:0">
           <div class="topbar-title" id="topbar-title">Dashboard</div>
-          <div class="topbar-sub" id="topbar-sub">Vue d'ensemble</div>
+          <div class="topbar-sub" id="topbar-sub"></div>
         </div>
       </div>
       <div class="topbar-actions" id="topbar-actions"></div>
@@ -102,6 +106,7 @@
   </main>
 </div>
 
+<script src="/js/i18n.js"></script>
 <script src="/js/utils.js"></script>
 <script src="/js/pages/dashboard.js"></script>
 <script src="/js/pages/offres.js"></script>
@@ -110,6 +115,7 @@
 <script src="/js/pages/settings.js"></script>
 <script src="/js/pages/users.js"></script>
 <script src="/js/pages/rendezvous.js"></script>
+<script src="/js/pages/batch-cv.js"></script>
 <script>
 if (!requireAuth()) throw new Error('redirect');
 
@@ -122,6 +128,23 @@ if (user) {
   if (sidebarLogo) { sidebarLogo.src = cfg.logo; sidebarLogo.alt = cfg.name; }
   applyTheme(cfg.theme);
 }
+
+// Populate sidebar nav labels (translated)
+(function initNavLabels() {
+  const set = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
+  set('nav-label-main',     'nav.section.main');
+  set('nav-label-tracking', 'nav.section.tracking');
+  set('nav-label-account',  'nav.section.account');
+  set('nav-dashboard',      'nav.dashboard');
+  set('nav-offres',         'nav.offers');
+  set('nav-candidatures',   'nav.applications');
+  set('nav-rendezvous',     'nav.appointments');
+  set('nav-batch-cv',       'nav.import_cvs');
+  set('nav-audit',          'nav.history');
+  set('nav-users',          'nav.users');
+  set('nav-settings',       'nav.settings');
+  set('nav-role-label',     'nav.role.admin');
+})();
 
 // Load badge counts
 async function loadCounts() {
@@ -144,13 +167,14 @@ function closeSidebar() {
 
 // Router
 const PAGES = {
-  dashboard:    { title: 'Dashboard', sub: 'Vue d\'ensemble du recrutement', action: '', render: renderDashboard },
-  offres:       { title: 'Offres d\'emploi', sub: 'Gérez vos offres actives', action: '<button class="btn btn-primary btn-sm" onclick="openCreateOffer()">+ Nouvelle offre</button>', render: renderOffers },
-  candidatures: { title: 'Candidatures', sub: 'Toutes les candidatures reçues', action: '', render: renderApplications },
-  rendezvous:   { title: 'Rendez-vous', sub: 'Entretiens planifiés à venir', action: '', render: renderRDV },
-  audit:        { title: 'Historique', sub: 'Journal des actions de l\'application', action: '', render: renderAudit },
-  users:        { title: 'Utilisateurs', sub: 'Gestion des accès', action: '', render: renderUsers },
-  settings:     { title: 'Paramètres', sub: 'Compte et préférences', action: '', render: renderSettings },
+  dashboard:    { title: t('page.dashboard.title'),    sub: t('page.dashboard.sub'),    action: '', render: renderDashboard },
+  offres:       { title: t('page.offers.title'),       sub: t('page.offers.sub'),       action: `<button class="btn btn-primary btn-sm" onclick="openCreateOffer()">${t('btn.new_offer')}</button>`, render: renderOffers },
+  candidatures: { title: t('page.applications.title'), sub: t('page.applications.sub'), action: '', render: renderApplications },
+  rendezvous:   { title: t('page.appointments.title'), sub: t('page.appointments.sub'), action: '', render: renderRDV },
+  audit:        { title: t('page.history.title'),      sub: t('page.history.sub'),      action: '', render: renderAudit },
+  users:        { title: t('page.users.title'),        sub: t('page.users.sub'),        action: '', render: renderUsers },
+  settings:     { title: t('page.settings.title'),     sub: t('page.settings.sub'),     action: '', render: renderSettings },
+  'batch-cv':   { title: t('page.batch_cv.title'),     sub: t('page.batch_cv.sub'),     action: '', render: renderBatchCV },
 };
 
 function navigate(page) {

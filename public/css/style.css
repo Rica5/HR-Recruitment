@@ -1233,6 +1233,22 @@ select.form-control {
 /* ── Modal card base (JS applies class="modal-card") ── */
 .modal-card { transition: none; }
 
+/* ── Bouton fermeture modal — classe partagée par tous les modaux ── */
+.btn-modal-close {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,.2);
+  border: none; color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+  z-index: 10;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.btn-modal-close:hover { background: rgba(255,255,255,.38); }
+
 /* ── Filters bar — ensure buttons don't stretch too far on tablet ── */
 @media (min-width: 481px) and (max-width: 768px) {
   .filters-bar { flex-wrap: wrap; }
@@ -1264,3 +1280,4 @@ select.form-control {
   #modal-offre [id^="tab-offre"],
   #modal-cand [id^="tab-cand"] { padding: 11px 12px !important; font-size: 12px !important; }
 }
+

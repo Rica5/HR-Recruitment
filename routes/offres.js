@@ -4,6 +4,8 @@ const Offre = require('../models/Offre');
 const Candidature = require('../models/Candidature');
 const { sendJobOfferEmail } = require('../services/email');
 const { logAudit } = require('../services/audit');
+const { triggerBatchEvaluation } = require('../services/n8n');
+const { escapeRegex } = require('../utils/text');
 
 router.post('/', async (req, res) => {
   try {
@@ -12,10 +14,10 @@ router.post('/', async (req, res) => {
     data.company = req.user.company;
 
     if (data.statut === 'Active' && (!data.lien_rdv || !data.lien_rdv.trim())) {
-      return res.status(400).json({ success: false, error: "Un lien de calendrier (RDV) est requis pour activer l'offre." });
+      return res.status(400).json({ success: false, error: "A calendar link (RDV) is required to activate the offer." });
     }
     if (data.statut === 'Active' && data.company !== 'optimum' && !data.approbation_inspection?.approuvee) {
-      return res.status(403).json({ success: false, error: "Offre non approuvée par l'Inspection du Travail. Cochez l'approbation avant d'activer l'offre." });
+      return res.status(403).json({ success: false, error: "Offer not approved by Labor Inspection. Check approval before activating the offer." });
     }
 
     const offre = await Offre.create(data);
@@ -24,7 +26,7 @@ router.post('/', async (req, res) => {
     logAudit({ action: 'OFFRE_CREEE', entity_type: 'offre', entity_id: offre.offre_id, entity_label: offre.titre_poste, user_email: req.user.email, details: { statut: offre.statut, localisation: offre.localisation } });
     res.status(201).json({ success: true, offre, lien_candidature: applicationLink });
   } catch (err) {
-    if (err.code === 11000) return res.status(409).json({ success: false, error: 'ID offre déjà existant' });
+    if (err.code === 11000) return res.status(409).json({ success: false, error: 'Offer ID already exists' });
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -95,7 +97,7 @@ router.get('/', async (req, res) => {
     const { statut, q } = req.query;
     const filter = { company: req.user.company };
     if (statut) filter.statut = statut;
-    if (q) filter.$or = [{ titre_poste: { $regex: q, $options: 'i' } }, { localisation: { $regex: q, $options: 'i' } }];
+    if (q) { const rx = escapeRegex(q); filter.$or = [{ titre_poste: { $regex: rx, $options: 'i' } }, { localisation: { $regex: rx, $options: 'i' } }]; }
     const jobOffers = await Offre.find(filter).sort({ date_creation: -1 });
     res.json({ success: true, offres: jobOffers });
   } catch (err) {
@@ -106,7 +108,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const offre = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
-    if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
     res.json({ success: true, offre });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -116,7 +118,7 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/candidatures', async (req, res) => {
   try {
     const offre = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
-    if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
     const applications = await Candidature.find({ offre_id: req.params.id, company: req.user.company }).sort({ score: -1, date_candidature: -1 });
     res.json({ success: true, candidatures: applications });
   } catch (err) {
@@ -128,27 +130,27 @@ router.patch('/:id', async (req, res) => {
   try {
     if (req.body.statut === 'Active') {
       const current = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
-      if (!current) return res.status(404).json({ success: false, error: 'Offre introuvable' });
-      // Lien de calendrier obligatoire pour activer
+      if (!current) return res.status(404).json({ success: false, error: 'Offer not found' });
+      // Calendar link required to activate
       const lienRdv = req.body.lien_rdv ?? current.lien_rdv;
       if (!lienRdv || !lienRdv.trim()) {
         return res.status(400).json({
           success: false,
-          error: "Un lien de calendrier (RDV) est requis pour activer l'offre.",
+          error: "A calendar link (RDV) is required to activate the offer.",
         });
       }
-      // Inspection du travail non requise pour Optimum
+      // Labor inspection not required for Optimum
       if (current.company !== 'optimum' && !current.approbation_inspection?.approuvee) {
         return res.status(403).json({
           success: false,
-          error: "Offre non approuvée par l'Inspection du Travail. Cochez l'approbation avant d'activer l'offre.",
+          error: "Offer not approved by Labor Inspection. Check approval before activating the offer.",
         });
       }
     }
     // Prevent changing company via PATCH
     delete req.body.company;
     const offre = await Offre.findOneAndUpdate({ offre_id: req.params.id, company: req.user.company }, req.body, { new: true });
-    if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
     logAudit({ action: 'OFFRE_MODIFIEE', entity_type: 'offre', entity_id: req.params.id, entity_label: offre.titre_poste, user_email: req.user.email, details: { fields: Object.keys(req.body).join(', ') } });
     res.json({ success: true, offre });
   } catch (err) {
@@ -159,10 +161,62 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const offre = await Offre.findOneAndDelete({ offre_id: req.params.id, company: req.user.company });
-    if (!offre) return res.status(404).json({ success: false, error: 'Offre introuvable' });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
     await Candidature.deleteMany({ offre_id: req.params.id, company: req.user.company });
     logAudit({ action: 'OFFRE_SUPPRIMEE', entity_type: 'offre', entity_id: req.params.id, entity_label: offre.titre_poste, user_email: req.user.email });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/offres/:id/evaluer-candidats — triggers batch AI evaluation of candidates
+router.post('/:id/evaluer-candidats', async (req, res) => {
+  try {
+    const nb_top = parseInt(req.body.nb_top, 10);
+    if (!nb_top || nb_top < 1 || nb_top > 200) {
+      return res.status(400).json({ success: false, error: 'nb_top must be an integer between 1 and 200' });
+    }
+
+    const offre = await Offre.findOne({ offre_id: req.params.id, company: req.user.company });
+    if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
+
+    const candidatures = await Candidature.find({
+      offre_id: req.params.id,
+      company: req.user.company,
+      score: { $ne: null },
+    }).sort({ score: -1 });
+
+    if (candidatures.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No candidates individually analyzed for this offer. Wait for individual AI analyses to complete.',
+      });
+    }
+
+    // Reset previous batch selection before launching new one
+    await Candidature.updateMany(
+      { offre_id: req.params.id, company: req.user.company, batch_justification: { $ne: '' } },
+      { $set: { batch_justification: '' } }
+    );
+
+    triggerBatchEvaluation(offre, candidatures, nb_top);
+
+    logAudit({
+      action: 'EVALUATION_BATCH_DECLENCHEE',
+      entity_type: 'offre',
+      entity_id: offre.offre_id,
+      entity_label: offre.titre_poste,
+      user_email: req.user.email,
+      details: { nb_candidats: candidatures.length, nb_top },
+    });
+
+    res.json({
+      success: true,
+      message: `Evaluation in progress for ${candidatures.length} candidate(s). Results available in 30–60 seconds.`,
+      nb_candidats: candidatures.length,
+      nb_top,
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

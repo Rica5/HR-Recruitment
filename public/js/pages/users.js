@@ -7,7 +7,6 @@ async function renderUsers() {
 }
 
 async function loadUsers() {
-  const el = document.getElementById('page-content');
   const r = await api.get('/api/users');
   _users = r?.users || [];
   drawUsersPage();
@@ -16,28 +15,31 @@ async function loadUsers() {
 function drawUsersPage() {
   const el = document.getElementById('page-content');
   const currentUser = Auth.user();
+  const activeLabel   = LANG === 'en' ? 'Active'   : 'Actif';
+  const inactiveLabel = LANG === 'en' ? 'Inactive' : 'Inactif';
+
   el.innerHTML = `
   <div class="users-page">
     <div class="card" style="overflow:hidden">
       <div class="card-header">
-        <span class="card-title">👥 Utilisateurs</span>
-        <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Nouvel utilisateur</button>
+        <span class="card-title">👥 ${t('users.title')}</span>
+        <button class="btn btn-primary btn-sm" onclick="openUserModal()">${t('btn.create_user')}</button>
       </div>
       <div class="table-wrap">
         <table class="users-table">
           <thead>
             <tr>
-              <th>Utilisateur</th>
-              <th>Email</th>
-              <th class="users-col-company">Société</th>
-              <th>Statut</th>
-              <th class="users-col-date">Dernière connexion</th>
+              <th>${t('table.name')}</th>
+              <th>${t('table.email')}</th>
+              <th class="users-col-company">${t('table.company')}</th>
+              <th>${t('table.status')}</th>
+              <th class="users-col-date">${t('users.last_login')}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             ${_users.length === 0
-              ? `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👤</div><p>Aucun utilisateur</p></div></td></tr>`
+              ? `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👤</div><p>${t('empty.no_users')}</p></div></td></tr>`
               : _users.map(u => `
               <tr>
                 <td>
@@ -51,12 +53,12 @@ function drawUsersPage() {
                 </td>
                 <td class="users-email">${u.email}</td>
                 <td class="users-col-company">${companyBadge(u.company)}</td>
-                <td>${u.actif !== false ? '<span class="badge badge-green">Actif</span>' : '<span class="badge badge-gray">Inactif</span>'}</td>
-                <td class="users-date users-col-date">${u.lastLogin ? formatDatetime(u.lastLogin) : '—'}</td>
+                <td>${u.actif !== false ? `<span class="badge badge-green">${activeLabel}</span>` : `<span class="badge badge-gray">${inactiveLabel}</span>`}</td>
+                <td class="users-date users-col-date">${u.lastLogin ? formatDatetime(u.lastLogin) : t('users.never')}</td>
                 <td>
                   <div class="users-actions">
-                    <button class="btn-icon" title="Modifier" onclick="openUserModal('${u._id}')">✏️</button>
-                    ${u.email !== currentUser?.email ? `<button class="btn-icon" title="${u.actif !== false ? 'Désactiver' : 'Activer'}" onclick="toggleUserActif('${u._id}')">${u.actif !== false ? '🔒' : '🔓'}</button>` : ''}
+                    <button class="btn-icon" title="${t('btn.edit')}" onclick="openUserModal('${u._id}')">✏️</button>
+                    ${u.email !== currentUser?.email ? `<button class="btn-icon" title="${t('btn.toggle_active')}" onclick="toggleUserActif('${u._id}')">${u.actif !== false ? '🔒' : '🔓'}</button>` : ''}
                   </div>
                 </td>
               </tr>`).join('')}
@@ -74,57 +76,49 @@ function companyBadge(company) {
 }
 
 function userModalHTML() {
+  const pwdHint = LANG === 'en' ? 'Minimum 6 characters' : 'Minimum 6 caractères';
+  const subtitleLabel = LANG === 'en' ? 'Access management' : 'Gestion des accès';
   return `
   <div id="modal-user" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)" onclick="if(event.target===this)closeUserModal()">
     <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:460px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)">
 
-      <!-- Gradient hero header -->
       <div style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));padding:22px 24px 18px;position:relative;overflow:hidden;flex-shrink:0">
         <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none"></div>
         <div style="position:absolute;bottom:-20px;left:40px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none"></div>
         <div style="display:flex;align-items:center;gap:14px;position:relative;z-index:1">
           <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">👤</div>
           <div style="flex:1;min-width:0">
-            <div id="user-modal-title" style="font-size:17px;font-weight:800;color:#fff;letter-spacing:-.02em">Nouvel utilisateur</div>
-            <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;font-weight:500">Gestion des accès</div>
+            <div id="user-modal-title" style="font-size:17px;font-weight:800;color:#fff;letter-spacing:-.02em">${t('users.modal_create')}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;font-weight:500">${subtitleLabel}</div>
           </div>
           <button class="btn-icon" onclick="closeUserModal()" style="background:rgba(255,255,255,.15);color:#fff;border-color:transparent;flex-shrink:0">✕</button>
         </div>
       </div>
 
-      <!-- Form body -->
       <div style="padding:24px;overflow-y:auto;flex:1">
         <input type="hidden" id="user-modal-id">
         <div class="form-grid">
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Nom complet <span class="req">*</span></label>
+            <label class="form-label">${t('form.full_name')} <span class="req">*</span></label>
             <input class="form-control" id="um-nom" placeholder="Jean Dupont">
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Email <span class="req">*</span></label>
+            <label class="form-label">${t('form.email')} <span class="req">*</span></label>
             <input class="form-control" type="email" id="um-email" placeholder="jean@exemple.mg">
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label" id="um-pwd-label">Mot de passe <span class="req">*</span></label>
+            <label class="form-label" id="um-pwd-label">${t('form.password')} <span class="req">*</span></label>
             <div style="display:flex;gap:8px">
-              <input class="form-control" type="text" id="um-pwd" placeholder="Minimum 6 caractères" style="flex:1;font-family:var(--mono);font-size:13px;letter-spacing:.03em">
-              <button type="button" class="btn btn-ghost btn-sm" title="Regénérer" onclick="document.getElementById('um-pwd').value=generatePassword()" style="flex-shrink:0;padding:0 12px;font-size:16px">🔄</button>
+              <input class="form-control" type="text" id="um-pwd" placeholder="${pwdHint}" style="flex:1;font-family:var(--mono);font-size:13px;letter-spacing:.03em">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('um-pwd').value=generatePassword()" style="flex-shrink:0;padding:0 12px;font-size:16px">🔄</button>
             </div>
-          </div>
-          <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Société <span class="req">*</span></label>
-            <select class="form-control" id="um-company">
-              <option value="solumada">🌿 Solumada</option>
-              <option value="optimum">🔵 Optimum Solutions</option>
-            </select>
           </div>
         </div>
       </div>
 
-      <!-- Footer actions -->
       <div style="padding:16px 24px;border-top:1px solid var(--border-soft);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;background:var(--surface-2)">
-        <button class="btn btn-secondary btn-sm" onclick="closeUserModal()">Annuler</button>
-        <button class="btn btn-primary" onclick="submitUser(this)">Enregistrer</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeUserModal()">${t('btn.cancel')}</button>
+        <button class="btn btn-primary" onclick="submitUser(this)">${t('btn.save')}</button>
       </div>
     </div>
   </div>`;
@@ -139,19 +133,20 @@ function openUserModal(userId) {
   const modal = document.getElementById('modal-user');
   const u = userId ? _users.find(x => x._id === userId) : null;
   document.getElementById('user-modal-id').value = userId || '';
-  document.getElementById('user-modal-title').textContent = u ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur';
+  document.getElementById('user-modal-title').textContent = u ? t('users.modal_edit') : t('users.modal_create');
   document.getElementById('um-nom').value = u?.nom || '';
   document.getElementById('um-email').value = u?.email || '';
-  document.getElementById('um-company').value = u?.company || Auth.user()?.company || 'solumada';
 
   const pwdInput = document.getElementById('um-pwd');
   const pwdLabel = document.getElementById('um-pwd-label');
   if (u) {
     pwdInput.value = '';
-    pwdLabel.innerHTML = 'Nouveau mot de passe <span style="color:var(--text-3);font-weight:400">(laisser vide = inchangé)</span>';
+    const leaveBlank = LANG === 'en' ? '(leave blank = unchanged)' : '(laisser vide = inchangé)';
+    pwdLabel.innerHTML = `${t('form.password')} <span style="color:var(--text-3);font-weight:400">${leaveBlank}</span>`;
   } else {
     pwdInput.value = generatePassword();
-    pwdLabel.innerHTML = 'Mot de passe <span class="req">*</span> <span style="color:var(--text-3);font-weight:400;font-size:11px">— généré automatiquement</span>';
+    const autoGen = LANG === 'en' ? '— auto-generated' : '— généré automatiquement';
+    pwdLabel.innerHTML = `${t('form.password')} <span class="req">*</span> <span style="color:var(--text-3);font-weight:400;font-size:11px">${autoGen}</span>`;
   }
 
   modal.style.display = 'flex';
@@ -167,12 +162,12 @@ async function submitUser(btn) {
   const email = document.getElementById('um-email').value.trim();
   const password = document.getElementById('um-pwd').value;
 
-  if (!nom || !email) { toast('Nom et email requis', 'error'); return; }
-  if (!id && (!password || password.length < 6)) { toast('Mot de passe requis (min. 6 caractères)', 'error'); return; }
-  if (password && password.length < 6) { toast('Minimum 6 caractères', 'error'); return; }
+  if (!nom || !email) { toast(t('toast.user_name_email_required'), 'error'); return; }
+  if (!id && (!password || password.length < 6)) { toast(t('toast.password_required_min6'), 'error'); return; }
+  if (password && password.length < 6) { toast(t('toast.min_6_chars'), 'error'); return; }
 
-  const company = document.getElementById('um-company').value;
-  const data = { nom, email, company };
+  // Company is assigned server-side (admin's own company) — not sent from the form
+  const data = { nom, email };
   if (password) data.password = password;
 
   return withLoading(btn, async () => {
@@ -181,11 +176,11 @@ async function submitUser(btn) {
     else r = await api.post('/api/users', data);
 
     if (r?.success) {
-      toast(id ? 'Utilisateur modifié !' : 'Utilisateur créé !', 'success');
+      toast(id ? t('toast.user_updated') : t('toast.user_created'), 'success');
       closeUserModal();
       await loadUsers();
     } else {
-      toast(r?.error || 'Erreur', 'error');
+      toast(r?.error || t('toast.error'), 'error');
     }
   });
 }
@@ -193,13 +188,15 @@ async function submitUser(btn) {
 async function toggleUserActif(userId) {
   const u = _users.find(x => x._id === userId);
   if (!u) return;
-  const action = u.actif !== false ? 'désactiver' : 'réactiver';
-  if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} cet utilisateur ?`)) return;
+  const confirmMsg = LANG === 'en'
+    ? `${u.actif !== false ? 'Deactivate' : 'Activate'} this user?`
+    : `${u.actif !== false ? 'Désactiver' : 'Réactiver'} cet utilisateur ?`;
+  if (!confirm(confirmMsg)) return;
   const r = await api.patch(`/api/users/${userId}/toggle-actif`, {});
   if (r?.success) {
-    toast(`Utilisateur ${r.user.actif ? 'activé' : 'désactivé'}`, 'success');
+    toast(r.user.actif ? t('toast.user_activated') : t('toast.user_deactivated'), 'success');
     await loadUsers();
   } else {
-    toast(r?.error || 'Erreur', 'error');
+    toast(r?.error || t('toast.error'), 'error');
   }
 }

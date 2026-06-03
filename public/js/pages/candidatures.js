@@ -3,7 +3,8 @@ let _pollTimer    = null;
 let _currentPage  = 1;
 let _filteredList = [];
 const PAGE_SIZE   = 30;
-let _pendingNewApplicationOfferId = null; // pre-selection from the Offers page
+let _pendingNewApplicationOfferId = null;
+let _filterQ = '', _filterReco = '', _filterOffre = '', _filterCanal = '', _filterScore = ''; // pre-selection from the Offers page
 
 // Cal.com RDV scheduling state
 let _rdvCalcomCandidatureId = null;
@@ -31,40 +32,47 @@ function drawApplicationsList(applications, jobOffers) {
   const toCallCount = applications.filter(c => c.a_appeler && !c.rdv_pris && !c.non_interesse).length;
   el.innerHTML = `
   <div class="filters-bar">
-    <input class="filter-input" id="q-cands" placeholder="🔍 Nom, email, poste…" oninput="filterApplications()">
+    <input class="filter-input" id="q-cands" placeholder="${t('filter.search_placeholder')}" oninput="debouncedFilterApplications()">
     <select class="filter-select" id="f-reco" onchange="filterApplications()">
-      <option value="">Toutes recommandations</option>
-      <option value="QUALIFIE">✓ Qualifié</option>
-      <option value="A_REVOIR">~ À revoir</option>
-      <option value="NON_SELECTIONNE">✗ Non retenu</option>
+      <option value="">${t('filter.all_recommendations')}</option>
+      <option value="QUALIFIE">${t('reco.qualified')}</option>
+      <option value="A_REVOIR">${t('reco.to_review')}</option>
+      <option value="NON_SELECTIONNE">${t('reco.rejected')}</option>
     </select>
     <select class="filter-select" id="f-offre" onchange="filterApplications()">
-      <option value="">Toutes les offres</option>
+      <option value="">${t('filter.all_offers')}</option>
       ${jobOffers.map(o=>`<option value="${o.offre_id}">${o.titre_poste}</option>`).join('')}
     </select>
     <select class="filter-select" id="f-canal" onchange="filterApplications()">
-      <option value="">Tous canaux</option>
-      <option value="plateforme">🌐 Plateforme</option>
-      <option value="telephone">📞 Téléphone</option>
-      <option value="physique">🤝 Physique</option>
+      <option value="">${t('filter.all_channels')}</option>
+      <option value="plateforme">${t('channel.platform')}</option>
+      <option value="telephone">${t('channel.phone')}</option>
+      <option value="physique">${t('channel.physical')}</option>
+      <option value="email">${t('channel.email')}</option>
     </select>
-    ${toCallCount > 0 ? `<button class="btn btn-sm" style="background:#fef3c7;color:#854d0e;border:1.5px solid #fde68a;font-weight:700;white-space:nowrap" onclick="toggleCallFilter()" id="btn-appeler">📞 À appeler (${toCallCount})</button>` : ''}
-    <button class="btn btn-sm" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #e9d5ff;font-weight:700;white-space:nowrap" onclick="togglePotentielsFilter()" id="btn-potentiels">⭐ Potentiels</button>
-    <button class="btn btn-secondary btn-sm" onclick="exportCSV()">📥 Export CSV</button>
-    <button class="btn btn-primary btn-sm" onclick="openNewApplication()">+ Nouvelle candidature</button>
+    <select class="filter-select" id="f-score" onchange="filterApplications()">
+      <option value="">${t('filter.all_scores')}</option>
+      <option value="high">${t('filter.score_high')}</option>
+      <option value="mid">${t('filter.score_mid')}</option>
+      <option value="low">${t('filter.score_low')}</option>
+    </select>
+    ${toCallCount > 0 ? `<button class="btn btn-sm" style="background:#fef3c7;color:#854d0e;border:1.5px solid #fde68a;font-weight:700;white-space:nowrap" onclick="toggleCallFilter()" id="btn-appeler">${t('btn.to_call')} (${toCallCount})</button>` : ''}
+    <button class="btn btn-sm" style="background:#fdf4ff;color:#7c3aed;border:1.5px solid #e9d5ff;font-weight:700;white-space:nowrap" onclick="togglePotentielsFilter()" id="btn-potentiels">${t('btn.potentials')}</button>
+    <button class="btn btn-secondary btn-sm" onclick="exportCSV()">${t('btn.export_csv')}</button>
+    <button class="btn btn-primary btn-sm" onclick="openNewApplication()">${t('btn.new_application')}</button>
   </div>
   <div class="card" style="overflow:hidden">
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Candidat</th>
-            <th>Poste</th>
-            <th>Canal</th>
-            <th>Score IA</th>
-            <th>Recommandation</th>
-            <th>Statut suivi</th>
-            <th>Date</th>
+            <th>${t('table.candidate')}</th>
+            <th>${t('table.position')}</th>
+            <th>${t('table.channel')}</th>
+            <th>${t('table.ai_score')}</th>
+            <th>${t('table.recommendation')}</th>
+            <th>${t('table.tracking_status')}</th>
+            <th>${t('table.date')}</th>
             <th></th>
           </tr>
         </thead>
@@ -74,6 +82,13 @@ function drawApplicationsList(applications, jobOffers) {
     <div id="cands-pagination"></div>
   </div>
   ${applicationModalHTML()}`;
+  if (_filterQ)     { const e = document.getElementById('q-cands'); if (e) e.value = _filterQ; }
+  if (_filterReco)  { const e = document.getElementById('f-reco');  if (e) e.value = _filterReco; }
+  if (_filterOffre) { const e = document.getElementById('f-offre'); if (e) e.value = _filterOffre; }
+  if (_filterCanal) { const e = document.getElementById('f-canal'); if (e) e.value = _filterCanal; }
+  if (_filterScore) { const e = document.getElementById('f-score'); if (e) e.value = _filterScore; }
+  if (_filterToCall)     { const b = document.getElementById('btn-appeler');  if (b) b.style.background = '#fde68a'; }
+  if (_filterPotentiels) { const b = document.getElementById('btn-potentiels'); if (b) b.style.background = '#e9d5ff'; }
   filterApplications();
   if (window._pendingCandDetail) {
     const id = window._pendingCandDetail;
@@ -104,11 +119,16 @@ function togglePotentielsFilter() {
 }
 
 // ── Filters ──
+// Debounced version for the search box (avoids re-filtering on every keystroke)
+const debouncedFilterApplications = debounce(() => filterApplications(), 250);
+
 function filterApplications() {
   const q      = document.getElementById('q-cands')?.value.toLowerCase() || '';
   const reco   = document.getElementById('f-reco')?.value || '';
   const offre  = document.getElementById('f-offre')?.value || '';
   const channel = document.getElementById('f-canal')?.value || '';
+  const score  = document.getElementById('f-score')?.value || '';
+  _filterQ = q; _filterReco = reco; _filterOffre = offre; _filterCanal = channel; _filterScore = score;
   let results = _applications;
   if (q) results = results.filter(c => c.candidat_nom.toLowerCase().includes(q)
     || (c.candidat_email||'').toLowerCase().includes(q)
@@ -116,6 +136,9 @@ function filterApplications() {
   if (reco)    results = results.filter(c => c.recommandation === reco);
   if (offre)   results = results.filter(c => c.offre_id === offre);
   if (channel) results = results.filter(c => c.canal_candidature === channel);
+  if (score === 'high') results = results.filter(c => c.score != null && c.score >= 7);
+  else if (score === 'mid') results = results.filter(c => c.score != null && c.score >= 4 && c.score < 7);
+  else if (score === 'low') results = results.filter(c => c.score != null && c.score < 4);
   if (_filterToCall) results = results.filter(c => c.a_appeler && !c.rdv_pris && !c.non_interesse);
   if (_filterPotentiels) results = results.filter(c => c.candidat_potentiel);
   _filteredList = results;
@@ -135,7 +158,7 @@ function renderPage() {
   const slice = _filteredList.slice(start, start + PAGE_SIZE);
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👤</div><p>Aucune candidature trouvée</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👤</div><p>${t('empty.no_applications')}</p></div></td></tr>`;
   } else {
     tbody.innerHTML = slice.map(c => `
       <tr onclick="showApplicationDetail('${c._id}')">
@@ -145,8 +168,8 @@ function renderPage() {
             <div>
               <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:4px">
                 ${c.candidat_nom}
-                ${c.candidat_potentiel ? '<span class="badge" style="font-size:9px;padding:1px 5px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe">⭐ Potentiel</span>' : ''}
-                ${c.a_appeler && !c.rdv_pris && !c.non_interesse ? '<span class="badge badge-amber" style="font-size:9px;padding:1px 5px">📞 APPELER</span>' : ''}
+                ${c.candidat_potentiel ? `<span class="badge" style="font-size:9px;padding:1px 5px;background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe">${t('badge.in_pool')}</span>` : ''}
+                ${c.a_appeler && !c.rdv_pris && !c.non_interesse ? `<span class="badge badge-amber" style="font-size:9px;padding:1px 5px">${t('badge.to_call')}</span>` : ''}
               </div>
               <div style="font-size:11px;color:var(--text-3)">${c.candidat_email || (c.candidat_telephone ? '📞 '+c.candidat_telephone : '—')}</div>
             </div>
@@ -155,7 +178,7 @@ function renderPage() {
         <td style="font-size:13px;color:var(--text-2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titre_poste}</td>
         <td>${channelBadge(c.canal_candidature)}</td>
         <td style="min-width:140px">${c.score === null && !c.recommandation ? renderPendingBadge(c._id) : renderScoreBar(c.score)}</td>
-        <td>${c.recommandation ? renderBadge(c.recommandation) : '<span class="badge badge-gray">En attente</span>'}</td>
+        <td>${c.recommandation ? renderBadge(c.recommandation) : `<span class="badge badge-gray">${t('badge.pending')}</span>`}</td>
         <td>${applicationStatusBadge(c.statut)}</td>
         <td style="font-size:12px;color:var(--text-3)">${formatDate(c.date_candidature)}</td>
         <td>
@@ -165,7 +188,7 @@ function renderPage() {
             <button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="Qualifier">✓</button>
             <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE',this)" title="Éliminer">✗</button>
             <button class="btn-icon" onclick="event.stopPropagation();relaunchWorkflow('${c._id}')" title="Relancer l'analyse IA">🔄</button>
-            <button class="btn-icon" onclick="event.stopPropagation();if(confirm('Supprimer cette candidature ?'))deleteApplication('${c._id}')" title="Supprimer">🗑️</button>
+            <button class="btn-icon" onclick="event.stopPropagation();if(confirm(LANG==='en'?'Delete this application?':'Supprimer cette candidature ?'))deleteApplication('${c._id}')" title="${t('btn.delete')}">🗑️</button>
           </div>
         </td>
       </tr>`).join('');
@@ -211,17 +234,24 @@ function startPollingIfNeeded() {
   _pollTimer = setInterval(async () => {
     const stillPending = _applications.filter(c => c.score === null && !c.recommandation);
     if (!stillPending.length) { stopPolling(); return; }
-    let updated = false;
-    for (const c of stillPending) {
-      try {
-        const r = await api.get(`/api/candidatures/${c._id}`);
-        if (r?.candidature && r.candidature.score !== null) {
-          const idx = _applications.findIndex(x => x._id === c._id);
-          if (idx !== -1) { _applications[idx] = r.candidature; updated = true; }
+    try {
+      // One lightweight request for all pending ids
+      const ids = stillPending.map(c => c._id).join(',');
+      const r = await api.get(`/api/candidatures/batch-status?ids=${ids}`);
+      if (!r?.success) return;
+      const nowScored = (r.candidatures || []).filter(sc => sc.score !== null && sc.score !== undefined);
+      if (!nowScored.length) return;
+      // Refetch full objects only for the few that just got a score
+      let updated = false;
+      await Promise.all(nowScored.map(async sc => {
+        const full = await api.get(`/api/candidatures/${sc._id}`);
+        if (full?.candidature) {
+          const idx = _applications.findIndex(x => x._id === sc._id);
+          if (idx !== -1) { _applications[idx] = full.candidature; updated = true; }
         }
-      } catch { /* silent */ }
-    }
-    if (updated) { filterApplications(); toast('Score IA mis à jour', 'success'); }
+      }));
+      if (updated) { filterApplications(); toast(t('toast.score_updated'), 'success'); }
+    } catch { /* silent — will retry next tick */ }
   }, 5000);
 }
 
@@ -232,8 +262,8 @@ function stopPolling() {
 // ── Actions ──
 async function deleteApplication(id) {
   const r = await api.delete(`/api/candidatures/${id}`);
-  if (r?.success) { toast('Candidature supprimée', 'success'); renderApplications(); }
-  else toast(r?.error || 'Erreur', 'error');
+  if (r?.success) { toast(t('toast.deleted'), 'success'); renderApplications(); }
+  else toast(r?.error || t('toast.error'), 'error');
 }
 
 function exportCSV() {
@@ -249,7 +279,7 @@ function exportCSV() {
   a.href     = URL.createObjectURL(blob);
   a.download = `candidatures_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
-  toast('Export CSV téléchargé !', 'success');
+  toast(t('toast.csv_downloaded'), 'success');
 }
 
 // ── Switch candidature tabs ──
@@ -342,6 +372,15 @@ function showApplicationDetail(id) {
       <div style="padding:14px 18px;background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 var(--r-lg) var(--r-lg) 0;margin-bottom:16px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">Résumé de l'analyse</div>
         <p style="font-size:13px;color:var(--text-2);line-height:1.85;font-style:italic">${c.resume_analyse}</p>
+      </div>` : ''}
+
+      ${c.batch_justification ? `
+      <div style="padding:14px 16px;background:linear-gradient(135deg,rgba(34,197,94,.07) 0%,rgba(34,197,94,.03) 100%);border-radius:var(--r-lg);border:1.5px solid #bbf7d0;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:16px">🏆</span>
+          <span style="font-size:11px;font-weight:800;color:var(--accent-mid);text-transform:uppercase;letter-spacing:.05em">Sélectionné par évaluation batch</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.75;margin:0">${c.batch_justification}</p>
       </div>` : ''}
       `}
     </div>
@@ -478,7 +517,7 @@ async function saveCandidatInfo(id, btn) {
   const nom = document.getElementById('cand-edit-nom')?.value?.trim();
   const email = document.getElementById('cand-edit-email')?.value?.trim();
   const telephone = document.getElementById('cand-edit-tel')?.value?.trim();
-  if (!nom) { toast('Le nom ne peut pas être vide', 'error'); return; }
+  if (!nom) { toast(t('toast.name_required'), 'error'); return; }
   return withLoading(btn, async () => {
     const r = await api.patch(`/api/candidatures/${id}`, { candidat_nom: nom, candidat_email: email, candidat_telephone: telephone });
     if (r?.success) {
@@ -489,9 +528,9 @@ async function saveCandidatInfo(id, btn) {
       const av = document.getElementById('modal-cand-hero-avatar');
       if (av) av.textContent = initials(nom);
       filterApplications();
-      toast('Informations candidat mises à jour', 'success');
+      toast(t('toast.info_updated'), 'success');
     } else {
-      toast(r?.error || 'Erreur mise à jour', 'error');
+      toast(r?.error || t('toast.update_error'), 'error');
     }
   });
 }
@@ -508,9 +547,9 @@ async function updateApplicationStatus(id, statut) {
     const c = _applications.find(x => x._id === id);
     if (c) c.statut = statut;
     filterApplications();
-    toast('Statut mis à jour', 'success');
+    toast(t('toast.status_updated'), 'success');
   } else {
-    toast(r?.error || 'Erreur mise à jour statut', 'error');
+    toast(r?.error || t('toast.status_update_error'), 'error');
   }
 }
 
@@ -521,19 +560,19 @@ async function quickQualify(id, recommandation, btn) {
       const c = _applications.find(x => x._id === id);
       if (c) c.recommandation = recommandation;
       filterApplications();
-      const labels = { QUALIFIE: '✅ Qualifié', A_REVOIR: '~ À revoir', NON_SELECTIONNE: '❌ Éliminé' };
-      toast(`Candidat marqué : ${labels[recommandation] || recommandation}`, 'success');
+      const labels = { QUALIFIE: t('decision.qualified'), A_REVOIR: t('decision.to_review'), NON_SELECTIONNE: t('decision.eliminated') };
+      toast(tf('toast.marked_as', labels[recommandation] || recommandation), 'success');
       if (recommandation === 'QUALIFIE') {
         api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {})
-          .then(re => { if (re?.success) toast('📧 Email d\'invitation envoyé', 'success'); else toast('⚠️ Email non envoyé : ' + (re?.error || 'erreur'), 'error'); })
-          .catch(() => toast('⚠️ Impossible d\'envoyer les emails', 'error'));
+          .then(re => { if (re?.success) toast(t('toast.invitation_sent'), 'success'); else toast(t('toast.email_not_sent') + ' : ' + (re?.error || ''), 'error'); })
+          .catch(() => toast(t('toast.email_send_failed'), 'error'));
       } else if (recommandation === 'NON_SELECTIONNE') {
         api.post(`/api/candidatures/${id}/envoyer-email-refus`, {})
-          .then(re => { if (re?.success) toast('📧 Email de refus envoyé', 'success'); else toast('⚠️ Email non envoyé', 'error'); })
+          .then(re => { if (re?.success) toast(t('toast.rejection_email_sent'), 'success'); else toast(t('toast.email_not_sent'), 'error'); })
           .catch(() => {});
       }
     } else {
-      toast(r?.error || 'Erreur lors de la mise à jour', 'error');
+      toast(r?.error || t('toast.update_general_error'), 'error');
     }
   });
 }
@@ -550,14 +589,14 @@ async function applyDecision(id, recommandation, btn) {
       // Sync status selector in modal if visible
       const sel = document.getElementById('cand-statut-sel');
       if (sel) sel.value = newStatut;
-      toast(`Décision : ${{QUALIFIE:'✅ Qualifié',A_REVOIR:'~ À revoir',NON_SELECTIONNE:'❌ Éliminé'}[recommandation]||recommandation}`, 'success');
+      toast(tf('toast.decision', {QUALIFIE:t('decision.qualified'),A_REVOIR:t('decision.to_review'),NON_SELECTIONNE:t('decision.eliminated')}[recommandation]||recommandation), 'success');
       if (recommandation === 'QUALIFIE') {
         api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {})
-          .then(re => { if (re?.success) toast('📧 Email d\'invitation envoyé', 'success'); else toast('⚠️ Email non envoyé : ' + (re?.error || 'erreur'), 'error'); })
+          .then(re => { if (re?.success) toast(t('toast.invitation_sent'), 'success'); else toast(t('toast.email_not_sent') + ' : ' + (re?.error || ''), 'error'); })
           .catch(() => {});
       } else if (recommandation === 'NON_SELECTIONNE') {
         api.post(`/api/candidatures/${id}/envoyer-email-refus`, {})
-          .then(re => { if (re?.success) toast('📧 Email de refus envoyé', 'success'); else toast('⚠️ Email non envoyé', 'error'); })
+          .then(re => { if (re?.success) toast(t('toast.rejection_email_sent'), 'success'); else toast(t('toast.email_not_sent'), 'error'); })
           .catch(() => {});
       }
     } else {
@@ -567,7 +606,7 @@ async function applyDecision(id, recommandation, btn) {
 }
 
 async function scheduleTest(id) {
-  if (!confirm('Envoyer la convocation au test à ce candidat ?')) return;
+  if (!confirm(LANG === 'en' ? 'Send test summons to this candidate?' : 'Envoyer la convocation au test à ce candidat ?')) return;
   const r = await api.post(`/api/candidatures/${id}/convoquer-test`, {});
   if (r?.success) {
     const c = _applications.find(x => x._id === id);
@@ -575,9 +614,9 @@ async function scheduleTest(id) {
     filterApplications();
     const sel = document.getElementById('cand-statut-sel');
     if (sel) sel.value = 'Test convoqué';
-    toast('📋 Convocation test envoyée !', 'success');
+    toast(t('toast.test_summons_sent'), 'success');
   } else {
-    toast(r?.error || 'Erreur lors de la convocation', 'error');
+    toast(r?.error || t('toast.test_summons_error'), 'error');
   }
 }
 
@@ -774,14 +813,14 @@ async function submitRdvCalcom() {
       if (c) { c.rdv_pris = true; c.statut = 'Entretien planifié'; }
       filterApplications();
       closeModal('modal-rdv-calcom');
-      toast('📅 Rendez-vous planifié sur cal.com !', 'success');
+      toast(t('toast.appointment_calcom'), 'success');
       showApplicationDetail(_rdvCalcomCandidatureId);
     } else {
-      toast(r?.error || 'Erreur lors de la planification', 'error');
+      toast(r?.error || t('toast.appointment_error'), 'error');
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Confirmer le rendez-vous'; }
     }
   } catch {
-    toast('Erreur réseau', 'error');
+    toast(t('toast.network_error'), 'error');
     if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Confirmer le rendez-vous'; }
   }
 }
@@ -794,13 +833,13 @@ async function submitManualAppointment(id, btn) {
   return withLoading(btn, async () => {
     const r = await api.post(`/api/candidatures/${id}/rdv-manuel`, { date, heure, lieu, note });
     if (r?.success) {
-      toast('📅 RDV manuel enregistré !', 'success');
+      toast(t('toast.manual_rdv_saved'), 'success');
       const c = _applications.find(x => x._id === id);
       if (c) { c.statut = 'Entretien planifié'; c.rdv_pris = true; c.rdv_manuel = r.candidature.rdv_manuel; }
       filterApplications();
       showApplicationDetail(id);
     } else {
-      toast(r?.error || 'Erreur lors du RDV manuel', 'error');
+      toast(r?.error || t('toast.manual_rdv_error'), 'error');
     }
   });
 }
@@ -811,7 +850,7 @@ async function markAppointmentBooked(id) {
     const c = _applications.find(x => x._id === id);
     if (c) { c.rdv_pris = true; c.statut = 'Entretien planifié'; }
     filterApplications();
-    toast('✅ RDV marqué comme pris', 'success');
+    toast(t('toast.rdv_marked'), 'success');
     showApplicationDetail(id);
   } else {
     toast(r?.error || 'Erreur', 'error');
@@ -838,7 +877,7 @@ async function togglePotentiel(id, btn) {
         </div>
         ${newVal ? '<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">Actif</span>' : ''}`;
     }
-    toast(newVal ? '⭐ Ajouté au vivier' : 'Retiré du vivier', 'success');
+    toast(newVal ? t('toast.added_to_pool') : t('toast.removed_from_pool'), 'success');
   } else {
     toast(r?.error || 'Erreur', 'error');
   }
@@ -850,7 +889,7 @@ async function markNotInterested(id) {
     const c = _applications.find(x => x._id === id);
     if (c) { c.non_interesse = true; c.statut = 'Pas intéressé'; }
     filterApplications();
-    toast('Candidat marqué comme non intéressé', 'success');
+    toast(t('toast.not_interested_marked'), 'success');
     showApplicationDetail(id);
   } else {
     toast(r?.error || 'Erreur', 'error');
@@ -859,7 +898,7 @@ async function markNotInterested(id) {
 
 async function uploadCvForCandidate(id, btn) {
   const input = document.getElementById(`cv-upload-${id}`);
-  if (!input?.files?.[0]) { toast('Sélectionnez un fichier CV d\'abord', 'error'); return; }
+  if (!input?.files?.[0]) { toast(t('toast.select_cv_first'), 'error'); return; }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Upload…'; }
   const fd = new FormData();
   fd.append('cv', input.files[0]);
@@ -871,43 +910,43 @@ async function uploadCvForCandidate(id, btn) {
     });
     const data = await resp.json();
     if (data.success) {
-      toast('CV uploadé avec succès', 'success');
+      toast(t('toast.cv_uploaded'), 'success');
       const app = _applications.find(x => x._id === id);
       if (app) { app.cv_path = data.cv_path; app.cv_filename = data.cv_filename; }
       showApplicationDetail(id);
     } else {
-      toast(data.error || 'Erreur lors de l\'upload', 'error');
+      toast(data.error || t('toast.upload_error'), 'error');
       if (btn) { btn.disabled = false; btn.textContent = '⬆️ Uploader'; }
     }
   } catch (e) {
-    toast('Erreur lors de l\'upload', 'error');
+    toast(t('toast.upload_error'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = '⬆️ Uploader'; }
   }
 }
 
 async function relaunchWorkflow(id) {
   const c = _applications.find(x => x._id === id);
-  if (!c?.cv_path) { toast('Un CV est requis pour relancer l\'analyse IA', 'error'); return; }
-  toast('Relancement du workflow en cours…', 'info');
+  if (!c?.cv_path) { toast(t('toast.cv_required_for_workflow'), 'error'); return; }
+  toast(t('toast.workflow_relaunching'), 'info');
   c.score = null; c.recommandation = ''; filterApplications();
   const r = await api.post(`/api/candidatures/${id}/relancer-workflow`, {});
-  if (r?.success) { toast('🔄 Workflow relancé ! Analyse en cours…', 'success'); startPollingIfNeeded(); }
-  else toast(r?.error || 'Erreur lors du relancement', 'error');
+  if (r?.success) { toast(t('toast.workflow_relaunched'), 'success'); startPollingIfNeeded(); }
+  else toast(r?.error || t('toast.relaunch_error'), 'error');
 }
 
 async function relaunchWorkflowFromModal(id) {
   const c = _applications.find(x => x._id === id);
-  if (!c?.cv_path) { toast('Un CV est requis pour relancer l\'analyse IA', 'error'); return; }
+  if (!c?.cv_path) { toast(t('toast.cv_required_for_workflow'), 'error'); return; }
   const btn = document.getElementById('btn-relancer-wf');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Relancement…'; }
   if (c) { c.score = null; c.recommandation = ''; filterApplications(); }
   const r = await api.post(`/api/candidatures/${id}/relancer-workflow`, {});
   if (r?.success) {
-    toast('🔄 Workflow relancé — analyse en cours…', 'success');
+    toast(t('toast.workflow_relaunched'), 'success');
     if (btn) btn.textContent = '⏳ Analyse en cours…';
     startPollingIfNeeded();
   } else {
-    toast(r?.error || 'Erreur lors du relancement', 'error');
+    toast(r?.error || t('toast.relaunch_error'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Relancer l\'analyse IA'; }
   }
 }
@@ -923,7 +962,7 @@ function applicationStatusBadge(s) {
     'Test convoqué':'badge-purple', 'Test passé':'badge-blue',
     'Accepté':'badge-green', 'Refusé':'badge-red', 'Pas intéressé':'badge-gray',
   };
-  return `<span class="badge ${map[s]||'badge-gray'}">${s||'Nouveau'}</span>`;
+  return `<span class="badge ${map[s]||'badge-gray'}">${statusLabel(s||'Nouveau')}</span>`;
 }
 
 function applicationModalHTML() {
@@ -936,7 +975,7 @@ function applicationModalHTML() {
       <div style="background:linear-gradient(135deg,var(--grad-start) 0%,var(--grad-end) 100%);padding:22px 24px 18px;position:relative;flex-shrink:0;overflow:hidden">
         <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none"></div>
         <div style="position:absolute;bottom:-50px;left:-20px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none"></div>
-        <button onclick="closeModal('modal-cand')" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:1;line-height:1" onmouseover="this.style.background='rgba(255,255,255,.35)'" onmouseout="this.style.background='rgba(255,255,255,.2)'">✕</button>
+        <button onclick="closeModal('modal-cand')" class="btn-modal-close" style="position:absolute;top:14px;right:14px">✕</button>
         <div style="position:relative;z-index:1;display:flex;align-items:center;gap:16px">
           <div id="modal-cand-hero-avatar" class="avatar" style="width:52px;height:52px;font-size:18px;flex-shrink:0;border:3px solid rgba(255,255,255,.35);box-shadow:0 4px 14px rgba(0,0,0,.2)"></div>
           <div style="flex:1;min-width:0">
@@ -965,7 +1004,7 @@ function applicationModalHTML() {
 
       <!-- Gradient hero header -->
       <div style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));padding:26px 24px 22px;position:relative;flex-shrink:0">
-        <button onclick="closeModal('modal-rdv-calcom')" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.22);border:none;color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.35)'" onmouseout="this.style.background='rgba(255,255,255,.22)'">✕</button>
+        <button onclick="closeModal('modal-rdv-calcom')" class="btn-modal-close" style="position:absolute;top:14px;right:14px">✕</button>
         <div style="font-size:26px;margin-bottom:6px">📅</div>
         <div style="font-size:17px;font-weight:800;color:white;letter-spacing:-.01em">Prise de rendez-vous</div>
         <div id="rdv-calcom-subtitle" style="font-size:12.5px;color:rgba(255,255,255,.78);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
@@ -1069,11 +1108,12 @@ function applicationModalHTML() {
               <input class="form-control" id="nc-telephone" placeholder="032 XX XXX XX">
             </div>
             <div class="form-group" style="grid-column:1/-1">
-              <label class="form-label">Canal de candidature</label>
+              <label class="form-label">${t('form.channel')}</label>
               <select class="form-control" id="nc-canal">
-                <option value="plateforme" selected>🌐 Plateforme</option>
-                <option value="telephone">📞 Téléphone</option>
-                <option value="physique">🤝 Physique</option>
+                <option value="plateforme" selected>${t('channel.platform')}</option>
+                <option value="telephone">${t('channel.phone')}</option>
+                <option value="physique">${t('channel.physical')}</option>
+                <option value="email">${t('channel.email')}</option>
               </select>
             </div>
             <div class="form-group">
@@ -1124,11 +1164,11 @@ async function submitNewApplication() {
   const phone   = document.getElementById('nc-telephone').value.trim();
   const channel = document.getElementById('nc-canal').value;
 
-  if (!offerId) return toast('Sélectionnez une offre', 'error');
-  if (!name)    return toast('Nom du candidat requis', 'error');
-  if (!email && !phone) return toast('Email ou téléphone requis', 'error');
+  if (!offerId) return toast(t('toast.select_offer'), 'error');
+  if (!name)    return toast(t('toast.candidate_name_required'), 'error');
+  if (!email && !phone) return toast(t('toast.email_or_phone_required'), 'error');
   const offre = _jobOffersMap[offerId];
-  if (offre?.automatisation_active && !email) return toast("Email requis — cette offre utilise l'automatisation complète", 'error');
+  if (offre?.automatisation_active && !email) return toast(t('toast.email_required_auto'), 'error');
 
   const fd = new FormData();
   fd.append('offre_id', offerId);
@@ -1151,11 +1191,11 @@ async function submitNewApplication() {
     });
     const r = await res.json();
     if (r.success) {
-      toast('Candidature enregistrée — analyse IA en cours', 'success');
+      toast(t('toast.application_saved'), 'success');
       closeModal('modal-nouveau-cand');
       renderApplications();
     } else {
-      toast(r.error || 'Erreur', 'error');
+      toast(r.error || t('toast.error'), 'error');
     }
   });
 }

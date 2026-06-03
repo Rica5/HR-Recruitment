@@ -1,19 +1,23 @@
-const ACTION_MAP = {
-  OFFRE_CREEE:           ['Offre créée',          'badge-green'],
-  OFFRE_MODIFIEE:        ['Offre modifiée',        'badge-blue'],
-  OFFRE_SUPPRIMEE:       ['Offre supprimée',       'badge-red'],
-  CANDIDATURE_RECUE:     ['Candidature reçue',     'badge-green'],
-  CANDIDATURE_MANUELLE:  ['Saisie manuelle',       'badge-blue'],
-  CANDIDATURE_QUALIFIEE: ['Candidat qualifié',     'badge-accent'],
-  CANDIDATURE_ELIMINEE:  ['Candidature supprimée', 'badge-red'],
-  ANALYSE_IA_RECUE:      ['Analyse IA reçue',      'badge-accent'],
-  EMAIL_QUALIF_ENVOYE:   ['Email qualification',   'badge-blue'],
-  WF_RELANCE:            ['WF relancé',            'badge-amber'],
-  WF_ECHEC:              ['WF échoué',             'badge-red'],
-  RDV_PLANIFIE:          ['RDV planifié',          'badge-blue'],
-  STATUT_CHANGE:         ['Statut changé',         'badge-amber'],
-  USER_LOGIN:            ['Connexion',             'badge-gray'],
-};
+// ACTION_MAP is now driven by i18n translations
+function getActionLabel(action) {
+  const cls = {
+    OFFRE_CREEE:           'badge-green',
+    OFFRE_MODIFIEE:        'badge-blue',
+    OFFRE_SUPPRIMEE:       'badge-red',
+    CANDIDATURE_RECUE:     'badge-green',
+    CANDIDATURE_MANUELLE:  'badge-blue',
+    CANDIDATURE_QUALIFIEE: 'badge-accent',
+    CANDIDATURE_ELIMINEE:  'badge-red',
+    ANALYSE_IA_RECUE:      'badge-accent',
+    EMAIL_QUALIF_ENVOYE:   'badge-blue',
+    WF_RELANCE:            'badge-amber',
+    WF_ECHEC:              'badge-red',
+    RDV_PLANIFIE:          'badge-blue',
+    STATUT_CHANGE:         'badge-amber',
+    USER_LOGIN:            'badge-gray',
+  };
+  return [t(`audit.${action}`) || action, cls[action] || 'badge-gray'];
+}
 
 let _auditPage = 1;
 let _auditTimer = null;
@@ -22,31 +26,31 @@ async function renderAudit() {
   const el = document.getElementById('page-content');
   el.innerHTML = `
   <div class="filters-bar" style="margin-bottom:16px">
-    <input class="filter-input" id="a-q" placeholder="Rechercher par nom, email..." style="flex:1;min-width:180px">
+    <input class="filter-input" id="a-q" placeholder="${t('filter.search_audit')}" style="flex:1;min-width:180px">
     <select class="filter-select" id="a-action" onchange="loadAudit(1)">
-      <option value="">Toutes les actions</option>
-      <option value="OFFRE_CREEE">Offre créée</option>
-      <option value="OFFRE_MODIFIEE">Offre modifiée</option>
-      <option value="OFFRE_SUPPRIMEE">Offre supprimée</option>
-      <option value="CANDIDATURE_RECUE">Candidature reçue</option>
-      <option value="CANDIDATURE_MANUELLE">Saisie manuelle</option>
-      <option value="CANDIDATURE_QUALIFIEE">Candidat qualifié</option>
-      <option value="CANDIDATURE_ELIMINEE">Candidature supprimée</option>
-      <option value="ANALYSE_IA_RECUE">Analyse IA reçue</option>
-      <option value="EMAIL_QUALIF_ENVOYE">Email qualification</option>
-      <option value="WF_RELANCE">WF relancé</option>
-      <option value="WF_ECHEC">WF échoué</option>
-      <option value="RDV_PLANIFIE">RDV planifié</option>
-      <option value="STATUT_CHANGE">Statut changé</option>
-      <option value="USER_LOGIN">Connexion</option>
+      <option value="">${t('filter.all_actions')}</option>
+      <option value="OFFRE_CREEE">${t('audit.OFFRE_CREEE')}</option>
+      <option value="OFFRE_MODIFIEE">${t('audit.OFFRE_MODIFIEE')}</option>
+      <option value="OFFRE_SUPPRIMEE">${t('audit.OFFRE_SUPPRIMEE')}</option>
+      <option value="CANDIDATURE_RECUE">${t('audit.CANDIDATURE_RECUE')}</option>
+      <option value="CANDIDATURE_MANUELLE">${t('audit.CANDIDATURE_MANUELLE')}</option>
+      <option value="CANDIDATURE_QUALIFIEE">${t('audit.CANDIDATURE_QUALIFIEE')}</option>
+      <option value="CANDIDATURE_ELIMINEE">${t('audit.CANDIDATURE_ELIMINEE')}</option>
+      <option value="ANALYSE_IA_RECUE">${t('audit.ANALYSE_IA_RECUE')}</option>
+      <option value="EMAIL_QUALIF_ENVOYE">${t('audit.EMAIL_QUALIF_ENVOYE')}</option>
+      <option value="WF_RELANCE">${t('audit.WF_RELANCE')}</option>
+      <option value="WF_ECHEC">${t('audit.WF_ECHEC')}</option>
+      <option value="RDV_PLANIFIE">${t('audit.RDV_PLANIFIE')}</option>
+      <option value="STATUT_CHANGE">${t('audit.STATUT_CHANGE')}</option>
+      <option value="USER_LOGIN">${t('audit.USER_LOGIN')}</option>
     </select>
     <select class="filter-select" id="a-type" onchange="loadAudit(1)">
-      <option value="">Tous les types</option>
-      <option value="offre">Offres</option>
-      <option value="candidature">Candidatures</option>
-      <option value="user">Connexions</option>
+      <option value="">${t('filter.all_statuses')}</option>
+      <option value="offre">${t('page.offers.title')}</option>
+      <option value="candidature">${t('page.applications.title')}</option>
+      <option value="user">${t('audit.USER_LOGIN')}</option>
     </select>
-    <button class="btn btn-ghost btn-sm" onclick="loadAudit(1)">↻ Actualiser</button>
+    <button class="btn btn-ghost btn-sm" onclick="loadAudit(1)">↻</button>
   </div>
 
   <div class="card">
@@ -84,21 +88,28 @@ async function loadAudit(page) {
   const pages = r?.pages || 1;
 
   if (!logs.length) {
-    body.innerHTML = `<div class="empty-state" style="padding:48px"><p>Aucune entrée dans l'historique</p></div>`;
+    body.innerHTML = `<div class="empty-state" style="padding:48px"><p>${t('empty.no_audit')}</p></div>`;
     document.getElementById('audit-pagination').innerHTML = '';
     return;
   }
+
+  const prevLabel = LANG === 'en' ? '← Previous' : '← Précédent';
+  const nextLabel = LANG === 'en' ? 'Next →' : 'Suivant →';
+  const pageLabel = LANG === 'en' ? `Page ${_auditPage} / ${pages}` : `Page ${_auditPage} / ${pages}`;
+  const entryLabel = LANG === 'en'
+    ? `${total.toLocaleString('en-GB')} entr${total > 1 ? 'ies' : 'y'}`
+    : `${total.toLocaleString('fr-FR')} entrée${total > 1 ? 's' : ''}`;
 
   body.innerHTML = `
   <div class="table-wrap" style="border-radius:var(--r)">
     <table style="width:100%;border-collapse:collapse">
       <thead>
         <tr style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;background:var(--surface-2)">
-          <th style="padding:10px 16px;font-weight:600;text-align:left;white-space:nowrap">Date</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">Action</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">Entité</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">Utilisateur</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">Détails</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left;white-space:nowrap">${t('table.date')}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${LANG === 'en' ? 'Action' : 'Action'}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${LANG === 'en' ? 'Entity' : 'Entité'}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${t('table.email')}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${LANG === 'en' ? 'Details' : 'Détails'}</th>
         </tr>
       </thead>
       <tbody>
@@ -107,20 +118,20 @@ async function loadAudit(page) {
     </table>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;font-size:13px;color:var(--text-3);border-top:1px solid var(--border)">
-    <span>${total.toLocaleString('fr-FR')} entrée${total > 1 ? 's' : ''}</span>
-    <span>Page ${_auditPage} / ${pages}</span>
+    <span>${entryLabel}</span>
+    <span>${pageLabel}</span>
   </div>`;
 
   const pg = document.getElementById('audit-pagination');
   if (pg) {
     pg.innerHTML = pages <= 1 ? '' : `
-      <button class="btn btn-ghost btn-sm" onclick="loadAudit(${_auditPage - 1})" ${_auditPage <= 1 ? 'disabled' : ''}>&larr; Précédent</button>
-      <button class="btn btn-ghost btn-sm" onclick="loadAudit(${_auditPage + 1})" ${_auditPage >= pages ? 'disabled' : ''}>Suivant &rarr;</button>`;
+      <button class="btn btn-ghost btn-sm" onclick="loadAudit(${_auditPage - 1})" ${_auditPage <= 1 ? 'disabled' : ''}>${prevLabel}</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadAudit(${_auditPage + 1})" ${_auditPage >= pages ? 'disabled' : ''}>${nextLabel}</button>`;
   }
 }
 
 function renderAuditRow(log) {
-  const [label, cls] = ACTION_MAP[log.action] || [log.action, 'badge-gray'];
+  const [label, cls] = getActionLabel(log.action);
   const icon = { offre: '📋', candidature: '👤', user: '🔑' }[log.entity_type] || '•';
 
   const detailStr = Object.entries(log.details || {})

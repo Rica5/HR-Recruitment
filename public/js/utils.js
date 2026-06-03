@@ -61,11 +61,11 @@ async function switchTheme(theme) {
 function toast(msg, type = 'info', duration = 3200) {
   let c = document.querySelector('.toast-container');
   if (!c) { c = document.createElement('div'); c.className = 'toast-container'; document.body.appendChild(c); }
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), duration);
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), duration);
 }
 
 /* ── Score helpers ── */
@@ -75,38 +75,71 @@ function scoreColor(s) {
   return '#dc2626';
 }
 function renderBadge(recommendation) {
-  const map = { QUALIFIE: ['badge-green','✓ Qualifié'], A_REVOIR: ['badge-amber','~ À revoir'], NON_SELECTIONNE: ['badge-red','✗ Non retenu'] };
-  const [cls, label] = map[recommendation] || ['badge-gray','—'];
+  const map = {
+    QUALIFIE:        ['badge-green', t('reco.qualified')],
+    A_REVOIR:        ['badge-amber', t('reco.to_review')],
+    NON_SELECTIONNE: ['badge-red',   t('reco.rejected')],
+  };
+  const [cls, label] = map[recommendation] || ['badge-gray', '—'];
   return `<span class="badge ${cls}">${label}</span>`;
 }
 function renderScoreBar(score) {
-  if (score == null) return '<span class="badge badge-gray">En attente</span>';
+  if (score == null) return `<span class="badge badge-gray">${t('badge.pending')}</span>`;
   const c = scoreColor(score);
   return `<div class="score-wrap"><div class="score-bar"><div class="score-fill" style="width:${score*10}%;background:${c}"></div></div><span class="score-num" style="color:${c}">${score}/10</span></div>`;
 }
 
 /* ── Dates ── */
-function formatDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' }); }
-function formatDatetime(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+const _dateLocale = LANG === 'en' ? 'en-GB' : 'fr-FR';
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString(_dateLocale, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function formatDatetime(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString(_dateLocale, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 function timeAgo(d) {
   if (!d) return '—';
   const diff = Date.now() - new Date(d);
-  const m = Math.floor(diff/60000), h = Math.floor(m/60), days = Math.floor(h/24);
+  const m = Math.floor(diff / 60000), h = Math.floor(m / 60), days = Math.floor(h / 24);
+  if (LANG === 'en') {
+    if (days > 0) return `${days}d ago`;
+    if (h > 0)    return `${h}h ago`;
+    if (m > 0)    return `${m}min ago`;
+    return 'just now';
+  }
   if (days > 0) return `il y a ${days}j`;
-  if (h > 0) return `il y a ${h}h`;
-  if (m > 0) return `il y a ${m}min`;
+  if (h > 0)    return `il y a ${h}h`;
+  if (m > 0)    return `il y a ${m}min`;
   return 'à l\'instant';
 }
 
 /* ── Misc ── */
-function initials(name) { return (name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2); }
-function copyText(text, msg = 'Copié !') { navigator.clipboard.writeText(text).then(() => toast(msg, 'success')); }
+// Debounce: returns a wrapper that delays calling fn until `wait` ms after the last call
+function debounce(fn, wait = 300) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+function initials(name) { return (name || '?').split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2); }
+function copyText(text, msg) {
+  navigator.clipboard.writeText(text).then(() => toast(msg || t('toast.copied'), 'success'));
+}
 function offerStatusBadge(s) {
-  const map = { 'Active':'badge-green', 'Fermée':'badge-gray', 'En pause':'badge-amber' };
-  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+  const labels = { 'Active': t('status.active'), 'Fermée': t('status.closed'), 'En pause': t('status.paused') };
+  const cls    = { 'Active': 'badge-green', 'Fermée': 'badge-gray', 'En pause': 'badge-amber' };
+  return `<span class="badge ${cls[s] || 'badge-gray'}">${labels[s] || s}</span>`;
 }
 function channelBadge(channel) {
-  const map = { plateforme: ['badge-blue','🌐 Plateforme'], telephone: ['badge-amber','📞 Téléphone'], physique: ['badge-gray','🤝 Physique'] };
+  const map = {
+    plateforme: ['badge-blue',  t('channel.platform')],
+    telephone:  ['badge-amber', t('channel.phone')],
+    physique:   ['badge-gray',  t('channel.physical')],
+    email:      ['badge-accent', t('channel.email')],
+  };
   const [cls, label] = map[channel] || ['badge-gray', channel || '—'];
   return `<span class="badge ${cls}" style="font-size:10px">${label}</span>`;
 }

@@ -22,25 +22,31 @@ function drawOffersList(offers) {
   }
   el.innerHTML = `
   <div class="filters-bar">
-    <input class="filter-input" id="q-offres" placeholder="🔍 Rechercher…" oninput="filterOffers()">
+    <input class="filter-input" id="q-offres" placeholder="${t('filter.search_offers')}" oninput="filterOffers()">
     <select class="filter-select" id="f-statut" onchange="filterOffers()">
-      <option value="">Tous statuts</option>
-      <option>Active</option><option>Fermée</option><option>En pause</option>
+      <option value="">${t('filter.all_statuses')}</option>
+      <option value="Active">${t('status.active')}</option>
+      <option value="Fermée">${t('status.closed')}</option>
+      <option value="En pause">${t('status.paused')}</option>
     </select>
     <select class="filter-select" id="f-contrat" onchange="filterOffers()">
-      <option value="">Tous contrats</option>
-      <option>CDI</option><option>CDD</option><option>Stage</option><option>Freelance</option><option>Alternance</option>
+      <option value="">${t('filter.all_contracts')}</option>
+      <option>CDI</option><option>CDD</option>
+      <option value="Stage">${t('contract.internship')}</option>
+      <option>Freelance</option>
+      <option value="Alternance">${t('contract.alternance')}</option>
     </select>
   </div>
   <div id="offres-list"></div>
-  ${offerModalHTML()}`;
+  ${offerModalHTML()}
+  ${batchEvalModalHTML()}`;
   renderOfferCards(offers);
 }
 
 function renderOfferCards(offers) {
   const el = document.getElementById('offres-list');
   if (!offers.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>Aucune offre trouvée</p><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openCreateOffer()">+ Créer une offre</button></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>${t('empty.no_offers')}</p><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openCreateOffer()">${t('btn.new_offer')}</button></div>`;
     return;
   }
   el.innerHTML = `<div style="display:flex;flex-direction:column;gap:12px">${offers.map(o => {
@@ -65,10 +71,11 @@ function renderOfferCards(offers) {
         </div>
       </div>
       <div style="display:flex;gap:20px;align-items:center;flex-shrink:0">
-        <div class="offre-count"><div class="offre-count-val">${offerApplications.length}</div><div class="offre-count-lbl">Candidats</div></div>
-        <div class="offre-count"><div class="offre-count-val" style="color:var(--accent-mid)">${qualifiedCount}</div><div class="offre-count-lbl">Qualifiés</div></div>
+        <div class="offre-count"><div class="offre-count-val">${offerApplications.length}</div><div class="offre-count-lbl">${t('table.candidate')}</div></div>
+        <div class="offre-count"><div class="offre-count-val" style="color:var(--accent-mid)">${qualifiedCount}</div><div class="offre-count-lbl">${t('reco.qualified')}</div></div>
         <div style="display:flex;gap:6px">
           ${o.statut === 'Active' ? `<button class="btn-icon" title="Copier le lien" onclick="event.stopPropagation();copyOfferLink('${o.offre_id}')">🔗</button>` : ''}
+          ${offerApplications.some(c => c.score != null) ? `<button class="btn-icon" title="Évaluer les meilleurs candidats" onclick="event.stopPropagation();openBatchEvalModal('${o.offre_id}')">🏆</button>` : ''}
           <button class="btn-icon" title="Cloner l'offre" onclick="event.stopPropagation();cloneOffer('${o.offre_id}')">⧉</button>
           <button class="btn-icon" title="Modifier" onclick="event.stopPropagation();editOffer('${o.offre_id}')">✏️</button>
           <button class="btn-icon" title="Exporter PDF" onclick="event.stopPropagation();exportOfferPDF('${o.offre_id}')">📄</button>
@@ -91,7 +98,7 @@ function filterOffers() {
   renderOfferCards(results);
 }
 
-function copyOfferLink(id) { copyText(`${location.origin}/postuler?offre_id=${id}`, '🔗 Lien copié !'); }
+function copyOfferLink(id) { copyText(`${location.origin}/postuler?offre_id=${id}`, t('toast.copied')); }
 
 function syncStatutWithCalendar() {
   const lien = document.getElementById('fo-lien_rdv')?.value?.trim();
@@ -112,11 +119,11 @@ function cloneOffer(id) {
 }
 
 async function deleteOffer(id, btn) {
-  if (!confirm('Supprimer cette offre et toutes ses candidatures ?')) return;
+  if (!confirm(LANG === 'en' ? 'Delete this offer and all its applications?' : 'Supprimer cette offre et toutes ses candidatures ?')) return;
   return withLoading(btn, async () => {
     const r = await api.delete(`/api/offres/${id}`);
-    if (r?.success) { toast('Offre supprimée', 'success'); renderOffers(); }
-    else toast(r?.error || 'Erreur', 'error');
+    if (r?.success) { toast(t('toast.offer_deleted'), 'success'); renderOffers(); }
+    else toast(r?.error || t('toast.error'), 'error');
   });
 }
 
@@ -139,10 +146,24 @@ function showOfferDetail(id) {
     <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,255,255,.18);color:white;border:1px solid rgba(255,255,255,.28)">${o.type_contrat}</span>
     ${o.localisation ? `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(255,255,255,.14);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.22)">📍 ${o.localisation}</span>` : ''}
     ${user?.company !== 'optimum' ? (approved
-      ? '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(187,247,208,.25);color:#bbf7d0;border:1px solid rgba(187,247,208,.35)">✓ Inspection OK</span>'
-      : '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(253,230,138,.2);color:#fde68a;border:1px solid rgba(253,230,138,.3)">⏳ Inspection en attente</span>') : ''}
+      ? `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(187,247,208,.25);color:#bbf7d0;border:1px solid rgba(187,247,208,.35)">${t('offer.badge.inspection_ok')}</span>`
+      : `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:rgba(253,230,138,.2);color:#fde68a;border:1px solid rgba(253,230,138,.3)">${t('offer.badge.inspection_pending')}</span>`) : ''}
   `;
   document.getElementById('offre-tab-cands-count').textContent = offerApplications.length;
+
+  // Batch selection tab — visible only if candidates have a batch_justification
+  const batchSelected = offerApplications.filter(c => c.batch_justification).sort((a, b) => (b.score || 0) - (a.score || 0));
+  const batchBtn = document.getElementById('tab-offre-batch');
+  const batchCount = document.getElementById('offre-tab-batch-count');
+  if (batchBtn) {
+    if (batchSelected.length > 0) {
+      batchBtn.style.display = 'flex';
+      if (batchCount) batchCount.textContent = batchSelected.length;
+    } else {
+      batchBtn.style.display = 'none';
+    }
+  }
+
   document.getElementById('btn-offre-edit').onclick = () => { closeModal('modal-offre'); editOffer(id); };
   document.getElementById('btn-offre-pdf').onclick  = () => exportOfferPDF(id);
   document.getElementById('btn-offre-newcand').onclick = () => launchNewApplicationForOffer(id);
@@ -178,10 +199,10 @@ function showOfferDetail(id) {
         <div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px;grid-column:1/-1;display:flex;align-items:center;gap:12px">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);flex-shrink:0">Mode qualification</div>
           ${o.test_requis
-            ? '<span class="badge badge-amber" style="font-size:12px;padding:4px 12px">📋 C — Test requis + manuel</span>'
+            ? `<span class="badge badge-amber" style="font-size:12px;padding:4px 12px">${t('offer.badge.test_c')}</span>`
             : (o.automatisation_active
-                ? '<span class="badge badge-blue" style="font-size:12px;padding:4px 12px">🤖 A — IA + emails auto</span>'
-                : '<span class="badge badge-accent" style="font-size:12px;padding:4px 12px">👤 B — IA + manuel</span>')}
+                ? `<span class="badge badge-blue" style="font-size:12px;padding:4px 12px">${t('offer.badge.auto_a')}</span>`
+                : `<span class="badge badge-accent" style="font-size:12px;padding:4px 12px">${t('offer.badge.manual_b')}</span>`)}
         </div>
       </div>
 
@@ -221,28 +242,31 @@ function showOfferDetail(id) {
     <div class="offre-tab-panel" id="offre-panel-cands" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap">
         <div style="font-size:14px;font-weight:700;color:var(--text)">${offerApplications.length} candidature${offerApplications.length!==1?'s':''}</div>
-        <button class="btn btn-primary btn-sm" onclick="launchNewApplicationForOffer('${o.offre_id}')">+ Nouvelle candidature</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${offerApplications.some(c => c.score != null) ? `<button class="btn btn-sm" style="background:var(--accent-soft);color:var(--accent-mid);border:1.5px solid var(--accent-light);font-weight:700" onclick="openBatchEvalModal('${o.offre_id}')">${t('btn.evaluate_candidates')}</button>` : ''}
+          <button class="btn btn-primary btn-sm" onclick="launchNewApplicationForOffer('${o.offre_id}')">${t('btn.new_application')}</button>
+        </div>
       </div>
 
       ${showBulkSelect && offerApplications.length > 0 ? `
       <div id="offre-bulk-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--accent-soft);border:1px solid var(--accent-light);border-radius:var(--r-lg);margin-bottom:12px">
-        <span id="offre-bulk-count" style="font-size:12px;font-weight:700;color:var(--accent-mid)">0 candidat sélectionné</span>
+        <span id="offre-bulk-count" style="font-size:12px;font-weight:700;color:var(--accent-mid)">0</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
-          <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1.5px solid #bbf7d0;font-weight:700" onclick="bulkQualify()">✅ Qualifier</button>
-          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fecaca;font-weight:700" onclick="bulkReject()">❌ Éliminer</button>
-          ${showTestBadge ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:700" onclick="bulkConvokeTest()">📋 Convoquer au test</button>` : ''}
+          <button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1.5px solid #bbf7d0;font-weight:700" onclick="bulkQualify(this)">${t('btn.qualify')}</button>
+          <button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fecaca;font-weight:700" onclick="bulkReject(this)">${t('btn.eliminate')}</button>
+          ${showTestBadge ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:700" onclick="bulkConvokeTest(this)">${t('btn.test_summons')}</button>` : ''}
         </div>
       </div>
 
       <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;margin-bottom:8px">
         <input type="checkbox" id="offre-cands-select-all" onchange="toggleAllCandSelection(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
-        <label for="offre-cands-select-all" style="font-size:12px;color:var(--text-3);cursor:pointer;user-select:none">Tout sélectionner</label>
+        <label for="offre-cands-select-all" style="font-size:12px;color:var(--text-3);cursor:pointer;user-select:none">${t('btn.select_all')}</label>
       </div>` : ''}
 
       ${offerApplications.length===0 ? `
       <div class="empty-state" style="padding:48px 0">
         <div class="empty-icon">👤</div>
-        <p>Aucune candidature pour cette offre</p>
+        <p>${t('empty.no_applications')}</p>
       </div>` : `
       <div style="display:flex;flex-direction:column;gap:8px">
         ${offerApplications.map(c=>{
@@ -271,8 +295,8 @@ function showOfferDetail(id) {
     <div class="offre-tab-panel" id="offre-panel-cal" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
         ${calChip('📅 Date butoire', o.date_butoire?formatDate(o.date_butoire):'Non définie', !!o.date_butoire)}
-        ${calChip('📢 Parution prévue', o.date_parution_prevue?formatDate(o.date_parution_prevue):'Non définie', !!o.date_parution_prevue)}
-        ${calChip('⏱️ Limite sélection', o.date_limite_selection?formatDate(o.date_limite_selection):'Non définie', !!o.date_limite_selection)}
+        ${calChip(LANG==='en'?'📢 Publication date':'📢 Parution prévue', o.date_parution_prevue?formatDate(o.date_parution_prevue):(LANG==='en'?'Not set':'Non définie'), !!o.date_parution_prevue)}
+        ${calChip(LANG==='en'?'⏱️ Selection deadline':'⏱️ Limite sélection', o.date_limite_selection?formatDate(o.date_limite_selection):(LANG==='en'?'Not set':'Non définie'), !!o.date_limite_selection)}
       </div>
 
       ${o.test_requis && (o.test_date || o.test_heure || o.test_lieu) ? `
@@ -295,6 +319,32 @@ function showOfferDetail(id) {
         <div class="empty-icon">📅</div>
         <p>Aucun lien de calendrier configuré</p>
         <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="closeModal('modal-offre');editOffer('${o.offre_id}')">Configurer dans l'offre</button>
+      </div>`}
+    </div>
+
+    <!-- ── Tab Sélection batch ── -->
+    <div class="offre-tab-panel" id="offre-panel-batch" style="display:none">
+      ${batchSelected.length === 0 ? `
+      <div class="empty-state" style="padding:48px 0">
+        <div class="empty-icon">🏆</div>
+        <p>Aucune sélection batch pour l'instant</p>
+        <p style="font-size:12px;color:var(--text-3);margin-top:6px">Lancez une évaluation depuis le bouton 🏆 sur la carte de l'offre</p>
+      </div>` : `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${batchSelected.map((c, i) => `
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:16px;display:flex;gap:14px;align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent-mid);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">#${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="font-size:14px;font-weight:700;color:var(--text)">${c.candidat_nom}</span>
+              ${c.score != null ? `<span style="background:var(--accent-soft);color:var(--accent-mid);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${c.score}/10</span>` : ''}
+              <span style="background:#dcfce7;color:#166534;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">✅ QUALIFIÉ</span>
+              ${c.candidat_email ? `<span style="font-size:11px;color:var(--text-3)">${c.candidat_email}</span>` : ''}
+            </div>
+            <p style="font-size:13px;color:var(--text-2);line-height:1.75;margin:0 0 10px">${c.batch_justification}</p>
+            <button onclick="closeModal('modal-offre');navigate('candidature/${c._id}')" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--accent-mid);cursor:pointer;text-decoration:underline;text-underline-offset:3px">${t('btn.view_profile')}</button>
+          </div>
+        </div>`).join('')}
       </div>`}
     </div>
   `;
@@ -324,7 +374,11 @@ function updateBulkActionBar() {
   const count = _selectedCandidateIds.size;
   bar.style.display = count > 0 ? 'flex' : 'none';
   const counter = document.getElementById('offre-bulk-count');
-  if (counter) counter.textContent = `${count} candidat${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`;
+  if (counter) {
+    counter.textContent = LANG === 'en'
+      ? `${count} candidate${count > 1 ? 's' : ''} selected`
+      : `${count} candidat${count > 1 ? 's' : ''} sélectionné${count > 1 ? 's' : ''}`;
+  }
 }
 
 async function _refreshOfferDetailAfterBulk() {
@@ -333,81 +387,90 @@ async function _refreshOfferDetailAfterBulk() {
   if (_currentOfferDetailId) showOfferDetail(_currentOfferDetailId);
 }
 
-async function bulkQualify() {
+async function bulkQualify(btn) {
   const ids = [..._selectedCandidateIds];
   if (!ids.length) return;
-  if (!confirm(`Qualifier ${ids.length} candidat(s) et envoyer les emails d'invitation ?`)) return;
+  const msg = LANG === 'en'
+    ? `Qualify ${ids.length} candidate(s) and send invitation emails?`
+    : `Qualifier ${ids.length} candidat(s) et envoyer les emails d'invitation ?`;
+  if (!confirm(msg)) return;
 
-  let ok = 0, fail = 0;
-  toast(`⏳ Qualification de ${ids.length} candidat(s)…`, 'info');
-
-  for (const id of ids) {
-    try {
-      const patch = await api.patch(`/api/candidatures/${id}`, { recommandation: 'QUALIFIE' });
-      if (!patch?.success) { fail++; continue; }
-      const mail = await api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {});
-      if (mail?.success) ok++; else fail++;
-    } catch { fail++; }
-  }
-
-  toast(`✅ Qualifiés : ${ok}${fail ? ` — ⚠️ ${fail} échec(s)` : ''}`, fail ? 'error' : 'success');
-  await _refreshOfferDetailAfterBulk();
+  return withLoading(btn, async () => {
+    let ok = 0, fail = 0;
+    toast(tf('toast.qualifying_n', ids.length), 'info');
+    for (const id of ids) {
+      try {
+        const patch = await api.patch(`/api/candidatures/${id}`, { recommandation: 'QUALIFIE' });
+        if (!patch?.success) { fail++; continue; }
+        const mail = await api.post(`/api/candidatures/${id}/envoyer-emails-qualification`, {});
+        if (mail?.success) ok++; else fail++;
+      } catch { fail++; }
+    }
+    toast(tf('toast.qualified_ok', ok) + (fail ? ` — ⚠️ ${fail}` : ''), fail ? 'error' : 'success');
+    await _refreshOfferDetailAfterBulk();
+  });
 }
 
-async function bulkReject() {
+async function bulkReject(btn) {
   const ids = [..._selectedCandidateIds];
   if (!ids.length) return;
-  if (!confirm(`Éliminer ${ids.length} candidat(s) et envoyer les emails de refus ?`)) return;
+  const msg = LANG === 'en'
+    ? `Reject ${ids.length} candidate(s) and send rejection emails?`
+    : `Éliminer ${ids.length} candidat(s) et envoyer les emails de refus ?`;
+  if (!confirm(msg)) return;
 
-  let ok = 0, fail = 0;
-  toast(`⏳ Élimination de ${ids.length} candidat(s)…`, 'info');
-
-  for (const id of ids) {
-    try {
-      const patch = await api.patch(`/api/candidatures/${id}`, { recommandation: 'NON_SELECTIONNE' });
-      if (!patch?.success) { fail++; continue; }
-      const mail = await api.post(`/api/candidatures/${id}/envoyer-email-refus`, {});
-      if (mail?.success) ok++; else fail++;
-    } catch { fail++; }
-  }
-
-  toast(`❌ Éliminés : ${ok}${fail ? ` — ⚠️ ${fail} échec(s)` : ''}`, fail ? 'error' : 'success');
-  await _refreshOfferDetailAfterBulk();
+  return withLoading(btn, async () => {
+    let ok = 0, fail = 0;
+    toast(tf('toast.eliminating_n', ids.length), 'info');
+    for (const id of ids) {
+      try {
+        const patch = await api.patch(`/api/candidatures/${id}`, { recommandation: 'NON_SELECTIONNE' });
+        if (!patch?.success) { fail++; continue; }
+        const mail = await api.post(`/api/candidatures/${id}/envoyer-email-refus`, {});
+        if (mail?.success) ok++; else fail++;
+      } catch { fail++; }
+    }
+    toast(tf('toast.eliminated_ok', ok) + (fail ? ` — ⚠️ ${fail}` : ''), fail ? 'error' : 'success');
+    await _refreshOfferDetailAfterBulk();
+  });
 }
 
-async function bulkConvokeTest() {
+async function bulkConvokeTest(btn) {
   const ids = [..._selectedCandidateIds];
   if (!ids.length) return;
-  if (!confirm(`Envoyer la convocation au test à ${ids.length} candidat(s) ?`)) return;
+  const msg = LANG === 'en'
+    ? `Send test summons to ${ids.length} candidate(s)?`
+    : `Envoyer la convocation au test à ${ids.length} candidat(s) ?`;
+  if (!confirm(msg)) return;
 
-  let ok = 0, fail = 0;
-  toast(`⏳ Convocation de ${ids.length} candidat(s)…`, 'info');
-
-  for (const id of ids) {
-    try {
-      const r = await api.post(`/api/candidatures/${id}/convoquer-test`, {});
-      if (r?.success) ok++; else fail++;
-    } catch { fail++; }
-  }
-
-  toast(`📋 Convoqués : ${ok}${fail ? ` — ⚠️ ${fail} échec(s)` : ''}`, fail ? 'error' : 'success');
-  await _refreshOfferDetailAfterBulk();
+  return withLoading(btn, async () => {
+    let ok = 0, fail = 0;
+    toast(tf('toast.summoning_n', ids.length), 'info');
+    for (const id of ids) {
+      try {
+        const r = await api.post(`/api/candidatures/${id}/convoquer-test`, {});
+        if (r?.success) ok++; else fail++;
+      } catch { fail++; }
+    }
+    toast(tf('toast.summoned_ok', ok) + (fail ? ` — ⚠️ ${fail}` : ''), fail ? 'error' : 'success');
+    await _refreshOfferDetailAfterBulk();
+  });
 }
 
 async function approveOffer(offerId, btn) {
-  const comment = prompt('Commentaire d\'approbation (optionnel) :', '') ?? '';
+  const comment = prompt(LANG === 'en' ? 'Approval comment (optional):' : 'Commentaire d\'approbation (optionnel) :', '') ?? '';
   return withLoading(btn, async () => {
     const r = await api.patch(`/api/offres/${offerId}`, {
       approbation_inspection: { approuvee: true, date_approbation: new Date().toISOString(), commentaire: comment },
     });
     if (r?.success) {
-      toast('✅ Offre approuvée par l\'Inspection du Travail', 'success');
+      toast(t('toast.offer_approved'), 'success');
       const idx = _jobOffers.findIndex(o => o.offre_id === offerId);
       if (idx !== -1) _jobOffers[idx] = r.offre;
       showOfferDetail(offerId);
       renderOfferCards(_jobOffers);
     } else {
-      toast(r?.error || 'Erreur lors de l\'approbation', 'error');
+      toast(r?.error || t('toast.approval_error'), 'error');
     }
   });
 }
@@ -418,7 +481,7 @@ function editOffer(id) {
 }
 
 function openCreateOffer(offre = null) {
-  document.getElementById('form-offre-title').textContent = offre ? 'Modifier l\'offre' : 'Nouvelle offre d\'emploi';
+  document.getElementById('form-offre-title').textContent = offre ? (LANG === 'en' ? 'Edit offer' : 'Modifier l\'offre') : (LANG === 'en' ? 'New job offer' : 'Nouvelle offre d\'emploi');
   document.getElementById('form-offre-id').value = offre?.offre_id || '';
 
   const textFields = ['titre_poste','missions_principales','profil_souhaite','competences_requises','annees_experience',
@@ -470,34 +533,42 @@ function setScenario(s) {
 }
 
 async function submitOffer(btn) {
+  const id = document.getElementById('form-offre-id').value;
+  const data = {};
+  ['titre_poste','missions_principales','profil_souhaite','competences_requises','annees_experience','langues_requises',
+   'exigences_ia','type_contrat','localisation','salaire','email_recruteur','statut','lien_rdv',
+   'test_heure','test_lieu','formule_remerciement'].forEach(f => {
+    data[f] = (document.getElementById('fo-'+f)?.value || '').trim();
+  });
+
+  // ── Client-side validation before submit ──
+  if (!data.titre_poste)   { toast(LANG === 'en' ? 'Job title is required' : 'Le titre du poste est obligatoire', 'error'); return; }
+  if (!data.localisation)  { toast(LANG === 'en' ? 'Location is required' : 'La localisation est obligatoire', 'error'); return; }
+  if (!data.type_contrat)  { toast(LANG === 'en' ? 'Contract type is required' : 'Le type de contrat est obligatoire', 'error'); return; }
+  if (data.email_recruteur && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email_recruteur)) {
+    toast(LANG === 'en' ? 'Invalid recruiter email' : 'Email recruteur invalide', 'error'); return;
+  }
+
+  const scenario = document.querySelector('input[name="fo-scenario"]:checked')?.value || 'A';
+  data.test_requis = scenario === 'C';
+  data.automatisation_active = scenario === 'A';
+
+  ['date_butoire','date_parution_prevue','date_limite_selection','test_date'].forEach(f => {
+    const val = document.getElementById('fo-'+f)?.value;
+    data[f] = val || null;
+  });
+
   return withLoading(btn, async () => {
-    const id = document.getElementById('form-offre-id').value;
-    const data = {};
-    ['titre_poste','missions_principales','profil_souhaite','competences_requises','annees_experience','langues_requises',
-     'exigences_ia','type_contrat','localisation','salaire','email_recruteur','statut','lien_rdv',
-     'test_heure','test_lieu','formule_remerciement'].forEach(f => {
-      data[f] = document.getElementById('fo-'+f)?.value || '';
-    });
-
-    const scenario = document.querySelector('input[name="fo-scenario"]:checked')?.value || 'A';
-    data.test_requis = scenario === 'C';
-    data.automatisation_active = scenario === 'A';
-
-    ['date_butoire','date_parution_prevue','date_limite_selection','test_date'].forEach(f => {
-      const val = document.getElementById('fo-'+f)?.value;
-      data[f] = val || null;
-    });
-
     let r;
     if (id) r = await api.patch(`/api/offres/${id}`, data);
     else { data.offre_id = Date.now().toString(); r = await api.post('/api/offres', data); }
 
     if (r?.success) {
-      toast(id ? 'Offre modifiée !' : 'Offre créée !', 'success');
+      toast(id ? t('toast.offer_updated') : t('toast.offer_created'), 'success');
       closeModal('modal-create-offre');
       renderOffers();
     } else {
-      toast(r?.error || 'Erreur', 'error');
+      toast(r?.error || t('toast.error'), 'error');
     }
   });
 }
@@ -512,7 +583,7 @@ function calChip(label, value, active) {
 
 function switchOffreTab(tab) {
   document.querySelectorAll('.offre-tab-panel').forEach(p => p.style.display = 'none');
-  ['info','cands','cal'].forEach(t => {
+  ['info','cands','cal','batch'].forEach(t => {
     const btn = document.getElementById('tab-offre-'+t);
     if (btn) { btn.style.color = 'var(--text-3)'; btn.style.borderBottomColor = 'transparent'; }
   });
@@ -534,7 +605,7 @@ function offerModalHTML() {
       <div style="background:linear-gradient(135deg,var(--grad-start) 0%,var(--grad-end) 100%);padding:26px 28px 20px;position:relative;flex-shrink:0;overflow:hidden">
         <div style="position:absolute;top:-50px;right:-50px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none"></div>
         <div style="position:absolute;bottom:-70px;left:-30px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none"></div>
-        <button onclick="closeModal('modal-offre')" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:.15s;z-index:1;line-height:1" onmouseover="this.style.background='rgba(255,255,255,.35)'" onmouseout="this.style.background='rgba(255,255,255,.2)'">✕</button>
+        <button onclick="closeModal('modal-offre')" class="btn-modal-close" style="position:absolute;top:16px;right:16px">✕</button>
         <div style="position:relative;z-index:1">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.6);margin-bottom:8px">Offre d'emploi</div>
           <div style="font-size:20px;font-weight:800;color:white;letter-spacing:-.02em;line-height:1.25;margin-bottom:12px;padding-right:44px" id="modal-offre-title"></div>
@@ -544,9 +615,10 @@ function offerModalHTML() {
 
       <!-- Tab bar -->
       <div style="display:flex;border-bottom:2px solid var(--border-soft);background:var(--surface);padding:0 20px;flex-shrink:0;overflow-x:auto">
-        <button id="tab-offre-info" onclick="switchOffreTab('info')" style="padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">📋 Informations</button>
-        <button id="tab-offre-cands" onclick="switchOffreTab('cands')" style="padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s;display:flex;align-items:center;gap:6px">👥 Candidatures <span id="offre-tab-cands-count" style="background:var(--surface-3);border-radius:99px;padding:1px 8px;font-size:11px"></span></button>
-        <button id="tab-offre-cal" onclick="switchOffreTab('cal')" style="padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">📅 Calendrier</button>
+        <button id="tab-offre-info" onclick="switchOffreTab('info')" style="padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">${t('offer.tab.info')}</button>
+        <button id="tab-offre-cands" onclick="switchOffreTab('cands')" style="padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s;display:flex;align-items:center;gap:6px">${t('offer.tab.candidates')} <span id="offre-tab-cands-count" style="background:var(--surface-3);border-radius:99px;padding:1px 8px;font-size:11px"></span></button>
+        <button id="tab-offre-cal" onclick="switchOffreTab('cal')" style="padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">${t('offer.tab.calendar')}</button>
+        <button id="tab-offre-batch" onclick="switchOffreTab('batch')" style="display:none;padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s;align-items:center;gap:6px">${t('offer.tab.selection')} <span id="offre-tab-batch-count" style="background:var(--accent-soft);color:var(--accent-mid);border-radius:99px;padding:1px 8px;font-size:11px;font-weight:700"></span></button>
       </div>
 
       <!-- Scrollable body -->
@@ -733,7 +805,7 @@ function updateCharCount(el, max) {
 
 function exportOfferPDF(offerId) {
   const o = _jobOffers.find(x => x.offre_id === offerId);
-  if (!o) { toast('Offre introuvable', 'error'); return; }
+  if (!o) { toast(t('toast.offer_not_found'), 'error'); return; }
   const cfg      = COMPANY_CONFIG[o.company] || COMPANY_CONFIG.solumada;
   const isOpt    = o.company === 'optimum';
   const accent   = isOpt ? '#62A5D2' : '#3E9143';
@@ -741,7 +813,7 @@ function exportOfferPDF(offerId) {
   const accentBg = isOpt ? '#eff6ff' : '#f0fdf4';
   const accentBd = isOpt ? '#bfdbfe' : '#bbf7d0';
   const win = window.open('', '_blank');
-  if (!win) { toast('Autorisez les pop-ups pour exporter le PDF', 'error'); return; }
+  if (!win) { toast(t('toast.allow_popups'), 'error'); return; }
   win.document.write(buildPdfHtml(o, cfg.logo, cfg.name, accent, accentDk, accentBg, accentBd));
   win.document.close();
 }
@@ -890,4 +962,76 @@ function buildPdfHtml(o, logoUrl, companyName, accent, accentDk, accentBg, accen
     '</div>' +
 
     '</body></html>';
+}
+
+// ── Batch candidate evaluation ──────────────────────────────────────────────
+
+function batchEvalModalHTML() {
+  return `<div id="modal-batch-eval" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:110;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)document.getElementById('modal-batch-eval').style.display='none'">
+  <div style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:460px;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);overflow:hidden">
+    <div style="background:linear-gradient(135deg,var(--grad-start) 0%,var(--grad-end) 100%);padding:22px 24px;display:flex;align-items:center;gap:14px">
+      <div style="width:42px;height:42px;background:rgba(255,255,255,.2);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:20px">🏆</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:800;color:white">${t('btn.evaluate_candidates')}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:2px" id="batch-eval-subtitle">${LANG === 'en' ? 'Claude will rank the analyzed candidates' : 'Claude va classer les candidats analysés'}</div>
+      </div>
+      <button onclick="document.getElementById('modal-batch-eval').style.display='none'" class="btn-modal-close">✕</button>
+    </div>
+    <div style="padding:24px">
+      <div style="margin-bottom:20px;padding:14px 16px;background:var(--accent-soft);border-radius:var(--r-lg);border:1px solid var(--accent-light);font-size:13px;color:var(--accent-mid);line-height:1.6">
+        Claude va comparer tous les candidats analysés et sélectionner les meilleurs. Les sélectionnés passent en <strong>QUALIFIÉ</strong> avec une justification de sélection.
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label class="form-label">Nombre de candidats à sélectionner</label>
+        <input type="number" id="batch-nb-top" value="20" min="1" max="200" class="form-control" style="text-align:center;font-size:22px;font-weight:700" placeholder="Ex : 20">
+      </div>
+      <div style="font-size:11px;color:var(--text-3);padding:10px 12px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border)">
+        ⏳ L'évaluation prend 30–60 secondes. Rafraîchissez les candidatures après pour voir les résultats et les justifications.
+      </div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:var(--surface-2)">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-batch-eval').style.display='none'">Annuler</button>
+      <button class="btn btn-primary" id="btn-batch-eval-confirm" onclick="confirmBatchEval(this)">🏆 Lancer l'évaluation</button>
+    </div>
+  </div>
+</div>`;
+}
+
+let _batchEvalOfferId = null;
+
+function openBatchEvalModal(offerId) {
+  _batchEvalOfferId = offerId;
+  const o = _jobOffers.find(x => x.offre_id === offerId);
+  const apps = _offerApplications[offerId] || [];
+  const analyzedCount = apps.filter(c => c.score != null).length;
+  const subtitle = document.getElementById('batch-eval-subtitle');
+  if (subtitle) subtitle.textContent = `${analyzedCount} candidat${analyzedCount !== 1 ? 's' : ''} analysé${analyzedCount !== 1 ? 's' : ''} — ${o?.titre_poste || offerId}`;
+  const input = document.getElementById('batch-nb-top');
+  if (input) input.value = 20;
+  document.getElementById('modal-batch-eval').style.display = 'flex';
+}
+
+async function confirmBatchEval(btn) {
+  const nb_top = parseInt(document.getElementById('batch-nb-top')?.value, 10);
+  if (!nb_top || nb_top < 1) { toast(t('toast.enter_valid_number'), 'error'); return; }
+  if (!_batchEvalOfferId) return;
+
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Envoi…';
+
+  try {
+    const r = await api.post(`/api/offres/${_batchEvalOfferId}/evaluer-candidats`, { nb_top });
+    if (r?.success) {
+      document.getElementById('modal-batch-eval').style.display = 'none';
+      toast(`⏳ ${r.message}`, 'info');
+    } else {
+      toast(r?.error || t('toast.trigger_error'), 'error');
+    }
+  } catch (e) {
+    toast('Erreur réseau', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
 }

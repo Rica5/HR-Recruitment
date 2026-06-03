@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { COMPANIES, OFFRE_STATUTS, CONTRATS } = require('../constants');
 
 const approbationSchema = new mongoose.Schema({
   approuvee:        { type: Boolean, default: false },
@@ -15,7 +16,7 @@ const offreSchema = new mongoose.Schema({
   annees_experience:     { type: String,  default: '' },
   langues_requises:      { type: String,  default: '' },
   exigences_ia:          { type: String,  default: '' },
-  type_contrat:          { type: String,  required: true, enum: ['CDI','CDD','Stage','Freelance','Alternance'] },
+  type_contrat:          { type: String,  required: true, enum: CONTRATS },
   localisation:          { type: String,  required: true },
   salaire:               { type: String,  default: '' },
   email_recruteur:       { type: String,  required: true },
@@ -31,8 +32,8 @@ const offreSchema = new mongoose.Schema({
   automatisation_active: { type: Boolean, default: true },
   formule_remerciement:  { type: String,  default: '' },
   approbation_inspection:{ type: approbationSchema, default: () => ({}) },
-  company:               { type: String,  required: true, enum: ['solumada', 'optimum'], index: true },
-  statut:                { type: String,  default: 'En pause', enum: ['Active','Fermée','En pause'] },
+  company:               { type: String,  required: true, enum: COMPANIES, index: true },
+  statut:                { type: String,  default: 'En pause', enum: OFFRE_STATUTS },
   date_creation:         { type: Date,    default: Date.now },
 }, { timestamps: true });
 

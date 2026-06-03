@@ -20,15 +20,27 @@ const User               = require("./models/User");
 
 const app        = express();
 const PORT       = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
+const IS_PROD    = process.env.NODE_ENV === "production";
 
-// ── Startup configuration warnings ──
-if (!process.env.JWT_SECRET)           console.warn("⚠️  JWT_SECRET not defined — using default secret (dangerous in production)");
-if (!process.env.N8N_CALLBACK_SECRET)  console.warn("⚠️  N8N_CALLBACK_SECRET not defined — n8n callback unsecured. Add it to .env");
+// ── Startup configuration checks ──
+// In production, critical secrets MUST be set — fail fast instead of running degraded.
+if (IS_PROD && !process.env.JWT_SECRET)
+  throw new Error("JWT_SECRET is required in production");
+if (IS_PROD && !process.env.N8N_CALLBACK_SECRET)
+  throw new Error("N8N_CALLBACK_SECRET is required in production");
+if (!process.env.JWT_SECRET)           console.warn("⚠️  JWT_SECRET not defined — using default secret (dev only)");
+if (!process.env.N8N_CALLBACK_SECRET)  console.warn("⚠️  N8N_CALLBACK_SECRET not defined — n8n callbacks will be rejected");
 if (!process.env.EMAIL_USER)           console.warn("⚠️  EMAIL_USER not defined — email sending disabled");
 
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
+
+// ── CORS — restrict to known origins when configured (BASE_URL / ALLOWED_ORIGINS) ──
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(s => s.trim()).filter(Boolean)
+  : (process.env.BASE_URL ? [process.env.BASE_URL] : null);
+app.use(cors(allowedOrigins ? { origin: allowedOrigins, credentials: true } : {}));
+
 // ── Global middlewares ──
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -43,7 +55,10 @@ app.get("/api/uploads/:filename", (req, res) => {
     return res.status(401).send("Invalid token");
   }
   const filename = path.basename(req.params.filename);
-  const filePath = path.join(__dirname, "uploads", filename);
+  const uploadsDir = path.resolve(path.join(__dirname, "uploads"));
+  const filePath = path.resolve(path.join(uploadsDir, filename));
+  // Defense-in-depth: ensure the resolved path stays inside /uploads
+  if (!filePath.startsWith(uploadsDir + path.sep)) return res.status(403).send("Forbidden");
   if (!fs.existsSync(filePath)) return res.status(404).send("File not found");
   res.sendFile(filePath);
 });
@@ -61,9 +76,21 @@ app.use("/api/users",        verifyToken, usersRouter);
 app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
 app.get("/postuler", (req, res) => res.sendFile(path.join(__dirname, "public", "postuler.html")));
 
-// ── Protected pages → SPA shell ──
-["/", "/dashboard", "/offres", "/offre/:id", "/candidatures", "/candidature/:id", "/n8n", "/audit", "/settings"]
-  .forEach(p => app.get(p, (req, res) => res.sendFile(path.join(__dirname, "public", "app.html"))));
+// ── SPA catch-all — serves app.html for any non-API, non-static route ──
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, "public", "app.html")));
+
+// ── Centralized error handler (safety net) ──
+// Catches anything passed to next(err) from routes/middleware. Logs full detail
+// server-side, returns a generic message to the client (no stack/message leak).
+app.use((err, req, res, next) => {
+  console.error(`[ERROR] ${req.method} ${req.originalUrl} —`, err.stack || err.message || err);
+  if (res.headersSent) return next(err);
+  const status = err.status || 500;
+  res.status(status).json({
+    success: false,
+    error: IS_PROD ? "An unexpected error occurred" : (err.message || "Server error"),
+  });
+});
 
 // ── MongoDB connection + startup ──
 mongoose

@@ -9,13 +9,13 @@ async function renderDashboard() {
     api.get('/api/offres/stats/madagascar'),
   ]);
 
-  const stats      = statsRes?.stats || {};
-  const offres     = offresRes?.offres || [];
-  const cands      = candsRes?.candidatures || [];
-  const mdg        = madagascarRes?.stats || {};
+  const stats       = statsRes?.stats  || {};
+  const offres      = offresRes?.offres || [];
+  const cands       = candsRes?.candidatures || [];
+  const mdg         = madagascarRes?.stats   || {};
   const activeOffers = offres.filter(o => o.statut === 'Active');
 
-  // Map candidatures par offre
+  // Map candidatures by offer
   const candsByOffre = {};
   cands.forEach(c => {
     if (!candsByOffre[c.offre_id]) candsByOffre[c.offre_id] = [];
@@ -31,29 +31,33 @@ async function renderDashboard() {
     .sort((a, b) => new Date(a.rdv_manuel.date) - new Date(b.rdv_manuel.date))
     .slice(0, 10);
 
+  const candsLbl  = t('dashboard.candidates_lbl');
+  const seeAll    = t('dashboard.see_all');
+  const noOffers  = t('dashboard.no_active_offers');
+  const noCands   = t('dashboard.no_applications');
+  const noRdv     = t('dashboard.no_rdv');
+  const noOfferRow= t('dashboard.no_offers_row');
+
   el.innerHTML = `
-  <!-- KPI Cards -->
   <div class="db-kpi-grid">
-    ${dbKpi('Offres actives', stats.activeOffers||0, '#22c55e', '#15803d', svgBriefcase(), "Postes ouverts en ce moment", "navigate('offres')")}
-    ${dbKpi('Candidatures', stats.totalApplications||0, '#3b82f6', '#1d4ed8', svgUsers(), "Dossiers reçus au total", "navigate('candidatures')")}
-    ${dbKpi('Qualifiés', stats.qualified||0, '#10b981', '#047857', svgCheck(), "Score ≥ 7 · Recommandés", "goToCands('QUALIFIE')")}
-    ${dbKpi('À revoir', stats.toReview||0, '#f59e0b', '#b45309', svgEye(), "Score 4–6 · À évaluer", "goToCands('A_REVOIR')")}
+    ${dbKpi(t('dashboard.active_offers'), stats.activeOffers||0, '#22c55e', '#15803d', svgBriefcase(), t('dashboard.open_positions'), "navigate('offres')")}
+    ${dbKpi(t('dashboard.applications'),  stats.totalApplications||0, '#3b82f6', '#1d4ed8', svgUsers(), t('dashboard.total_received'), "navigate('candidatures')")}
+    ${dbKpi(t('dashboard.qualified'),     stats.qualified||0, '#10b981', '#047857', svgCheck(), t('dashboard.score_7_plus'), "goToCands('QUALIFIE')")}
+    ${dbKpi(t('dashboard.to_review'),     stats.toReview||0,  '#f59e0b', '#b45309', svgEye(), t('dashboard.score_4_6'), "goToCands('A_REVOIR')")}
   </div>
 
-  <!-- Two columns -->
   <div class="db-grid">
 
-    <!-- Offres actives -->
     <div class="db-card">
       <div class="db-card-head">
-        <span class="db-card-title">🟢 Offres actives</span>
-        <button class="db-card-link" onclick="navigate('offres')">Voir tout →</button>
+        <span class="db-card-title">${t('dashboard.active_offers_card')}</span>
+        <button class="db-card-link" onclick="navigate('offres')">${seeAll}</button>
       </div>
       <div class="db-card-body">
         ${activeOffers.length === 0
-          ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">📭</div><p>Aucune offre active</p></div>`
+          ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">📭</div><p>${noOffers}</p></div>`
           : activeOffers.slice(0, 6).map(o => {
-              const oc = candsByOffre[o.offre_id] || [];
+              const oc  = candsByOffre[o.offre_id] || [];
               const pct = Math.round(oc.length / maxCands * 100);
               return `<div class="db-offer-row" onclick="goToOffer('${o.offre_id}')">
                 <div class="db-offer-dot"></div>
@@ -64,7 +68,7 @@ async function renderDashboard() {
                 </div>
                 <div class="db-offer-count">
                   <div class="db-offer-num">${oc.length}</div>
-                  <div class="db-offer-lbl">candidats</div>
+                  <div class="db-offer-lbl">${candsLbl}</div>
                 </div>
                 <svg style="width:14px;height:14px;color:var(--text-3);flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
               </div>`;
@@ -72,15 +76,14 @@ async function renderDashboard() {
       </div>
     </div>
 
-    <!-- Candidatures récentes -->
     <div class="db-card">
       <div class="db-card-head">
-        <span class="db-card-title">🕐 Candidatures récentes</span>
-        <button class="db-card-link" onclick="navigate('candidatures')">Voir tout →</button>
+        <span class="db-card-title">${t('dashboard.recent_apps')}</span>
+        <button class="db-card-link" onclick="navigate('candidatures')">${seeAll}</button>
       </div>
       <div class="db-card-body">
         ${cands.length === 0
-          ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">👤</div><p>Aucune candidature</p></div>`
+          ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">👤</div><p>${noCands}</p></div>`
           : cands.slice(0, 6).map(c => `
             <div class="db-cand-row" onclick="goToCand('${c._id}')">
               <div class="avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0">${initials(c.candidat_nom)}</div>
@@ -89,7 +92,7 @@ async function renderDashboard() {
                 <div style="font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titre_poste}</div>
               </div>
               <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-                ${c.recommandation ? renderBadge(c.recommandation) : '<span class="badge badge-gray" style="font-size:10px">En attente</span>'}
+                ${c.recommandation ? renderBadge(c.recommandation) : `<span class="badge badge-gray" style="font-size:10px">${t('badge.pending')}</span>`}
                 ${c.score != null ? `<span style="font-size:11px;font-weight:700;color:${scoreColor(c.score)};font-family:var(--mono)">${c.score}/10</span>` : ''}
               </div>
               <svg style="width:13px;height:13px;color:var(--text-3);flex-shrink:0;margin-left:4px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
@@ -98,27 +101,31 @@ async function renderDashboard() {
     </div>
   </div>
 
-  <!-- Summary table -->
   <div class="db-card" style="margin-bottom:20px">
     <div class="db-card-head">
-      <span class="db-card-title">📊 Résumé par offre</span>
-      <button class="db-card-link" onclick="navigate('offres')">Gérer les offres →</button>
+      <span class="db-card-title">${t('dashboard.summary_title')}</span>
+      <button class="db-card-link" onclick="navigate('offres')">${t('dashboard.summary_link')}</button>
     </div>
     <div class="db-table-wrap">
       <table class="db-table">
         <thead><tr>
-          <th>Poste</th><th>Contrat</th><th>Statut</th>
-          <th>Candidats</th><th>Qualifiés</th><th>À revoir</th><th>Non retenus</th>
+          <th>${t('dashboard.col_position')}</th>
+          <th>${t('dashboard.col_contract')}</th>
+          <th>${t('dashboard.col_status')}</th>
+          <th>${t('dashboard.col_candidates')}</th>
+          <th>${t('dashboard.col_qualified')}</th>
+          <th>${t('dashboard.col_to_review')}</th>
+          <th>${t('dashboard.col_rejected')}</th>
         </tr></thead>
         <tbody>
           ${offres.length === 0
-            ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-3)">Aucune offre</td></tr>`
+            ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-3)">${noOfferRow}</td></tr>`
             : offres.map(o => {
-                const oc      = candsByOffre[o.offre_id] || [];
-                const qual    = oc.filter(c => c.recommandation === 'QUALIFIE').length;
-                const rev     = oc.filter(c => c.recommandation === 'A_REVOIR').length;
-                const rej     = oc.filter(c => c.recommandation === 'NON_SELECTIONNE').length;
-                const pct     = maxCands > 0 ? Math.round(oc.length / maxCands * 100) : 0;
+                const oc   = candsByOffre[o.offre_id] || [];
+                const qual = oc.filter(c => c.recommandation === 'QUALIFIE').length;
+                const rev  = oc.filter(c => c.recommandation === 'A_REVOIR').length;
+                const rej  = oc.filter(c => c.recommandation === 'NON_SELECTIONNE').length;
+                const pct  = maxCands > 0 ? Math.round(oc.length / maxCands * 100) : 0;
                 return `<tr onclick="goToOffer('${o.offre_id}')">
                   <td style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.titre_poste}</td>
                   <td><span class="badge badge-gray">${o.type_contrat}</span></td>
@@ -139,26 +146,25 @@ async function renderDashboard() {
     </div>
   </div>
 
-  <!-- Prochains rendez-vous -->
   <div class="db-card" style="margin-bottom:20px">
     <div class="db-card-head">
-      <span class="db-card-title">📅 Prochains rendez-vous</span>
-      ${upcomingRdvs.length > 0 ? `<button class="db-card-link" onclick="navigate('rendezvous')">Voir tous →</button>` : ''}
+      <span class="db-card-title">${t('dashboard.upcoming_rdv')}</span>
+      ${upcomingRdvs.length > 0 ? `<button class="db-card-link" onclick="navigate('rendezvous')">${seeAll}</button>` : ''}
     </div>
     <div class="db-card-body">
       ${upcomingRdvs.length === 0
-        ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">📅</div><p>Aucun entretien planifié</p></div>`
+        ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">📅</div><p>${noRdv}</p></div>`
         : upcomingRdvs.map(c => {
             const rdv    = c.rdv_manuel;
             const company = c.company || Auth.user()?.company;
             const rdvAdj  = (!rdv.type_rdv) ? rdvAdjustForTimezone(rdv.date, rdv.heure, company) : { date: rdv.date, heure: rdv.heure };
             const dStr  = formatDate(rdvAdj.date);
             const heure = rdvAdj.heure || '';
-            const lieu  = rdv.lieu  || '';
+            const lieu  = rdv.lieu || '';
             const now   = new Date();
             const diff  = (new Date(rdvAdj.date) - now) / (1000 * 60 * 60);
             const urgBadge = diff < 24
-              ? '<span class="badge badge-red" style="font-size:9px;padding:1px 5px">🔴 Auj.</span>'
+              ? `<span class="badge badge-red" style="font-size:9px;padding:1px 5px">🔴 ${t('rdv.urgency.today')}</span>`
               : diff < 72
                 ? `<span class="badge badge-amber" style="font-size:9px;padding:1px 5px">J-${Math.ceil(diff/24)}</span>`
                 : '';
@@ -179,29 +185,56 @@ async function renderDashboard() {
     </div>
   </div>
 
-  <!-- Madagascar section -->
+  <div class="db-card" style="margin-bottom:20px">
+    <div class="db-card-head">
+      <span class="db-card-title">${t('dashboard.funnel_title')}</span>
+    </div>
+    <div style="padding:18px 20px">
+      ${(() => {
+        const received  = cands.length;
+        const qualified = cands.filter(c => c.recommandation === 'QUALIFIE').length;
+        const interview = cands.filter(c => c.statut === 'Entretien planifié' || c.rdv_pris).length;
+        const accepted  = cands.filter(c => c.statut === 'Accepté').length;
+        const pct = (n) => received > 0 ? Math.round(n / received * 100) : 0;
+        const rows = [
+          [t('funnel.received'),  received,  100,          '#3b82f6'],
+          [t('funnel.qualified'), qualified, pct(qualified),'#10b981'],
+          [t('funnel.interview'), interview, pct(interview),'#8b5cf6'],
+          [t('funnel.accepted'),  accepted,  pct(accepted), '#22c55e'],
+        ];
+        return rows.map(([label, val, p, color]) => `
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <div style="width:160px;font-size:13px;color:var(--text-2);flex-shrink:0">${label}</div>
+            <div style="flex:1;height:24px;background:var(--surface-3);border-radius:6px;overflow:hidden;position:relative">
+              <div style="height:100%;width:${Math.max(p, 3)}%;background:${color};border-radius:6px;transition:width .5s ease"></div>
+            </div>
+            <div style="width:90px;text-align:right;flex-shrink:0;font-size:13px;font-weight:700;color:var(--text)">${val} <span style="color:var(--text-3);font-weight:500;font-size:11px">(${p}%)</span></div>
+          </div>`).join('');
+      })()}
+    </div>
+  </div>
+
   <div class="db-card">
     <div class="db-card-head">
-      <span class="db-card-title">🇲🇬 Conformité RH — Madagascar</span>
+      <span class="db-card-title">${t('dashboard.mdg_title')}</span>
     </div>
     <div style="padding:16px 20px">
       <div class="db-mdg-grid" style="margin-bottom:20px">
-        ${dbMdg('Offres approuvées', mdg.offres?.approuvees||0, mdg.offres?.total||0, '#22c55e', '✓ Inspection du Travail')}
-        ${dbMdg('En attente inspection', (mdg.offres?.total||0)-(mdg.offres?.approuvees||0), mdg.offres?.total||0, '#f59e0b', '⏳ Non approuvées')}
-        ${dbMdg('À appeler', mdg.candidatures?.aAppeler||0, mdg.candidatures?.total||0, '#3b82f6', '📞 Sans RDV confirmé')}
-        ${dbMdg('Tests convoqués', mdg.candidatures?.testConvoques||0, mdg.candidatures?.total||0, '#8b5cf6', '📋 Scénario C')}
-        ${dbMdg('Tests passés', mdg.candidatures?.testPasses||0, mdg.candidatures?.total||0, '#06b6d4', '✅ Post-test')}
-        ${dbMdg('RDV confirmés', mdg.candidatures?.rdvPris||0, mdg.candidatures?.total||0, '#10b981', '📅 Planifiés')}
+        ${dbMdg(t('dashboard.mdg_approved'),    mdg.offres?.approuvees||0, mdg.offres?.total||0, '#22c55e', t('dashboard.mdg_sub.inspection'))}
+        ${dbMdg(t('dashboard.mdg_pending'),     (mdg.offres?.total||0)-(mdg.offres?.approuvees||0), mdg.offres?.total||0, '#f59e0b', t('dashboard.mdg_sub.not_approved'))}
+        ${dbMdg(t('dashboard.mdg_to_call'),     mdg.candidatures?.aAppeler||0, mdg.candidatures?.total||0, '#3b82f6', t('dashboard.mdg_sub.no_rdv'))}
+        ${dbMdg(t('dashboard.mdg_tests'),       mdg.candidatures?.testConvoques||0, mdg.candidatures?.total||0, '#8b5cf6', t('dashboard.mdg_sub.scenario_c'))}
+        ${dbMdg(t('dashboard.mdg_tests_done'),  mdg.candidatures?.testPasses||0, mdg.candidatures?.total||0, '#06b6d4', t('dashboard.mdg_sub.post_test'))}
+        ${dbMdg(t('dashboard.mdg_rdv'),         mdg.candidatures?.rdvPris||0, mdg.candidatures?.total||0, '#10b981', t('dashboard.mdg_sub.scheduled'))}
       </div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px">Canaux de candidature</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px">${t('dashboard.mdg_channels')}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         ${(mdg.canaux||[]).map(c => {
-          const labels = { plateforme:'🌐 Plateforme', telephone:'📞 Téléphone', physique:'🤝 Physique' };
           return `<div class="db-canal-pill">
             <div class="db-canal-val">${c.count}</div>
-            <div class="db-canal-lbl">${labels[c._id]||c._id||'—'}</div>
+            <div class="db-canal-lbl">${channelBadge(c._id).replace(/<[^>]*>/g,'').trim() || c._id || '—'}</div>
           </div>`;
-        }).join('') || '<span style="font-size:13px;color:var(--text-3)">Aucune donnée</span>'}
+        }).join('') || `<span style="font-size:13px;color:var(--text-3)">${t('dashboard.mdg_no_data')}</span>`}
       </div>
     </div>
   </div>`;

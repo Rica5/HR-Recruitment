@@ -73,15 +73,16 @@ function rdvCountFor(f) {
 function rdvUrgencyBadge(dateStr) {
   const d    = new Date(dateStr);
   const now  = new Date();
-  const diff = (d - now) / (1000 * 60 * 60); // heures
-  if (diff < 24)  return `<span class="badge badge-red" style="font-size:10px">🔴 Aujourd'hui</span>`;
-  if (diff < 72)  return `<span class="badge badge-amber" style="font-size:10px">🟡 J-${Math.ceil(diff/24)}</span>`;
+  const diff = (d - now) / (1000 * 60 * 60);
+  if (diff < 24)  return `<span class="badge badge-red" style="font-size:10px">🔴 ${t('rdv.urgency.today')}</span>`;
+  if (diff < 72)  return `<span class="badge badge-amber" style="font-size:10px">🟡 ${LANG === 'en' ? `D-${Math.ceil(diff/24)}` : `J-${Math.ceil(diff/24)}`}</span>`;
   return '';
 }
 
 function rdvTypeBadge(type) {
-  if (type === 'visio')       return `<span class="badge badge-blue" style="font-size:10px">🖥 Visio</span>`;
-  if (type === 'presentiel')  return `<span class="badge badge-green" style="font-size:10px">🤝 Présentiel</span>`;
+  if (type === 'visio')      return `<span class="badge badge-blue" style="font-size:10px">${t('rdv.type.visio')}</span>`;
+  if (type === 'presentiel') return `<span class="badge badge-green" style="font-size:10px">${t('rdv.type.presentiel')}</span>`;
+  if (type === 'telephone')  return `<span class="badge badge-amber" style="font-size:10px">${t('rdv.type.phone')}</span>`;
   return '';
 }
 
@@ -107,9 +108,9 @@ function rdvAdjustForTimezone(date, heure, company) {
 }
 
 function drawRDVPage() {
-  const el      = document.getElementById('page-content');
-  const list    = rdvGetFiltered();
-  const total   = rdvGetBaseList().length;
+  const el    = document.getElementById('page-content');
+  const list  = rdvGetFiltered();
+  const total = rdvGetBaseList().length;
 
   const chipStyle = (f) => _rdvFilter === f
     ? 'background:var(--accent);color:white;border-color:var(--accent)'
@@ -119,38 +120,40 @@ function drawRDVPage() {
     ? 'background:var(--accent-soft);color:var(--accent-dark);border-color:var(--accent);font-weight:700'
     : 'background:var(--surface-2);color:var(--text-2);border-color:var(--border);font-weight:600';
 
+  const interviewsCount = list.length === 1
+    ? tf('dashboard.upcoming_interviews', list.length)
+    : tf('dashboard.upcoming_interviews_pl', list.length);
+
+  const atLabel = t('rdv.at_time');
+
   el.innerHTML = `
-  <!-- Chips filtres -->
   <div class="filters-bar" style="margin-bottom:20px">
-    <button class="btn btn-sm" onclick="setRdvFilter('all')"       style="${chipStyle('all')};border:1.5px solid;font-weight:600;transition:.15s">Tout (${total})</button>
-    <button class="btn btn-sm" onclick="setRdvFilter('week')"      style="${chipStyle('week')};border:1.5px solid;font-weight:600;transition:.15s">Cette semaine (${rdvCountFor('week')})</button>
-    <button class="btn btn-sm" onclick="setRdvFilter('month')"     style="${chipStyle('month')};border:1.5px solid;font-weight:600;transition:.15s">Ce mois (${rdvCountFor('month')})</button>
-    <button class="btn btn-sm" onclick="setRdvFilter('nextmonth')" style="${chipStyle('nextmonth')};border:1.5px solid;font-weight:600;transition:.15s">Prochain mois (${rdvCountFor('nextmonth')})</button>
-    <button class="btn btn-sm" onclick="toggleRdvMine()" style="${mineStyle};border:1.5px solid;transition:.15s;margin-left:auto">👤 Mes RDV</button>
+    <button class="btn btn-sm" onclick="setRdvFilter('all')"       style="${chipStyle('all')};border:1.5px solid;font-weight:600;transition:.15s">${t('rdv.filter_all')} (${total})</button>
+    <button class="btn btn-sm" onclick="setRdvFilter('week')"      style="${chipStyle('week')};border:1.5px solid;font-weight:600;transition:.15s">${t('rdv.filter_week')} (${rdvCountFor('week')})</button>
+    <button class="btn btn-sm" onclick="setRdvFilter('month')"     style="${chipStyle('month')};border:1.5px solid;font-weight:600;transition:.15s">${t('rdv.filter_month')} (${rdvCountFor('month')})</button>
+    <button class="btn btn-sm" onclick="setRdvFilter('nextmonth')" style="${chipStyle('nextmonth')};border:1.5px solid;font-weight:600;transition:.15s">${t('rdv.filter_next_month')} (${rdvCountFor('nextmonth')})</button>
+    <button class="btn btn-sm" onclick="toggleRdvMine()" style="${mineStyle};border:1.5px solid;transition:.15s;margin-left:auto">${t('rdv.mine')}</button>
   </div>
 
-  <!-- Compteur -->
   <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:14px">
-    ${list.length} entretien${list.length !== 1 ? 's' : ''} à venir
+    ${interviewsCount}
   </div>
 
-  <!-- Liste -->
   <div style="display:flex;flex-direction:column;gap:10px">
     ${list.length === 0 ? `
     <div class="empty-state" style="padding:64px 0">
       <div class="empty-icon">📅</div>
-      <p>Aucun entretien planifié pour cette période</p>
-      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="navigate('candidatures')">Voir les candidatures</button>
+      <p>${t('rdv.no_appointments_period')}</p>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="navigate('candidatures')">${t('rdv.see_applications')}</button>
     </div>` : list.map(c => {
       const rdv    = c.rdv_manuel;
       const rdvAdj = (!rdv.type_rdv) ? rdvAdjustForTimezone(rdv.date, rdv.heure, c.company) : { date: rdv.date, heure: rdv.heure };
       const dStr   = formatDate(rdvAdj.date);
-      const heure  = rdvAdj.heure ? `à ${rdvAdj.heure}` : '';
+      const heure  = rdvAdj.heure ? `${atLabel} ${rdvAdj.heure}` : '';
       const lieu   = rdv.lieu ? `📍 ${rdv.lieu}` : '';
       return `
     <div onclick="window._pendingCandDetail='${c._id}';navigate('candidatures')" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--surface);border-radius:var(--r-xl);border:1px solid var(--border-soft);cursor:pointer;transition:all var(--transition)" onmouseover="this.style.boxShadow='var(--shadow)';this.style.borderColor='var(--border)'" onmouseout="this.style.boxShadow='none';this.style.borderColor='var(--border-soft)'">
 
-      <!-- Avatar + info candidat -->
       <div class="avatar" style="width:44px;height:44px;font-size:15px;flex-shrink:0;box-shadow:var(--shadow-xs)">${initials(c.candidat_nom)}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
@@ -162,7 +165,6 @@ function drawRDVPage() {
         <div style="font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titre_poste}</div>
       </div>
 
-      <!-- Date + lieu -->
       <div style="text-align:right;flex-shrink:0;min-width:140px">
         <div style="font-size:14px;font-weight:700;color:var(--accent-mid)">📅 ${dStr}</div>
         ${heure ? `<div style="font-size:12px;color:var(--text-2);margin-top:2px">🕐 ${rdvAdj.heure}</div>` : ''}

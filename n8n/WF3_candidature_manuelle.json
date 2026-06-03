@@ -1,5 +1,5 @@
 {
-  "name": "WF3 — Candidature Manuelle (Solumada)",
+  "name": "WF3 — Manual Application (Solumada)",
   "nodes": [
     {
       "parameters": {
@@ -9,7 +9,7 @@
         "options": {}
       },
       "id": "node-webhook",
-      "name": "Webhook — Réception candidature manuelle",
+      "name": "Webhook — Receive Manual Application",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [240, 300],
@@ -22,17 +22,17 @@
         "options": { "responseCode": 202 }
       },
       "id": "node-response-202",
-      "name": "Réponse 202 (immédiate)",
+      "name": "Immediate 202 Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [480, 500]
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst candidatNom       = body.candidat_nom       || '';\nconst candidatEmail     = body.candidat_email      || '';\nconst candidatTelephone = body.candidat_telephone  || '';\nconst canalCandidature  = body.canal_candidature   || 'plateforme';\nconst aEmail            = !!candidatEmail;\nconst aAppeler          = !candidatEmail;\n\nconst offreId             = body.offre_id             || '';\nconst titrePoste          = body.titre_poste          || '';\nconst emailRecruteur      = body.email_recruteur      || '';\nconst descriptionPoste    = body.description_poste    || '';\nconst competences         = body.competences_requises || '';\nconst annees              = body.annees_experience    || '';\nconst langues             = body.langues_requises     || '';\nconst exigencesIa         = body.exigences_ia         || '';\nconst profilSouhaite      = body.profil_souhaite      || '';\n\nconst cvFilename     = body.cv_filename     || '';\nconst cvPath         = body.cv_path         || '';\nconst cvBase64       = body.cv_base64       || '';\nconst cvMimetype     = body.cv_mimetype     || 'application/pdf';\nconst lettreFilename = body.lettre_filename || '';\nconst lettrePath     = body.lettre_path     || '';\n\nconst baseUrl        = body.base_url        || 'http://localhost:3000';\nconst callbackSecret = body.callback_secret || '';\n\nif (!offreId)     throw new Error('offre_id manquant dans le payload');\nif (!candidatNom) throw new Error('candidat_nom manquant dans le payload');\n\nreturn [{\n  json: {\n    candidatNom, candidatEmail, candidatTelephone, canalCandidature,\n    aEmail, aAppeler,\n    offreId, titrePoste, emailRecruteur,\n    descriptionPoste, competences, annees, langues, exigencesIa, profilSouhaite,\n    cvFilename, cvPath, cvBase64, cvMimetype,\n    lettreFilename, lettrePath,\n    baseUrl, callbackSecret,\n    hasCv: cvBase64 !== '',\n  }\n}];"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst candidatNom       = body.candidat_nom       || '';\nconst candidatEmail     = body.candidat_email      || '';\nconst candidatTelephone = body.candidat_telephone  || '';\nconst canalCandidature  = body.canal_candidature   || 'plateforme';\nconst aEmail            = !!candidatEmail;\nconst aAppeler          = !candidatEmail;\n\nconst offreId             = body.offre_id             || '';\nconst titrePoste          = body.titre_poste          || '';\nconst emailRecruteur      = body.email_recruteur      || '';\nconst descriptionPoste    = body.description_poste    || '';\nconst competences         = body.competences_requises || '';\nconst annees              = body.annees_experience    || '';\nconst langues             = body.langues_requises     || '';\nconst exigencesIa         = body.exigences_ia         || '';\nconst profilSouhaite      = body.profil_souhaite      || '';\n\nconst cvFilename     = body.cv_filename     || '';\nconst cvPath         = body.cv_path         || '';\nconst cvBase64       = body.cv_base64       || '';\nconst cvMimetype     = body.cv_mimetype     || 'application/pdf';\nconst lettreFilename = body.lettre_filename || '';\nconst lettrePath     = body.lettre_path     || '';\n\nconst baseUrl        = body.base_url        || 'http://localhost:3000';\nconst callbackSecret = body.callback_secret || '';\n\nif (!offreId)     throw new Error('offre_id manquant dans le payload');\nif (!candidatNom) throw new Error('candidat_nom manquant dans le payload');\n\nreturn [{\n  json: {\n    candidatNom, candidatEmail, candidatTelephone, canalCandidature,\n    aEmail, aAppeler,\n    offreId, titrePoste, emailRecruteur,\n    descriptionPoste, competences, annees, langues, exigencesIa, profilSouhaite,\n    cvFilename, cvPath, cvBase64, cvMimetype,\n    lettreFilename, lettrePath,\n    baseUrl, callbackSecret,\n    company: body.company || 'solumada',\n    hasCv: cvBase64 !== '',\n  }\n}];"
       },
       "id": "node-extract",
-      "name": "Extraire et valider données",
+      "name": "Extract and Validate Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [480, 300]
@@ -44,7 +44,7 @@
         "query": "={\n  \"offre_id\":             {{ JSON.stringify($json.offreId) }},\n  \"titre_poste\":          {{ JSON.stringify($json.titrePoste) }},\n  \"email_recruteur\":      {{ JSON.stringify($json.emailRecruteur) }},\n  \"candidat_nom\":         {{ JSON.stringify($json.candidatNom) }},\n  \"candidat_email\":       {{ JSON.stringify($json.candidatEmail) }},\n  \"candidat_telephone\":   {{ JSON.stringify($json.candidatTelephone) }},\n  \"canal_candidature\":    {{ JSON.stringify($json.canalCandidature) }},\n  \"a_email\":              {{ $json.aEmail }},\n  \"a_appeler\":            {{ $json.aAppeler }},\n  \"cv_filename\":          {{ JSON.stringify($json.cvFilename) }},\n  \"cv_path\":              {{ JSON.stringify($json.cvPath) }},\n  \"lettre_filename\":      {{ JSON.stringify($json.lettreFilename) }},\n  \"lettre_path\":          {{ JSON.stringify($json.lettrePath) }},\n  \"score\":                null,\n  \"recommandation\":       \"\",\n  \"resume_analyse\":       \"\",\n  \"adequation_poste\":     \"\",\n  \"competences_detectees\":  \"\",\n  \"competences_manquantes\": \"\",\n  \"experience_annees\":    null,\n  \"niveau_education\":     \"\",\n  \"points_forts\":         \"\",\n  \"points_faibles\":       \"\",\n  \"rdv_pris\":             false,\n  \"non_interesse\":        false,\n  \"statut\":               \"Nouveau\",\n  \"date_candidature\":     {{ JSON.stringify(new Date().toISOString()) }}\n}"
       },
       "id": "node-mongo-insert",
-      "name": "Créer candidature dans MongoDB",
+      "name": "Create Application in MongoDB",
       "type": "n8n-nodes-base.mongoDb",
       "typeVersion": 1,
       "position": [720, 300],
@@ -60,24 +60,24 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{ $('Extraire et valider données').first().json.hasCv }}",
+              "value1": "={{ $('Extract and Validate Data').first().json.hasCv }}",
               "value2": true
             }
           ]
         }
       },
       "id": "node-check-cv",
-      "name": "CV présent ?",
+      "name": "CV Present?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [960, 300]
     },
     {
       "parameters": {
-        "jsCode": "const prev      = $('Extraire et valider données').first().json;\nconst insertedId = $('Créer candidature dans MongoDB').first().json.insertedId\n               || $('Créer candidature dans MongoDB').first().json._id\n               || '';\n\nconst cvTexte = '(CV en cours d\\'extraction — traitement via binaire non disponible dans ce nœud)'\n// Note : si vous avez le nœud Extract From File, branchez-le avant ce nœud\n// pour extraire le texte du CV base64 et remplacez cvTexte par son output.\n\nconst systemPrompt = `Tu es un expert RH senior spécialisé dans le recrutement à Madagascar. Tu analyses des candidatures de manière objective et professionnelle. Tu fournis des analyses structurées et précises en JSON.`;\n\nconst userPrompt = `Analyse cette candidature pour le poste de \"${prev.titrePoste}\" et retourne un JSON structuré.\n\n## Fiche de poste\n- **Titre** : ${prev.titrePoste}\n- **Expérience requise** : ${prev.annees || 'Non précisé'}\n- **Compétences requises** : ${prev.competences}\n- **Langues requises** : ${prev.langues || 'Non précisé'}\n- **Profil souhaité** : ${prev.profilSouhaite || 'Non précisé'}\n- **Description** : ${prev.descriptionPoste}\n${prev.exigencesIa ? `- **Exigences spéciales IA** : ${prev.exigencesIa}` : ''}\n\n## CV du candidat : ${prev.candidatNom}\n---\n${cvTexte}\n---\n\n## Instructions importantes\nRetourne UNIQUEMENT un objet JSON valide, sans markdown ni commentaire. Structure exacte :\n\n{\n  \"score\": <entier 0-10>,\n  \"recommandation\": <\"QUALIFIE\" | \"A_REVOIR\" | \"NON_SELECTIONNE\">,\n  \"resume_analyse\": \"<Résumé de 2-3 phrases>\",\n  \"adequation_poste\": \"<Évaluation adéquation profil/poste en 1-2 phrases>\",\n  \"competences_detectees\": \"<Liste séparée par virgules>\",\n  \"competences_manquantes\": \"<Liste séparée par virgules>\",\n  \"experience_annees\": <nombre entier ou null>,\n  \"niveau_education\": \"<Bac, Licence, Master, Doctorat, CAP, etc.>\",\n  \"points_forts\": \"<3 points forts max, séparés par tirets>\",\n  \"points_faibles\": \"<3 points faibles max, séparés par tirets>\"\n}\n\n## Barème\n- 8-10 : Profil excellent → QUALIFIE\n- 5-7  : Profil intéressant → A_REVOIR\n- 0-4  : Profil insuffisant → NON_SELECTIONNE\n${prev.exigencesIa ? '\\n⚠️ Critères éliminatoires non remplis → score ≤ 3 et NON_SELECTIONNE.' : ''}`;\n\nreturn [{\n  json: {\n    ...prev,\n    insertedId,\n    cvTexte,\n    systemPrompt,\n    userPrompt,\n  }\n}];"
+        "jsCode": "const prev      = $('Extract and Validate Data').first().json;\nconst insertedId = $('Create Application in MongoDB').first().json.insertedId\n               || $('Create Application in MongoDB').first().json._id\n               || '';\n\nconst cvTexte = '(CV en cours d\\'extraction — traitement via binaire non disponible dans ce nœud)'\n// Note : si vous avez le nœud Extract From File, branchez-le avant ce nœud\n// pour extraire le texte du CV base64 et remplacez cvTexte par son output.\n\nconst systemPrompt = `Tu es un expert RH senior spécialisé dans le recrutement à Madagascar. Tu analyses des candidatures de manière objective et professionnelle. Tu fournis des analyses structurées et précises en JSON.`;\n\nconst userPrompt = `Analyse cette candidature pour le poste de \"${prev.titrePoste}\" et retourne un JSON structuré.\n\n## Fiche de poste\n- **Titre** : ${prev.titrePoste}\n- **Expérience requise** : ${prev.annees || 'Non précisé'}\n- **Compétences requises** : ${prev.competences}\n- **Langues requises** : ${prev.langues || 'Non précisé'}\n- **Profil souhaité** : ${prev.profilSouhaite || 'Non précisé'}\n- **Description** : ${prev.descriptionPoste}\n${prev.exigencesIa ? `- **Exigences spéciales IA** : ${prev.exigencesIa}` : ''}\n\n## CV du candidat : ${prev.candidatNom}\n---\n${cvTexte}\n---\n\n## Instructions importantes\nRetourne UNIQUEMENT un objet JSON valide, sans markdown ni commentaire. Structure exacte :\n\n{\n  \"score\": <entier 0-10>,\n  \"recommandation\": <\"QUALIFIE\" | \"A_REVOIR\" | \"NON_SELECTIONNE\">,\n  \"resume_analyse\": \"<Résumé de 2-3 phrases>\",\n  \"adequation_poste\": \"<Évaluation adéquation profil/poste en 1-2 phrases>\",\n  \"competences_detectees\": \"<Liste séparée par virgules>\",\n  \"competences_manquantes\": \"<Liste séparée par virgules>\",\n  \"experience_annees\": <nombre entier ou null>,\n  \"niveau_education\": \"<Bac, Licence, Master, Doctorat, CAP, etc.>\",\n  \"points_forts\": \"<3 points forts max, séparés par tirets>\",\n  \"points_faibles\": \"<3 points faibles max, séparés par tirets>\"\n}\n\n## Barème\n- 8-10 : Profil excellent → QUALIFIE\n- 5-7  : Profil intéressant → A_REVOIR\n- 0-4  : Profil insuffisant → NON_SELECTIONNE\n${prev.exigencesIa ? '\\n⚠️ Critères éliminatoires non remplis → score ≤ 3 et NON_SELECTIONNE.' : ''}`;\n\nconst isEn = (prev.company || 'solumada') === 'optimum';\nif (isEn) {\n  userPrompt += '\\n\\nIMPORTANT: All text fields in your JSON response MUST be in English (resume_analyse, adequation_poste, points_forts, points_faibles, competences_detectees, competences_manquantes).';\n}\n\nreturn [{\n  json: {\n    ...prev,\n    insertedId,\n    cvTexte,\n    systemPrompt,\n    userPrompt,\n  }\n}];"
       },
       "id": "node-build-prompt",
-      "name": "Construire prompt Claude",
+      "name": "Build Claude Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1200, 200]
@@ -100,17 +100,17 @@
         "options": { "timeout": 60000 }
       },
       "id": "node-call-claude",
-      "name": "Appel API Claude (Anthropic)",
+      "name": "Call Claude API (Anthropic)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1440, 200]
     },
     {
       "parameters": {
-        "jsCode": "const claudeResponse = $input.first().json;\nconst prev = $('Construire prompt Claude').first().json;\n\nlet rawText = '';\ntry {\n  rawText = claudeResponse.content?.[0]?.text || '';\n} catch(e) {\n  throw new Error('Structure réponse Claude invalide');\n}\n\nif (!rawText) throw new Error('Réponse Claude vide');\n\nconst jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) throw new Error('Aucun JSON dans la réponse Claude');\n\nlet analyse;\ntry {\n  analyse = JSON.parse(jsonMatch[0]);\n} catch(e) {\n  throw new Error('JSON Claude non parseable');\n}\n\nconst score = Math.min(10, Math.max(0, parseInt(analyse.score) || 0));\nconst valid = ['QUALIFIE', 'A_REVOIR', 'NON_SELECTIONNE'];\nlet recommandation = (analyse.recommandation || '').toUpperCase().replace('-', '_');\nif (!valid.includes(recommandation)) {\n  recommandation = score >= 8 ? 'QUALIFIE' : score >= 5 ? 'A_REVOIR' : 'NON_SELECTIONNE';\n}\n\nconsole.log(`[WF3] Analyse terminée pour ${prev.candidatNom} — Score: ${score}/10 — ${recommandation}`);\n\nreturn [{\n  json: {\n    insertedId:             prev.insertedId,\n    score,\n    recommandation,\n    resume_analyse:         String(analyse.resume_analyse         || ''),\n    adequation_poste:       String(analyse.adequation_poste       || ''),\n    competences_detectees:  String(analyse.competences_detectees  || ''),\n    competences_manquantes: String(analyse.competences_manquantes || ''),\n    experience_annees:      analyse.experience_annees != null ? Number(analyse.experience_annees) : null,\n    niveau_education:       String(analyse.niveau_education       || ''),\n    points_forts:           String(analyse.points_forts           || ''),\n    points_faibles:         String(analyse.points_faibles         || ''),\n  }\n}];"
+        "jsCode": "const claudeResponse = $input.first().json;\nconst prev = $('Build Claude Prompt').first().json;\n\nlet rawText = '';\ntry {\n  rawText = claudeResponse.content?.[0]?.text || '';\n} catch(e) {\n  throw new Error('Structure réponse Claude invalide');\n}\n\nif (!rawText) throw new Error('Réponse Claude vide');\n\nconst jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) throw new Error('Aucun JSON dans la réponse Claude');\n\nlet analyse;\ntry {\n  analyse = JSON.parse(jsonMatch[0]);\n} catch(e) {\n  throw new Error('JSON Claude non parseable');\n}\n\nconst score = Math.min(10, Math.max(0, parseInt(analyse.score) || 0));\nconst valid = ['QUALIFIE', 'A_REVOIR', 'NON_SELECTIONNE'];\nlet recommandation = (analyse.recommandation || '').toUpperCase().replace('-', '_');\nif (!valid.includes(recommandation)) {\n  recommandation = score >= 8 ? 'QUALIFIE' : score >= 5 ? 'A_REVOIR' : 'NON_SELECTIONNE';\n}\n\nconsole.log(`[WF3] Analyse terminée pour ${prev.candidatNom} — Score: ${score}/10 — ${recommandation}`);\n\nreturn [{\n  json: {\n    insertedId:             prev.insertedId,\n    score,\n    recommandation,\n    resume_analyse:         String(analyse.resume_analyse         || ''),\n    adequation_poste:       String(analyse.adequation_poste       || ''),\n    competences_detectees:  String(analyse.competences_detectees  || ''),\n    competences_manquantes: String(analyse.competences_manquantes || ''),\n    experience_annees:      analyse.experience_annees != null ? Number(analyse.experience_annees) : null,\n    niveau_education:       String(analyse.niveau_education       || ''),\n    points_forts:           String(analyse.points_forts           || ''),\n    points_faibles:         String(analyse.points_faibles         || ''),\n  }\n}];"
       },
       "id": "node-parse-claude",
-      "name": "Parser réponse Claude",
+      "name": "Parse Claude Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1680, 200]
@@ -123,7 +123,7 @@
         "update": "={\n  \"$set\": {\n    \"score\":                  {{ $json.score }},\n    \"recommandation\":         {{ JSON.stringify($json.recommandation) }},\n    \"resume_analyse\":         {{ JSON.stringify($json.resume_analyse) }},\n    \"adequation_poste\":       {{ JSON.stringify($json.adequation_poste) }},\n    \"competences_detectees\":  {{ JSON.stringify($json.competences_detectees) }},\n    \"competences_manquantes\": {{ JSON.stringify($json.competences_manquantes) }},\n    \"experience_annees\":      {{ $json.experience_annees !== null ? $json.experience_annees : 'null' }},\n    \"niveau_education\":       {{ JSON.stringify($json.niveau_education) }},\n    \"points_forts\":           {{ JSON.stringify($json.points_forts) }},\n    \"points_faibles\":         {{ JSON.stringify($json.points_faibles) }}\n  }\n}"
       },
       "id": "node-mongo-update",
-      "name": "Mettre à jour candidature avec analyse",
+      "name": "Update Application with Analysis",
       "type": "n8n-nodes-base.mongoDb",
       "typeVersion": 1,
       "position": [1920, 200],
@@ -136,32 +136,32 @@
     }
   ],
   "connections": {
-    "Webhook — Réception candidature manuelle": {
+    "Webhook — Receive Manual Application": {
       "main": [[
-        { "node": "Extraire et valider données", "type": "main", "index": 0 },
-        { "node": "Réponse 202 (immédiate)",     "type": "main", "index": 0 }
+        { "node": "Extract and Validate Data", "type": "main", "index": 0 },
+        { "node": "Immediate 202 Response",     "type": "main", "index": 0 }
       ]]
     },
-    "Extraire et valider données": {
-      "main": [[{ "node": "Créer candidature dans MongoDB", "type": "main", "index": 0 }]]
+    "Extract and Validate Data": {
+      "main": [[{ "node": "Create Application in MongoDB", "type": "main", "index": 0 }]]
     },
-    "Créer candidature dans MongoDB": {
-      "main": [[{ "node": "CV présent ?", "type": "main", "index": 0 }]]
+    "Create Application in MongoDB": {
+      "main": [[{ "node": "CV Present?", "type": "main", "index": 0 }]]
     },
-    "CV présent ?": {
+    "CV Present?": {
       "main": [
-        [{ "node": "Construire prompt Claude", "type": "main", "index": 0 }],
+        [{ "node": "Build Claude Prompt", "type": "main", "index": 0 }],
         []
       ]
     },
-    "Construire prompt Claude": {
-      "main": [[{ "node": "Appel API Claude (Anthropic)", "type": "main", "index": 0 }]]
+    "Build Claude Prompt": {
+      "main": [[{ "node": "Call Claude API (Anthropic)", "type": "main", "index": 0 }]]
     },
-    "Appel API Claude (Anthropic)": {
-      "main": [[{ "node": "Parser réponse Claude", "type": "main", "index": 0 }]]
+    "Call Claude API (Anthropic)": {
+      "main": [[{ "node": "Parse Claude Response", "type": "main", "index": 0 }]]
     },
-    "Parser réponse Claude": {
-      "main": [[{ "node": "Mettre à jour candidature avec analyse", "type": "main", "index": 0 }]]
+    "Parse Claude Response": {
+      "main": [[{ "node": "Update Application with Analysis", "type": "main", "index": 0 }]]
     }
   },
   "active": false,
@@ -196,8 +196,8 @@
       "4. Activer le workflow",
       "5. Copier l'URL du Webhook (ex: https://votren8n.app.n8n.cloud/webhook/candidature-manuelle)",
       "6. Dans .env de l'app : N8N_WF3_WEBHOOK_URL=<l'URL copiée>",
-      "7. NOTE : le nœud 'Construire prompt Claude' utilise un texte de substitution pour le CV.",
-      "   Pour extraire le texte réel du PDF, branchez un nœud 'Extract From File' entre 'CV présent ?' et 'Construire prompt Claude',",
+      "7. NOTE : le nœud 'Build Claude Prompt' utilise un texte de substitution pour le CV.",
+      "   Pour extraire le texte réel du PDF, branchez un nœud 'Extract From File' entre 'CV Present?' et 'Build Claude Prompt',",
       "   en utilisant le même pattern que WF2 (décodage base64 → binaire → Extract From File → texte)."
     ]
   }

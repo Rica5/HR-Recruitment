@@ -27,18 +27,22 @@ process.env.N8N_CALLBACK_SECRET = 'test_callback_secret';
 // Mocks (doivent être déclarés avant les require)
 // ─────────────────────────────────────────────
 jest.mock('../services/email', () => ({
-  sendJobOfferEmail:      jest.fn().mockResolvedValue({}),
-  sendRejectionEmail:     jest.fn().mockResolvedValue({}),
-  sendTestSummons:        jest.fn().mockResolvedValue({}),
-  sendInterviewReminder:  jest.fn().mockResolvedValue({}),
-  sendCredentialsEmail:   jest.fn().mockResolvedValue({}),
-  sendPasswordResetEmail: jest.fn().mockResolvedValue({}),
+  sendJobOfferEmail:       jest.fn().mockResolvedValue({}),
+  sendAcknowledgmentEmail: jest.fn().mockResolvedValue({}),
+  sendQualificationEmails: jest.fn().mockResolvedValue({}),
+  sendRejectionEmail:      jest.fn().mockResolvedValue({}),
+  sendTestSummons:         jest.fn().mockResolvedValue({}),
+  sendInterviewReminder:   jest.fn().mockResolvedValue({}),
+  sendCredentialsEmail:    jest.fn().mockResolvedValue({}),
+  sendPasswordResetEmail:  jest.fn().mockResolvedValue({}),
 }));
 
 jest.mock('../services/n8n', () => ({
   triggerAIAnalysis:         jest.fn().mockResolvedValue({ success: true }),
   triggerManualWorkflow:     jest.fn().mockResolvedValue({ success: true }),
   triggerQualificationEmail: jest.fn().mockResolvedValue({ success: true }),
+  triggerBatchEvaluation:    jest.fn().mockReturnValue({ success: true }),
+  triggerBatchCVExtraction:  jest.fn().mockReturnValue(undefined),
 }));
 
 jest.mock('../services/audit', () => ({
@@ -61,6 +65,7 @@ const jwt       = require('jsonwebtoken');
 const User        = require('../models/User');
 const Offre       = require('../models/Offre');
 const Candidature = require('../models/Candidature');
+const AuditLog    = require('../models/AuditLog');
 const { signToken, verifyToken } = require('../middleware/auth');
 
 // ─────────────────────────────────────────────
@@ -76,6 +81,7 @@ function buildApp() {
   app.use('/api/offres',       verifyToken, require('../routes/offres'));
   app.use('/api/candidatures', verifyToken, require('../routes/candidatures'));
   app.use('/api/users',        verifyToken, require('../routes/users'));
+  app.use('/api/audit',        verifyToken, require('../routes/audit'));
 
   return app;
 }
@@ -676,7 +682,7 @@ describe('Offres — CRUD', () => {
 describe('Offres — Règle Inspection du Travail', () => {
   test('Solumada : 403 si activation sans approbation inspection', async () => {
     const { token } = await getToken({ email: 'sol@test.com', company: 'solumada' });
-    const offre = await createOffer('solumada');
+    const offre = await createOffer('solumada', { lien_rdv: 'https://cal.com/test' });
     const res = await request(app)
       .patch(`/api/offres/${offre.offre_id}`)
       .set('Authorization', `Bearer ${token}`)
@@ -688,6 +694,7 @@ describe('Offres — Règle Inspection du Travail', () => {
   test('Solumada : 200 si activation avec approbation inspection', async () => {
     const { token } = await getToken({ email: 'sol2@test.com', company: 'solumada' });
     const offre = await createOffer('solumada', {
+      lien_rdv: 'https://cal.com/test',
       approbation_inspection: { approuvee: true, date_approbation: new Date() },
     });
     const res = await request(app)
@@ -700,7 +707,7 @@ describe('Offres — Règle Inspection du Travail', () => {
 
   test('Optimum : bypass — peut activer sans approbation inspection', async () => {
     const { token } = await getToken({ email: 'opt@test.com', company: 'optimum' });
-    const offre = await createOffer('optimum');
+    const offre = await createOffer('optimum', { lien_rdv: 'https://cal.com/test' });
     const res = await request(app)
       .patch(`/api/offres/${offre.offre_id}`)
       .set('Authorization', `Bearer ${token}`)
@@ -997,7 +1004,7 @@ describe('Candidatures — Actions spécifiques', () => {
       .post(`/api/candidatures/${candSansEmail._id}/envoyer-emails-qualification`)
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
-    expect(res.body.message).toContain("pas d'email");
+    expect(res.body.message).toMatch(/no email/i);
   });
 
   test('POST /:id/envoyer-email-refus — 200', async () => {
@@ -1138,7 +1145,7 @@ describe('Users — CRUD', () => {
       .patch(`/api/users/${self._id}/toggle-actif`)
       .set('Authorization', `Bearer ${selfToken}`);
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain('propre compte');
+    expect(res.body.error).toMatch(/own account|propre compte/i);
   });
 
   test('PATCH /:id/toggle-actif — 404 si user d\'un autre company', async () => {
@@ -1334,5 +1341,418 @@ describe('signToken — payload JWT complet', () => {
     const sevenDays = 7 * 24 * 60 * 60;
     const diff = decoded.exp - decoded.iat;
     expect(diff).toBe(sevenDays);
+  });
+});
+
+// ═════════════════════════════════════════════
+// 17. CANDIDATURES — POST /:id/convoquer-test
+// ═════════════════════════════════════════════
+describe('Candidatures — POST /:id/convoquer-test', () => {
+  let token, offre, cand;
+
+  beforeEach(async () => {
+    ({ token } = await getToken({ email: 'rh.test@test.com', company: 'solumada' }));
+    offre = await createOffer('solumada');
+    cand  = await createCandidature(offre.offre_id, 'solumada', {
+      candidat_nom:   'Marie Test',
+      candidat_email: 'marie@test.com',
+    });
+  });
+
+  test('200 — met le statut à "Test convoqué" et déclenche sendTestSummons', async () => {
+    const res = await request(app)
+      .post(`/api/candidatures/${cand._id}/convoquer-test`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    const updated = await Candidature.findById(cand._id);
+    expect(updated.statut).toBe('Test convoqué');
+  });
+
+  test('404 — candidature inexistante', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .post(`/api/candidatures/${fakeId}/convoquer-test`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(404);
+  });
+});
+
+// ═════════════════════════════════════════════
+// 18. OFFRES — POST /:id/evaluer-candidats
+// ═════════════════════════════════════════════
+describe('Offres — POST /:id/evaluer-candidats', () => {
+  let token, offre;
+
+  beforeEach(async () => {
+    ({ token } = await getToken({ email: 'batch@test.com', company: 'solumada' }));
+    offre = await createOffer('solumada', { statut: 'Active' });
+  });
+
+  test('200 — déclenche l\'évaluation batch avec des candidats analysés', async () => {
+    await createCandidature(offre.offre_id, 'solumada', { score: 8, recommandation: 'QUALIFIE' });
+    await createCandidature(offre.offre_id, 'solumada', { score: 5, recommandation: 'A_REVOIR' });
+    const res = await request(app)
+      .post(`/api/offres/${offre.offre_id}/evaluer-candidats`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nb_top: 5 });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.nb_candidats).toBe(2);
+    expect(res.body.nb_top).toBe(5);
+  });
+
+  test('400 — nb_top manquant ou invalide (0)', async () => {
+    const res = await request(app)
+      .post(`/api/offres/${offre.offre_id}/evaluer-candidats`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nb_top: 0 });
+    expect(res.status).toBe(400);
+  });
+
+  test('400 — nb_top hors plage (> 200)', async () => {
+    const res = await request(app)
+      .post(`/api/offres/${offre.offre_id}/evaluer-candidats`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nb_top: 999 });
+    expect(res.status).toBe(400);
+  });
+
+  test('400 — aucun candidat analysé individuellement', async () => {
+    await createCandidature(offre.offre_id, 'solumada', { score: null });
+    const res = await request(app)
+      .post(`/api/offres/${offre.offre_id}/evaluer-candidats`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nb_top: 5 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/No candidates individually analyzed/);
+  });
+
+  test('404 — offre inexistante ou appartenant à un autre company', async () => {
+    const autreOffre = await createOffer('optimum', { statut: 'Active' });
+    const res = await request(app)
+      .post(`/api/offres/${autreOffre.offre_id}/evaluer-candidats`)
+      .set('Authorization', `Bearer ${token}`) // token solumada
+      .send({ nb_top: 5 });
+    expect(res.status).toBe(404);
+  });
+
+  test('réinitialise batch_justification avant de relancer', async () => {
+    const cand = await createCandidature(offre.offre_id, 'solumada', {
+      score: 9,
+      batch_justification: 'ancien résultat',
+    });
+    await request(app)
+      .post(`/api/offres/${offre.offre_id}/evaluer-candidats`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ nb_top: 5 });
+    const updated = await Candidature.findById(cand._id);
+    expect(updated.batch_justification).toBe('');
+  });
+});
+
+// ═════════════════════════════════════════════
+// 19. CANDIDATURES — GET /batch-status
+// ═════════════════════════════════════════════
+describe('Candidatures — GET /batch-status', () => {
+  let token, offre;
+
+  beforeEach(async () => {
+    ({ token } = await getToken({ email: 'batchstatus@test.com', company: 'solumada' }));
+    offre = await createOffer('solumada');
+  });
+
+  test('200 — retourne le statut des candidatures demandées', async () => {
+    const c1 = await createCandidature(offre.offre_id, 'solumada', { score: 8,  recommandation: 'QUALIFIE' });
+    const c2 = await createCandidature(offre.offre_id, 'solumada', { score: null, recommandation: '' });
+    const res = await request(app)
+      .get(`/api/candidatures/batch-status?ids=${c1._id},${c2._id}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.candidatures).toHaveLength(2);
+  });
+
+  test('200 — retourne tableau vide si aucun id fourni', async () => {
+    const res = await request(app)
+      .get('/api/candidatures/batch-status')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.candidatures).toHaveLength(0);
+  });
+});
+
+// ═════════════════════════════════════════════
+// 20. PUBLIC — POST /api/public/candidature
+// ═════════════════════════════════════════════
+describe('Public — POST /api/public/candidature', () => {
+  let activeOffer;
+
+  beforeEach(async () => {
+    activeOffer = await createOffer('solumada', {
+      statut: 'Active',
+      automatisation_active: true,
+    });
+  });
+
+  test('201 — candidature soumise sans fichier', async () => {
+    const res = await request(app)
+      .post('/api/public/candidature')
+      .send({
+        offre_id:          activeOffer.offre_id,
+        candidat_nom:      'Jean Public',
+        candidat_email:    'jean.public@test.com',
+        candidat_telephone: '0321234567',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.candidature.candidat_nom).toBe('Jean Public');
+    expect(res.body.candidature.company).toBe('solumada');
+  });
+
+  test('404 — offre inactive (en pause)', async () => {
+    const pausedOffer = await createOffer('solumada', { statut: 'En pause' });
+    const res = await request(app)
+      .post('/api/public/candidature')
+      .send({ offre_id: pausedOffer.offre_id, candidat_nom: 'Test' });
+    expect(res.status).toBe(404);
+  });
+
+  test('404 — offre inexistante', async () => {
+    const res = await request(app)
+      .post('/api/public/candidature')
+      .send({ offre_id: 'offre-qui-nexiste-pas', candidat_nom: 'Test' });
+    expect(res.status).toBe(404);
+  });
+
+  test('410 — délai de candidature dépassé', async () => {
+    const expiredOffer = await createOffer('solumada', {
+      statut:       'Active',
+      date_butoire: new Date(Date.now() - 1000 * 60 * 60 * 24), // hier
+    });
+    const res = await request(app)
+      .post('/api/public/candidature')
+      .send({ offre_id: expiredOffer.offre_id, candidat_nom: 'Test' });
+    expect(res.status).toBe(410);
+  });
+
+  test('409 — doublon email pour la même offre', async () => {
+    await request(app)
+      .post('/api/public/candidature')
+      .send({
+        offre_id:       activeOffer.offre_id,
+        candidat_nom:   'Premier',
+        candidat_email: 'doublon@test.com',
+      });
+    const res = await request(app)
+      .post('/api/public/candidature')
+      .send({
+        offre_id:       activeOffer.offre_id,
+        candidat_nom:   'Deuxième',
+        candidat_email: 'doublon@test.com',
+      });
+    expect(res.status).toBe(409);
+  });
+});
+
+// ═════════════════════════════════════════════
+// 21. PUBLIC — POST /api/public/offre/:id/top-candidats (callback batch n8n)
+// ═════════════════════════════════════════════
+describe('Public — POST /api/public/offre/:id/top-candidats (callback batch)', () => {
+  let offre, c1, c2, c3;
+
+  beforeEach(async () => {
+    offre = await createOffer('solumada', { statut: 'Active' });
+    c1 = await createCandidature(offre.offre_id, 'solumada', { score: 7 });
+    c2 = await createCandidature(offre.offre_id, 'solumada', { score: 5 });
+    c3 = await createCandidature(offre.offre_id, 'solumada', { score: 4 });
+  });
+
+  test('200 — top candidats marqués QUALIFIE avec score_final et justification', async () => {
+    const res = await request(app)
+      .post(`/api/public/offre/${offre.offre_id}/top-candidats`)
+      .set('X-Callback-Secret', 'test_callback_secret')
+      .send({
+        top_candidats: [
+          { id: c1._id.toString(), rang: 1, score_final: 9.2, justification: 'Excellent profil' },
+          { id: c2._id.toString(), rang: 2, score_final: 8.1, justification: 'Bon profil' },
+        ],
+        tous_candidats: [
+          { id: c1._id.toString(), score_final: 9.2 },
+          { id: c2._id.toString(), score_final: 8.1 },
+          { id: c3._id.toString(), score_final: 3.5 },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.updated).toBe(2);
+
+    const top1 = await Candidature.findById(c1._id);
+    expect(top1.recommandation).toBe('QUALIFIE');
+    expect(top1.score).toBe(9.2);
+    expect(top1.batch_justification).toBe('Excellent profil');
+
+    const non = await Candidature.findById(c3._id);
+    expect(non.score).toBe(3.5); // score_final mis à jour pour tous
+  });
+
+  test('400 — top_candidats manquant', async () => {
+    const res = await request(app)
+      .post(`/api/public/offre/${offre.offre_id}/top-candidats`)
+      .set('X-Callback-Secret', 'test_callback_secret')
+      .send({ top_candidats: [] });
+    expect(res.status).toBe(400);
+  });
+
+  test('403 — mauvais secret de callback', async () => {
+    const res = await request(app)
+      .post(`/api/public/offre/${offre.offre_id}/top-candidats`)
+      .set('X-Callback-Secret', 'mauvais_secret')
+      .send({ top_candidats: [{ id: c1._id.toString(), rang: 1, score_final: 9 }] });
+    expect(res.status).toBe(403);
+  });
+});
+
+// ═════════════════════════════════════════════
+// 22. PUBLIC — POST /api/public/batch-cv/callback (callback WF5)
+// ═════════════════════════════════════════════
+describe('Public — POST /api/public/batch-cv/callback (callback WF5)', () => {
+  let offre, cand;
+
+  beforeEach(async () => {
+    offre = await createOffer('solumada');
+    cand  = await Candidature.create({
+      offre_id:      offre.offre_id,
+      titre_poste:   offre.titre_poste,
+      candidat_nom:  'Candidat placeholder',
+      company:       'solumada',
+    });
+  });
+
+  test('200 — met à jour nom, email, téléphone depuis l\'extraction IA', async () => {
+    const res = await request(app)
+      .post('/api/public/batch-cv/callback')
+      .set('X-Callback-Secret', 'test_callback_secret')
+      .send({
+        candidature_id:     cand._id.toString(),
+        candidat_nom:       'Jean Dupont',
+        candidat_email:     'jean.dupont@mail.com',
+        candidat_telephone: '+261321234567',
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const updated = await Candidature.findById(cand._id);
+    expect(updated.candidat_nom).toBe('Jean Dupont');
+    expect(updated.candidat_email).toBe('jean.dupont@mail.com');
+    expect(updated.candidat_telephone).toBe('+261321234567');
+    expect(updated.a_email).toBe(true);
+  });
+
+  test('200 — sans email : a_email=false, a_appeler=true', async () => {
+    const res = await request(app)
+      .post('/api/public/batch-cv/callback')
+      .set('X-Callback-Secret', 'test_callback_secret')
+      .send({
+        candidature_id: cand._id.toString(),
+        candidat_nom:   'Sans Email',
+      });
+    expect(res.status).toBe(200);
+    const updated = await Candidature.findById(cand._id);
+    expect(updated.a_email).toBe(false);
+    expect(updated.a_appeler).toBe(true);
+  });
+
+  test('400 — candidature_id manquant', async () => {
+    const res = await request(app)
+      .post('/api/public/batch-cv/callback')
+      .set('X-Callback-Secret', 'test_callback_secret')
+      .send({ candidat_nom: 'Test' });
+    expect(res.status).toBe(400);
+  });
+
+  test('404 — candidature inexistante', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .post('/api/public/batch-cv/callback')
+      .set('X-Callback-Secret', 'test_callback_secret')
+      .send({ candidature_id: fakeId.toString(), candidat_nom: 'Test' });
+    expect(res.status).toBe(404);
+  });
+
+  test('403 — mauvais secret de callback', async () => {
+    const res = await request(app)
+      .post('/api/public/batch-cv/callback')
+      .set('X-Callback-Secret', 'mauvais_secret')
+      .send({ candidature_id: cand._id.toString(), candidat_nom: 'Test' });
+    expect(res.status).toBe(403);
+  });
+});
+
+// ═════════════════════════════════════════════
+// 23. AUDIT — GET /api/audit
+// ═════════════════════════════════════════════
+describe('Audit — GET /api/audit', () => {
+  let token;
+
+  beforeEach(async () => {
+    ({ token } = await getToken({ email: 'audit@test.com', company: 'solumada' }));
+    await AuditLog.create([
+      { action: 'OFFRE_CREEE',   entity_type: 'offre',        entity_label: 'Dev Backend',  user_email: 'rh@test.com' },
+      { action: 'OFFRE_CREEE',   entity_type: 'offre',        entity_label: 'Data Analyst', user_email: 'rh@test.com' },
+      { action: 'LOGIN',         entity_type: 'user',         entity_label: 'admin@test.com', user_email: 'admin@test.com' },
+      { action: 'CANDIDATURE_MANUELLE', entity_type: 'candidature', entity_label: 'Jean Dupont', user_email: 'rh@test.com' },
+    ]);
+  });
+
+  test('200 — retourne la liste des logs', async () => {
+    const res = await request(app)
+      .get('/api/audit')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.logs).toHaveLength(4);
+    expect(res.body.total).toBe(4);
+  });
+
+  test('filtre par action', async () => {
+    const res = await request(app)
+      .get('/api/audit?action=OFFRE_CREEE')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.logs).toHaveLength(2);
+    expect(res.body.logs.every(l => l.action === 'OFFRE_CREEE')).toBe(true);
+  });
+
+  test('filtre par entity_type', async () => {
+    const res = await request(app)
+      .get('/api/audit?entity_type=candidature')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.logs).toHaveLength(1);
+    expect(res.body.logs[0].entity_type).toBe('candidature');
+  });
+
+  test('recherche textuelle sur entity_label', async () => {
+    const res = await request(app)
+      .get('/api/audit?q=Jean')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.logs).toHaveLength(1);
+    expect(res.body.logs[0].entity_label).toBe('Jean Dupont');
+  });
+
+  test('pagination — limit et page', async () => {
+    const res = await request(app)
+      .get('/api/audit?page=1&limit=2')
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.logs).toHaveLength(2);
+    expect(res.body.total).toBe(4);
+    expect(res.body.pages).toBe(2);
+  });
+
+  test('401 sans token', async () => {
+    const res = await request(app).get('/api/audit');
+    expect(res.status).toBe(401);
   });
 });

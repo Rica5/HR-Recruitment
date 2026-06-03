@@ -74,6 +74,7 @@ async function triggerAIAnalysis(candidature, offre) {
     type_contrat: offre.type_contrat || "",
     localisation: offre.localisation || "",
     email_recruteur: offre.email_recruteur,
+    company: offre.company || 'solumada',
     test_requis: offre.test_requis === true,
     automatisation_active: offre.automatisation_active !== false,
     lien_calendar: offre.lien_rdv || offre.lien_calendar || "",
@@ -205,6 +206,7 @@ async function triggerManualWorkflow(candidature, offre) {
     type_contrat: offre.type_contrat || "",
     localisation: offre.localisation || "",
     email_recruteur: offre.email_recruteur,
+    company: offre.company || 'solumada',
     test_requis: offre.test_requis === true,
     automatisation_active: offre.automatisation_active !== false,
     lien_calendar: offre.lien_rdv || offre.lien_calendar || "",
@@ -329,6 +331,7 @@ async function triggerQualificationEmail(candidature, offre) {
     titre_poste: candidature.titre_poste,
     offre_id: candidature.offre_id,
     email_recruteur: offre.email_recruteur,
+    company: offre.company || 'solumada',
     lien_rdv: offre.lien_rdv || offre.lien_calendar || "",
     test_requis: offre.test_requis === true,
     test_date: offre.test_date || null,
@@ -356,8 +359,106 @@ async function triggerQualificationEmail(candidature, offre) {
   }
 }
 
+/**
+ * Triggers the n8n batch evaluation workflow for a job offer.
+ * Sends offer details + all individually-analyzed candidates to Claude for comparative ranking.
+ * n8n callbacks POST /api/public/offre/:offre_id/top-candidats with the selected top N.
+ */
+async function triggerBatchEvaluation(offre, candidatures, nb_top) {
+  const batchWebhookUrl = process.env.N8N_BATCH_WEBHOOK_URL;
+  if (!batchWebhookUrl) {
+    console.warn('⚠️  N8N_BATCH_WEBHOOK_URL not configured — batch evaluation skipped');
+    return { success: false, error: 'N8N_BATCH_WEBHOOK_URL not configured' };
+  }
+
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  const payload = {
+    offre_id: offre.offre_id,
+    titre_poste: offre.titre_poste,
+    description_poste: offre.missions_principales || '',
+    competences_requises: offre.competences_requises || '',
+    exigences_ia: offre.exigences_ia || '',
+    company: offre.company || 'solumada',
+    nb_top,
+    candidatures: candidatures.map(c => ({
+      id: c._id.toString(),
+      nom: c.candidat_nom,
+      score: c.score,
+      adequation_poste: c.adequation_poste || '',
+      competences_detectees: c.competences_detectees || '',
+      competences_manquantes: c.competences_manquantes || '',
+      resume_analyse: c.resume_analyse || '',
+      points_forts: c.points_forts || '',
+      points_faibles: c.points_faibles || '',
+      experience_annees: c.experience_annees,
+    })),
+    callback_url: `${baseUrl}/api/public/offre/${offre.offre_id}/top-candidats`,
+    callback_secret: process.env.N8N_CALLBACK_SECRET || '',
+  };
+
+  // Fire-and-forget: n8n traite en asynchrone et callbacke les résultats
+  axios.post(batchWebhookUrl, payload, {
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 120000,
+  }).then(res => {
+    console.log(`✅ Batch evaluation triggered for ${offre.offre_id} (${candidatures.length} candidats, top ${nb_top}) — HTTP ${res.status}`);
+  }).catch(err => {
+    console.error(`❌ Batch evaluation webhook error for ${offre.offre_id} — ${err.message}`);
+    logAudit({
+      action: 'WF_ECHEC',
+      entity_type: 'offre',
+      entity_id: offre.offre_id,
+      entity_label: offre.titre_poste,
+      user_email: 'n8n',
+      details: { workflow: 'WF4_BATCH', erreur: err.message },
+    });
+  });
+  return { success: true };
+}
+
+/**
+ * Triggers WF5: sends a CV (base64) to n8n for Claude to extract nom/email/téléphone.
+ * After extraction, n8n callbacks POST /api/public/batch-cv/callback.
+ * Fire-and-forget — the app immediately creates a placeholder candidature.
+ */
+async function triggerBatchCVExtraction(candidature, offre, cvBase64, cvMimetype) {
+  const webhookUrl = process.env.N8N_BATCH_CV_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn('⚠️  N8N_BATCH_CV_WEBHOOK_URL not configured — CV extraction skipped');
+    return;
+  }
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const payload = {
+    candidature_id: candidature._id.toString(),
+    cv_base64: cvBase64,
+    cv_mimetype: cvMimetype,
+    offre_id: offre.offre_id,
+    titre_poste: offre.titre_poste,
+    competences_requises: offre.competences_requises || '',
+    exigences_ia: offre.exigences_ia || '',
+    annees_experience: offre.annees_experience || '',
+    langues_requises: offre.langues_requises || '',
+    missions_principales: offre.missions_principales || '',
+    lien_calendar: offre.lien_rdv || offre.lien_calendar || '',
+    email_recruteur: offre.email_recruteur,
+    callback_url: `${baseUrl}/api/public/batch-cv/callback`,
+    callback_secret: process.env.N8N_CALLBACK_SECRET || '',
+  };
+  axios.post(webhookUrl, payload, {
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 120000,
+  }).then(res => {
+    console.log(`✅ Batch CV extraction triggered for ${candidature._id} — HTTP ${res.status}`);
+  }).catch(err => {
+    console.error(`❌ Batch CV extraction failed for ${candidature._id} — ${err.message}`);
+  });
+}
+
 module.exports = {
   triggerAIAnalysis,
   triggerManualWorkflow,
   triggerQualificationEmail,
+  triggerBatchEvaluation,
+  triggerBatchCVExtraction,
 };

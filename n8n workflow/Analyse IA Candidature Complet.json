@@ -1,0 +1,1529 @@
+{
+  "name": "AI Application Analysis — Complete",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "candidature-reception",
+        "options": {}
+      },
+      "id": "24839fce-e2d9-4d52-a304-6490eb9d45dc",
+      "name": "01 - Candidate Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        20768,
+        12224
+      ],
+      "webhookId": "candidature-reception-solumada"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nreturn [{ json: {\n  candidat_nom:         body.candidat_nom,\n  candidat_email:       body.candidat_email,\n  candidat_telephone:   body.candidat_telephone || '',\n  offre_id:             body.offre_id,\n  titre_poste:          body.titre_poste,\n  description_poste:    body.description_poste || '',\n  competences_requises: body.competences_requises || '',\n  annees_experience:    body.annees_experience || '',\n  langues_requises:     body.langues_requises || '',\n  exigences_ia:         body.exigences_ia || '',\n  type_contrat:         body.type_contrat || '',\n  localisation:         body.localisation || '',\n  email_recruteur:      body.email_recruteur,\n  cv_base64:            body.cv_base64 || '',\n  cv_mimetype:          body.cv_mimetype || 'application/pdf',\n  lettre_base64:        body.lettre_base64 || '',\n  lettre_mimetype:      body.lettre_mimetype || 'application/pdf',\n  date_candidature:     body.date_candidature || new Date().toISOString(),\n  candidature_id:       body.candidature_id || '',\n  callback_url:         body.callback_url || '',\n  test_requis:          body.test_requis === true || body.test_requis === 'true',\n  automatisation_active:body.automatisation_active === true || body.automatisation_active === 'true',\n  lien_calendar:        body.lien_calendar || '',\n  callback_secret:      body.callback_secret || '',\n  company:              body.company || 'solumada'\n}}];"
+      },
+      "id": "ccf3fd7a-ff56-49bc-aab6-1e0126758e2e",
+      "name": "02 - Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        21008,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst prompt = 'Tu es un expert RH. Analyse le CV et la lettre ci-joints.\\n\\n'\n  + '=== FICHE DE POSTE ===\\n'\n  + 'Titre: ' + d.titre_poste + '\\n'\n  + 'Missions: ' + d.description_poste + '\\n'\n  + 'Profil souhaitée: ' + d.profil_souhaite + '\\n'\n  + 'Competences: ' + d.competences_requises + '\\n'\n  + 'Experience: ' + (d.annees_experience || 'Non specifie') + '\\n'\n  + 'Langues: ' + (d.langues_requises || 'Non specifie') + '\\n'\n  + 'Contrat: ' + d.type_contrat + '\\n'\n  + 'Lieu: ' + d.localisation + '\\n'\n  + (d.exigences_ia ? '\\n=== EXIGENCES PRIORITAIRES ===\\n' + d.exigences_ia + '\\n' : '')\n  + '\\nRepondre UNIQUEMENT en JSON valide:\\n'\n  + '{\"score\":7,\"competences_detectees\":[\"X\"],\"competences_manquantes\":[\"Y\"],\"experience_annees\":3,\"niveau_education\":\"Licence\",\"adequation_poste\":\"Bon profil.\",\"points_forts\":\"Experience pertinente.\",\"points_faibles\":\"Peu de management.\",\"resume_analyse\":\"Candidat interessant.\",\"recommandation\":\"QUALIFIE\"}\\n'\n  + 'Score>=7=QUALIFIE, 4-6=A_REVOIR, <4=NON_SELECTIONNE\\n'\n  + 'IMPORTANT: Reponds UNIQUEMENT avec le JSON brut. Pas de bloc markdown, pas de backticks, pas de texte avant ou apres.';\nconst content = [];\nif (d.cv_base64) {\n  if ((d.cv_mimetype||'').includes('pdf'))\n    content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:d.cv_base64}});\n  else\n    content.push({type:'text',text:'=== CV ===\\n'+Buffer.from(d.cv_base64,'base64').toString('utf-8')});\n}\nif (d.lettre_base64) {\n  if ((d.lettre_mimetype||'').includes('pdf'))\n    content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:d.lettre_base64}});\n  else\n    content.push({type:'text',text:'=== Lettre ===\\n'+Buffer.from(d.lettre_base64,'base64').toString('utf-8')});\n}\ncontent.push({type:'text',text:prompt});\nconst isEn = (d.company || 'solumada') === 'optimum';\nif (isEn) {\n  prompt += '\\n\\nIMPORTANT: All text fields in your JSON response MUST be in English (resume_analyse, adequation_poste, points_forts, points_faibles, competences_detectees, competences_manquantes).';\n}\nreturn [{json:{...d, requestBody:{model:'claude-sonnet-4-6',max_tokens:2048,messages:[{role:'user',content}]}}}];"
+      },
+      "id": "a9f679f9-0b71-4ec4-91a6-024e910206ea",
+      "name": "03 - Prepare Claude Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        21200,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {}
+      },
+      "id": "f2892b03-db78-4b11-b7f8-cc80f20453c6",
+      "name": "04 - Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        21376,
+        12224
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ykeQbTxUUvlcEX7d",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst raw = (item.content && item.content[0] && item.content[0].text) ? item.content[0].text : '';\n// Supprimer le bloc markdown ```json ... ``` si présent\nconst match = raw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nconst jsonStr = match ? match[1].trim() : raw.trim();\nlet analyse;\ntry {\n  analyse = JSON.parse(jsonStr);\n} catch(e) {\n  throw new Error('Impossible de parser la réponse Claude : ' + e.message + ' — Réponse brute : ' + raw.slice(0, 200));\n}\nreturn [{ json: { ...item, analyse } }];"
+      },
+      "id": "7d0377e3-69c0-42cc-8ed6-20be69eb8feb",
+      "name": "04b - Extract Claude JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        21552,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "candidat_nom",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.candidat_nom }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "candidat_email",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.candidat_email }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "candidat_telephone",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.candidat_telephone }}",
+              "type": "string"
+            },
+            {
+              "id": "p4",
+              "name": "titre_poste",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.titre_poste }}",
+              "type": "string"
+            },
+            {
+              "id": "p5",
+              "name": "offre_id",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.offre_id }}",
+              "type": "string"
+            },
+            {
+              "id": "p6",
+              "name": "email_recruteur",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.email_recruteur }}",
+              "type": "string"
+            },
+            {
+              "id": "p7",
+              "name": "date_candidature",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.date_candidature }}",
+              "type": "string"
+            },
+            {
+              "id": "p8",
+              "name": "candidature_id",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.candidature_id }}",
+              "type": "string"
+            },
+            {
+              "id": "p19",
+              "name": "callback_url",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.callback_url }}",
+              "type": "string"
+            },
+            {
+              "id": "p9",
+              "name": "score",
+              "value": "={{ $json.analyse.score }}",
+              "type": "number"
+            },
+            {
+              "id": "p10",
+              "name": "recommandation",
+              "value": "={{ $json.analyse.recommandation }}",
+              "type": "string"
+            },
+            {
+              "id": "p11",
+              "name": "resume_analyse",
+              "value": "={{ $json.analyse.resume_analyse }}",
+              "type": "string"
+            },
+            {
+              "id": "p12",
+              "name": "competences_detectees",
+              "value": "={{ $json.analyse.competences_detectees.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "p13",
+              "name": "competences_manquantes",
+              "value": "={{ $json.analyse.competences_manquantes.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "p14",
+              "name": "adequation_poste",
+              "value": "={{ $json.analyse.adequation_poste }}",
+              "type": "string"
+            },
+            {
+              "id": "p15",
+              "name": "experience_annees",
+              "value": "={{ $json.analyse.experience_annees }}",
+              "type": "number"
+            },
+            {
+              "id": "p16",
+              "name": "niveau_education",
+              "value": "={{ $json.analyse.niveau_education }}",
+              "type": "string"
+            },
+            {
+              "id": "p17",
+              "name": "points_forts",
+              "value": "={{ $json.analyse.points_forts }}",
+              "type": "string"
+            },
+            {
+              "id": "p18",
+              "name": "points_faibles",
+              "value": "={{ JSON.parse($json.content[0].text).points_faibles }}",
+              "type": "string"
+            },
+            {
+              "id": "p20",
+              "name": "test_requis",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.test_requis }}",
+              "type": "boolean"
+            },
+            {
+              "id": "p21",
+              "name": "lien_calendar",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.lien_calendar }}",
+              "type": "string"
+            },
+            {
+              "id": "p22",
+              "name": "callback_secret",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.callback_secret }}",
+              "type": "string"
+            },
+            {
+              "id": "a524a9ec-998a-4b82-b034-17e099f7a93a",
+              "name": "automatisation_active",
+              "value": "={{ $('03 - Prepare Claude Prompt').item.json.automatisation_active }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "17926369-dd98-4811-b862-753e710e6ab2",
+      "name": "05 - Parse Claude Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        21728,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.callback_url + \"/\" + $json.candidature_id + \"/analyse\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Callback-Secret",
+              "value": "={{ $json.callback_secret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ score: $json.score, recommandation: $json.recommandation, resume_analyse: $json.resume_analyse, adequation_poste: $json.adequation_poste, competences_detectees: $json.competences_detectees, competences_manquantes: $json.competences_manquantes, experience_annees: $json.experience_annees, niveau_education: $json.niveau_education, points_forts: $json.points_forts, points_faibles: $json.points_faibles }) }}",
+        "options": {}
+      },
+      "id": "ba907b23-6a29-4f98-bc3d-8cf94774201c",
+      "name": "06 - Update MongoDB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        21904,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $json.replyTo }}"
+        }
+      },
+      "id": "273395d6-ef1a-4a13-a6ac-dddecb26265d",
+      "name": "07 - Candidate Acknowledgment Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        22080,
+        12224
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "t1",
+              "leftValue": "={{ $('05 - Parse Claude Response').item.json.test_requis }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            },
+            {
+              "id": "a303fee3-95bb-40b2-8f32-1c25ab3dbbec",
+              "leftValue": "={{ $('05 - Parse Claude Response').item.json.automatisation_active }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "8944067b-680d-4c83-aa09-c1f5ca78b4f0",
+      "name": "07b - Test Required?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        22288,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "q1",
+              "leftValue": "={{ $('05 - Parse Claude Response').item.json.score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c7b200f9-1dca-4afd-9b52-2d3c63cab1c4",
+      "name": "08 - Qualified (>= 7)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        22496,
+        12240
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "90e3078f-2808-4f9a-b918-873fdd39500e",
+      "name": "09a - Notify Recruiter (Qualified)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        22720,
+        11968
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $json.replyTo }}"
+        }
+      },
+      "id": "ff670101-460b-4b3a-ab86-3239cbe06282",
+      "name": "09b - Interview Invitation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        22688,
+        12224
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "id": "0bf057ad-0d94-4716-84e2-ca80a46157cd",
+      "name": "10 - Wait 48h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        22928,
+        12224
+      ],
+      "webhookId": "wait-48h-rdv"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v2/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parse Claude Response').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2bcaa0ab-9e90-4412-9f62-3a4c82b97597",
+      "name": "11 - Check Cal.com",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        23168,
+        12224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        },
+        "calApi": {
+          "id": "3IbDaz8X729PrfcK",
+          "name": "Cal account"
+        },
+        "httpBearerAuth": {
+          "id": "EGweRiuvnoKxb0NN",
+          "name": "Bearer Auth account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parse Claude Response').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.data.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "51182012-a7dd-4144-8e27-105dc6fe34a9",
+      "name": "12 - Booking Found?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        23408,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r1",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bebee0cc-be75-49de-9639-c4b7764a56ac",
+      "name": "13 - No Booking?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        23664,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $json.replyTo }}"
+        }
+      },
+      "id": "f82dd101-6559-43e5-b70a-9c298c309e0b",
+      "name": "14 - Reminder 1",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        23904,
+        12224
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "e515e6ac-d7c4-4954-a53b-028a7f3c5d4f",
+      "name": "15 - Wait 24h",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        24144,
+        12224
+      ],
+      "webhookId": "wait-24h-relance2"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v2/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parse Claude Response').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "56d5d005-e4a4-46a8-93d3-1202f9534035",
+      "name": "16 - Check Cal.com 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        24384,
+        12224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "JEtk7WOh8HB7DAEH",
+          "name": "Bearer Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parse Claude Response').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.data.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "0d9af942-6d44-4a6b-bc48-9540c8d6b76b",
+      "name": "17 - Booking Found 2?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24624,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r2",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "126cbfcd-5eb7-43bf-8753-548f8418343d",
+      "name": "18 - No Booking 2?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        24864,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $json.replyTo }}"
+        }
+      },
+      "id": "b517ddec-67e4-4fd1-b97c-54da31e1b07f",
+      "name": "19 - Final Reminder 2",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        25104,
+        12224
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed  = $('05 - Parse Claude Response').item.json;\nconst email   = parsed.candidat_email.toLowerCase();\nconst url     = parsed.callback_url + '/' + parsed.candidature_id + '/rdv-confirme';\nconst secret  = parsed.callback_secret;\n\nlet bookings = [];\ntry {\n  bookings = $('16 - Check Cal.com 2').item.json?.data?.bookings || [];\n} catch(e) {}\nif (!bookings.length) {\n  try {\n    bookings = $('11 - Check Cal.com').item.json?.data?.bookings || [];\n  } catch(e) {}\n}\n\nconst booking = bookings.find(b =>\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\n\nlet date = null, heure = '', lieu = '';\nif (booking) {\n  const start = new Date(booking.startTime || booking.start);\n  date  = start.toISOString();\n  heure = start.toISOString().slice(11, 16);\n  lieu  = booking.location || '';\n}\n\nreturn [{ json: { url, secret, date, heure, lieu } }];"
+      },
+      "id": "29b1592d-6423-49a8-b6d1-a4065ab86368",
+      "name": "13b - Interview Scheduled Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24144,
+        12896
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Callback-Secret",
+              "value": "={{ $json.secret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date: $json.date, heure: $json.heure, lieu: $json.lieu }) }}",
+        "options": {}
+      },
+      "id": "4a69dc46-8b22-492f-8900-523cd96ebe8b",
+      "name": "13c - Send Confirmed Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        24400,
+        12640
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "a1",
+              "leftValue": "={{ $('05 - Parse Claude Response').item.json.score }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "93ed3e31-add6-462e-8be7-13b47b8b38b4",
+      "name": "20 - To Review (>= 4)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        22688,
+        12448
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "9722a7b7-bf37-4c82-9930-5b4f76451e43",
+      "name": "21 - Notify Recruiter (To Review)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        22928,
+        12384
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $json.replyTo }}"
+        }
+      },
+      "id": "05fed846-4cbe-4fa2-9730-514598c2dc52",
+      "name": "22 - Rejection Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        22928,
+        12560
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('05 - Parse Claude Response').first().json;\nconst company = d.company || 'solumada';\nconst isEn = company === 'optimum';\n\nconst brand = isEn ? {\n  name: 'Optimum Solutions',\n  color: '#62A5D2', colorDark: '#2b6ca3',\n  logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png',\n  logoBg: '', logoHeight: 46\n} : {\n  name: 'Solumada',\n  color: '#22c55e', colorDark: '#15803d',\n  logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png',\n  logoBg: '#ffffff', logoHeight: 36\n};\n\nconst fromName = brand.name + ' — Recrutement';\n\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) {\n  subtitle = subtitle || '';\n  ctaLabel = ctaLabel || '';\n  ctaUrl = ctaUrl || '';\n  const year = new Date().getFullYear();\n  const logoBlock = brand.logoBg\n    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`\n    : `<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`;\n  const cta = (ctaLabel && ctaUrl) ? `<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>` : '';\n  const footerNote = isEn ? 'Recruitment · Please do not reply directly to this email.' : 'Service Recrutement · Merci de ne pas répondre directement à cet email.';\n  const copyright = isEn ? 'All rights reserved' : 'Tous droits réservés';\n  return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`;\n}\n\nfunction detailTable(rows) {\n  const trs = rows.filter(Boolean).map(([label, value]) => `<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join('');\n  return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`;\n}\n\nconst table = detailTable([\n  [isEn ? 'Position' : 'Poste', d.titre_poste],\n  [isEn ? 'Contract' : 'Contrat', d.type_contrat],\n  [isEn ? 'Location' : 'Localisation', d.localisation],\n]);\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Thank you for your interest in our company.</p><p style=\"margin:0 0 6px\">We have received your application for the position of <strong>${d.titre_poste}</strong>.</p>${table}<p style=\"margin:6px 0 0;color:#64748b;font-size:13px\">Our team will review your file as soon as possible. You will be contacted if your profile matches our needs.</p>`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Nous vous remercions de l'intérêt que vous portez à notre entreprise.</p><p style=\"margin:0 0 6px\">Nous avons bien reçu votre candidature pour le poste de <strong>${d.titre_poste}</strong>.</p>${table}<p style=\"margin:6px 0 0;color:#64748b;font-size:13px\">Notre équipe examinera votre dossier dans les meilleurs délais. Vous serez recontacté(e) si votre profil correspond à nos besoins.</p>`;\nreturn [{ json: { fromName,\n  to: d.candidat_email,\n  subject: isEn ? `📩 Application received — ${d.titre_poste}` : `📩 Candidature reçue — ${d.titre_poste}`,\n  html: emailLayout({ preheader: isEn ? `Your application for ${d.titre_poste} has been received` : `Votre candidature pour ${d.titre_poste} a bien été reçue`, title: isEn ? 'Application Received ✅' : 'Candidature bien reçue ✅', subtitle: d.titre_poste, bodyHtml }),\n  replyTo: d.email_recruteur || ''\n}}];"
+      },
+      "id": "build-ack-email-001",
+      "name": "07a - Build Acknowledgment Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        21840,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('05 - Parse Claude Response').first().json;\nconst company = d.company || 'solumada';\nconst isEn = company === 'optimum';\n\nconst brand = isEn ? {\n  name: 'Optimum Solutions',\n  color: '#62A5D2', colorDark: '#2b6ca3',\n  logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png',\n  logoBg: '', logoHeight: 46\n} : {\n  name: 'Solumada',\n  color: '#22c55e', colorDark: '#15803d',\n  logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png',\n  logoBg: '#ffffff', logoHeight: 36\n};\n\nconst fromName = brand.name + ' — Recrutement';\n\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) {\n  subtitle = subtitle || '';\n  ctaLabel = ctaLabel || '';\n  ctaUrl = ctaUrl || '';\n  const year = new Date().getFullYear();\n  const logoBlock = brand.logoBg\n    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`\n    : `<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`;\n  const cta = (ctaLabel && ctaUrl) ? `<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>` : '';\n  const footerNote = isEn ? 'Recruitment · Please do not reply directly to this email.' : 'Service Recrutement · Merci de ne pas répondre directement à cet email.';\n  const copyright = isEn ? 'All rights reserved' : 'Tous droits réservés';\n  return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`;\n}\n\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Following the review of your application for the position of <strong>${d.titre_poste}</strong>, we regret to inform you that your profile does not match our current needs.</p><p style=\"margin:0 0 6px\">We wish you the best in your job search.</p>`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Suite à l'examen de votre candidature pour le poste de <strong>${d.titre_poste}</strong>, nous avons le regret de vous informer que votre profil ne correspond pas à nos besoins actuels.</p><p style=\"margin:0 0 6px\">Nous vous souhaitons le meilleur dans vos recherches d'emploi.</p>`;\nreturn [{ json: { fromName,\n  to: d.candidat_email,\n  subject: isEn ? `Suite de votre candidature — ${d.titre_poste}` : `Suite de votre candidature — ${d.titre_poste}`,\n  html: emailLayout({ preheader: isEn ? `Update on your application for ${d.titre_poste}` : `Suite de votre candidature pour ${d.titre_poste}`, title: isEn ? 'Application Update' : 'Suite de votre candidature', subtitle: d.titre_poste, bodyHtml }),\n  replyTo: d.email_recruteur || ''\n}}];"
+      },
+      "id": "build-rejection-email-001",
+      "name": "22a - Build Rejection Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        22688,
+        12560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('05 - Parse Claude Response').first().json;\nconst company = d.company || 'solumada';\nconst isEn = company === 'optimum';\n\nconst brand = isEn ? {\n  name: 'Optimum Solutions',\n  color: '#62A5D2', colorDark: '#2b6ca3',\n  logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png',\n  logoBg: '', logoHeight: 46\n} : {\n  name: 'Solumada',\n  color: '#22c55e', colorDark: '#15803d',\n  logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png',\n  logoBg: '#ffffff', logoHeight: 36\n};\n\nconst fromName = brand.name + ' — Recrutement';\n\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) {\n  subtitle = subtitle || '';\n  ctaLabel = ctaLabel || '';\n  ctaUrl = ctaUrl || '';\n  const year = new Date().getFullYear();\n  const logoBlock = brand.logoBg\n    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`\n    : `<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`;\n  const cta = (ctaLabel && ctaUrl) ? `<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>` : '';\n  const footerNote = isEn ? 'Recruitment · Please do not reply directly to this email.' : 'Service Recrutement · Merci de ne pas répondre directement à cet email.';\n  const copyright = isEn ? 'All rights reserved' : 'Tous droits réservés';\n  return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`;\n}\n\nfunction detailTable(rows) {\n  const trs = rows.filter(Boolean).map(([label, value]) => `<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join('');\n  return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`;\n}\n\nconst table = detailTable([\n  [isEn ? 'Name' : 'Nom', d.candidat_nom],\n  ['Email', d.candidat_email || '—'],\n  [isEn ? 'Phone' : 'Téléphone', d.candidat_telephone || '—'],\n  ['Score', `<strong style=\"color:${brand.colorDark}\">${d.score != null ? d.score : 'N/A'}/10</strong>`],\n  [isEn ? 'Position' : 'Poste', d.titre_poste],\n]);\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">A candidate has just been <strong style=\"color:${brand.colorDark}\">qualified</strong> for the <strong>${d.titre_poste}</strong> position.</p>${table}`\n  : `<p style=\"margin:0 0 14px\">Un candidat vient d'être <strong style=\"color:${brand.colorDark}\">qualifié</strong> pour l'offre <strong>${d.titre_poste}</strong>.</p>${table}`;\nreturn [{ json: { fromName,\n  to: d.email_recruteur,\n  subject: isEn ? `🟢 Candidate qualified — ${d.candidat_nom} (${d.score != null ? d.score : '?'}/10)` : `🟢 Candidat qualifié — ${d.candidat_nom} (${d.score != null ? d.score : '?'}/10)`,\n  html: emailLayout({ preheader: isEn ? `${d.candidat_nom} has been qualified` : `${d.candidat_nom} a été qualifié(e)`, title: isEn ? 'Candidate Qualified 🟢' : 'Candidat qualifié 🟢', subtitle: d.candidat_nom, bodyHtml })\n}}];"
+      },
+      "id": "build-recruiter-email-001",
+      "name": "09a_b - Build Recruiter Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        22480,
+        11968
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('05 - Parse Claude Response').first().json;\nconst company = d.company || 'solumada';\nconst isEn = company === 'optimum';\n\nconst brand = isEn ? {\n  name: 'Optimum Solutions',\n  color: '#62A5D2', colorDark: '#2b6ca3',\n  logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png',\n  logoBg: '', logoHeight: 46\n} : {\n  name: 'Solumada',\n  color: '#22c55e', colorDark: '#15803d',\n  logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png',\n  logoBg: '#ffffff', logoHeight: 36\n};\n\nconst fromName = brand.name + ' — Recrutement';\n\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) {\n  subtitle = subtitle || '';\n  ctaLabel = ctaLabel || '';\n  ctaUrl = ctaUrl || '';\n  const year = new Date().getFullYear();\n  const logoBlock = brand.logoBg\n    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`\n    : `<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`;\n  const cta = (ctaLabel && ctaUrl) ? `<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>` : '';\n  const footerNote = isEn ? 'Recruitment · Please do not reply directly to this email.' : 'Service Recrutement · Merci de ne pas répondre directement à cet email.';\n  const copyright = isEn ? 'All rights reserved' : 'Tous droits réservés';\n  return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`;\n}\n\nfunction detailTable(rows) {\n  const trs = rows.filter(Boolean).map(([label, value]) => `<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join('');\n  return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`;\n}\n\nfunction withGuest(url, email) {\n  if (!url || url === '#' || !email) return url || '#';\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + 'guests=' + encodeURIComponent(email);\n}\n\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Following our review of your application for the position of <strong>${d.titre_poste}</strong>, we would like to invite you to an interview.</p><p style=\"margin:0 0 6px\">Please book the time slot that suits you best by clicking the button below.</p><p style=\"margin:14px 0 0;color:#64748b;font-size:13px\">⏳ Please book your slot within <strong>48 hours</strong>.</p>`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Suite à l'examen de votre candidature pour le poste de <strong>${d.titre_poste}</strong>, nous souhaitons vous rencontrer dans le cadre d'un entretien.</p><p style=\"margin:0 0 6px\">Merci de réserver le créneau qui vous convient le mieux en cliquant sur le bouton ci-dessous.</p><p style=\"margin:14px 0 0;color:#64748b;font-size:13px\">⏳ Merci de réserver votre créneau dans les <strong>48 heures</strong>.</p>`;\nreturn [{ json: { fromName,\n  to: d.candidat_email,\n  subject: isEn ? `📅 Interview invitation — ${d.titre_poste}` : `📅 Invitation à un entretien — ${d.titre_poste}`,\n  html: emailLayout({ preheader: isEn ? `Interview invitation for ${d.titre_poste}` : `Invitation à un entretien pour le poste de ${d.titre_poste}`, title: isEn ? 'Interview Invitation' : 'Invitation à un entretien', subtitle: d.titre_poste, bodyHtml, ctaLabel: isEn ? '📅 Schedule my interview' : '📅 Planifier mon entretien', ctaUrl: withGuest(d.lien_calendar || d.lien_rdv || '#', d.email_recruteur) }),\n  replyTo: d.email_recruteur || ''\n}}];"
+      },
+      "id": "build-invite-email-001",
+      "name": "09b_b - Build Interview Invitation Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        22448,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('05 - Parse Claude Response').first().json;\nconst company = d.company || 'solumada';\nconst isEn = company === 'optimum';\n\nconst brand = isEn ? {\n  name: 'Optimum Solutions',\n  color: '#62A5D2', colorDark: '#2b6ca3',\n  logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png',\n  logoBg: '', logoHeight: 46\n} : {\n  name: 'Solumada',\n  color: '#22c55e', colorDark: '#15803d',\n  logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png',\n  logoBg: '#ffffff', logoHeight: 36\n};\n\nconst fromName = brand.name + ' — Recrutement';\n\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) {\n  subtitle = subtitle || '';\n  ctaLabel = ctaLabel || '';\n  ctaUrl = ctaUrl || '';\n  const year = new Date().getFullYear();\n  const logoBlock = brand.logoBg\n    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`\n    : `<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`;\n  const cta = (ctaLabel && ctaUrl) ? `<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>` : '';\n  const footerNote = isEn ? 'Recruitment · Please do not reply directly to this email.' : 'Service Recrutement · Merci de ne pas répondre directement à cet email.';\n  const copyright = isEn ? 'All rights reserved' : 'Tous droits réservés';\n  return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`;\n}\n\nfunction detailTable(rows) {\n  const trs = rows.filter(Boolean).map(([label, value]) => `<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join('');\n  return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`;\n}\n\nfunction withGuest(url, email) {\n  if (!url || url === '#' || !email) return url || '#';\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + 'guests=' + encodeURIComponent(email);\n}\n\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">We had invited you to schedule an interview for the position of <strong>${d.titre_poste}</strong>, but we have not yet received your booking.</p>`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">Nous vous avions invité(e) à planifier votre entretien pour le poste de <strong>${d.titre_poste}</strong>, mais nous n'avons pas encore reçu votre réservation.</p>`;\nreturn [{ json: { fromName,\n  to: d.candidat_email,\n  subject: isEn ? `⏰ Reminder (1/2) — Schedule your interview for ${d.titre_poste}` : `⏰ Rappel (1/2) — Planifiez votre entretien pour ${d.titre_poste}`,\n  html: emailLayout({ preheader: isEn ? `Reminder: schedule your interview for ${d.titre_poste}` : `Rappel : planifiez votre entretien pour ${d.titre_poste}`, title: isEn ? 'Interview to Schedule ⏰' : 'Entretien à planifier ⏰', subtitle: isEn ? 'Reminder 1/2' : 'Rappel 1/2', bodyHtml, ctaLabel: isEn ? '📅 Book my slot' : '📅 Réserver mon créneau', ctaUrl: withGuest(d.lien_calendar || d.lien_rdv || '#', d.email_recruteur) }),\n  replyTo: d.email_recruteur || ''\n}}];"
+      },
+      "id": "build-relance1-email-001",
+      "name": "14a - Build Reminder 1 Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        23664,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('05 - Parse Claude Response').first().json;\nconst company = d.company || 'solumada';\nconst isEn = company === 'optimum';\n\nconst brand = isEn ? {\n  name: 'Optimum Solutions',\n  color: '#62A5D2', colorDark: '#2b6ca3',\n  logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png',\n  logoBg: '', logoHeight: 46\n} : {\n  name: 'Solumada',\n  color: '#22c55e', colorDark: '#15803d',\n  logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png',\n  logoBg: '#ffffff', logoHeight: 36\n};\n\nconst fromName = brand.name + ' — Recrutement';\n\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) {\n  subtitle = subtitle || '';\n  ctaLabel = ctaLabel || '';\n  ctaUrl = ctaUrl || '';\n  const year = new Date().getFullYear();\n  const logoBlock = brand.logoBg\n    ? `<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`\n    : `<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`;\n  const cta = (ctaLabel && ctaUrl) ? `<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>` : '';\n  const footerNote = isEn ? 'Recruitment · Please do not reply directly to this email.' : 'Service Recrutement · Merci de ne pas répondre directement à cet email.';\n  const copyright = isEn ? 'All rights reserved' : 'Tous droits réservés';\n  return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`;\n}\n\nfunction detailTable(rows) {\n  const trs = rows.filter(Boolean).map(([label, value]) => `<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join('');\n  return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`;\n}\n\nconst warning = isEn\n  ? `<table role=\"presentation\" width=\"100%\" style=\"margin:18px 0 0\"><tr><td style=\"background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px;color:#c2410c;font-size:13px\"><strong>⚠️ Final reminder:</strong> if we do not hear from you within 48h, your application will be archived.</td></tr></table>`\n  : `<table role=\"presentation\" width=\"100%\" style=\"margin:18px 0 0\"><tr><td style=\"background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px;color:#c2410c;font-size:13px\"><strong>⚠️ Dernier rappel :</strong> sans réponse de votre part sous 48h, votre candidature sera archivée.</td></tr></table>`;\nfunction withGuest(url, email) {\n  if (!url || url === '#' || !email) return url || '#';\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + 'guests=' + encodeURIComponent(email);\n}\n\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">We had invited you to schedule an interview for the position of <strong>${d.titre_poste}</strong>, but we have not yet received your booking.</p>${warning}`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">Nous vous avions invité(e) à planifier votre entretien pour le poste de <strong>${d.titre_poste}</strong>, mais nous n'avons pas encore reçu votre réservation.</p>${warning}`;\nreturn [{ json: { fromName,\n  to: d.candidat_email,\n  subject: isEn ? `⏰ Reminder (2/2) — Schedule your interview for ${d.titre_poste}` : `⏰ Rappel (2/2) — Planifiez votre entretien pour ${d.titre_poste}`,\n  html: emailLayout({ preheader: isEn ? `Reminder: schedule your interview for ${d.titre_poste}` : `Rappel : planifiez votre entretien pour ${d.titre_poste}`, title: isEn ? 'Interview to Schedule ⏰' : 'Entretien à planifier ⏰', subtitle: isEn ? 'Reminder 2/2' : 'Rappel 2/2', bodyHtml, ctaLabel: isEn ? '📅 Book my slot' : '📅 Réserver mon créneau', ctaUrl: withGuest(d.lien_calendar || d.lien_rdv || '#', d.email_recruteur) }),\n  replyTo: d.email_recruteur || ''\n}}];"
+      },
+      "id": "build-relance2-email-001",
+      "name": "19a - Build Reminder 2 Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24864,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "id": "wf1-wait-final",
+      "name": "20 - Wait 24h (final check)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        25344,
+        12224
+      ],
+      "webhookId": "wait-24h-final-check"
+    },
+    {
+      "parameters": {
+        "url": "https://api.cal.com/v2/bookings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "attendeeEmail",
+              "value": "={{ $('05 - Parse Claude Response').item.json.candidat_email }}"
+            },
+            {
+              "name": "status",
+              "value": "ACCEPTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf1-cal3",
+      "name": "21 - Check Cal.com 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        25584,
+        12224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "8cY6iIxpz0QT1yO3",
+          "name": "Query Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "JEtk7WOh8HB7DAEH",
+          "name": "Bearer Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $('05 - Parse Claude Response').item.json.candidat_email.toLowerCase();\nconst bookings = $input.first().json.data.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
+      },
+      "id": "wf1-found3",
+      "name": "22a - Booking Found 3?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25824,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "r2",
+              "leftValue": "={{ $json.rdv_trouve }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "wf1-nobooking3",
+      "name": "22b - No Booking 3?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        26064,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('05 - Parse Claude Response').first().json || {};\nconst company = body.company || 'solumada';\nconst isEn = company === 'optimum';\nconst brand = isEn ? { name: 'Optimum Solutions', color: '#62A5D2', colorDark: '#2b6ca3', logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', logoBg: '', logoHeight: 46 } : { name: 'Solumada', color: '#22c55e', colorDark: '#15803d', logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', logoBg: '#ffffff', logoHeight: 36 };\n\nconst fromName = brand.name + ' — Recrutement';\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) { subtitle=subtitle||''; ctaLabel=ctaLabel||''; ctaUrl=ctaUrl||''; const year=new Date().getFullYear(); const logoBlock=brand.logoBg?`<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`:`<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`; const cta=(ctaLabel&&ctaUrl)?`<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>`:''; const footerNote=isEn?'Recruitment · Please do not reply directly to this email.':'Service Recrutement · Merci de ne pas répondre directement à cet email.'; const copyright=isEn?'All rights reserved':'Tous droits réservés'; return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`; }\nfunction detailTable(rows) { const trs=rows.filter(Boolean).map(([label,value])=>`<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join(''); return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`; }\nconst d = body;\nconst table = detailTable([[isEn?'Candidate':'Candidat',d.candidat_nom],['Email',d.candidat_email||'—'],[isEn?'Phone':'Téléphone',d.candidat_telephone||'—'],[isEn?'Position':'Poste',d.titre_poste]]);\nconst note = isEn ? `<p style=\"margin:16px 0 0;color:#64748b;font-size:13px\">You may contact the candidate directly or archive their application.</p>` : `<p style=\"margin:16px 0 0;color:#64748b;font-size:13px\">Vous pouvez prendre contact directement avec le candidat ou archiver sa candidature.</p>`;\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">The candidate <strong>${d.candidat_nom}</strong> has not booked an interview for the <strong>${d.titre_poste}</strong> position after 2 reminders.</p>${table}${note}`\n  : `<p style=\"margin:0 0 14px\">Le candidat <strong>${d.candidat_nom}</strong> n'a pas pris de rendez-vous pour le poste de <strong>${d.titre_poste}</strong> après 2 relances.</p>${table}${note}`;\nreturn [{ json: { fromName, to: d.email_recruteur, subject: isEn?`⚠️ No booking — ${d.candidat_nom} / ${d.titre_poste}`:`⚠️ Aucun RDV — ${d.candidat_nom} / ${d.titre_poste}`, html: emailLayout({ preheader: isEn?`${d.candidat_nom} did not book after 2 reminders`:`${d.candidat_nom} n'a pas pris de RDV après 2 relances`, title: isEn?'No Booking ⚠️':'Absence de réservation ⚠️', subtitle: d.candidat_nom, bodyHtml }) }}];"
+      },
+      "id": "wf1-build-alert",
+      "name": "22c - Build Recruiter Alert Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26304,
+        12224
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.fromName }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "wf1-alert-recruiter",
+      "name": "22d - Recruiter No-Booking Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        26544,
+        12224
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
+          "name": "Gmail SMTP — Solumada"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "01 - Candidate Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "optimumdev.app.n8n.cloud",
+            "user-agent": "axios/1.14.0",
+            "content-length": "5551",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "102.16.26.233",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "MG",
+            "cf-ray": "9f9ffe9a4f3e2229-JNB",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "102.16.26.233, 104.22.45.162",
+            "x-forwarded-host": "optimumdev.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-74-6649cf98c6-cv7dh",
+            "x-is-trusted": "yes",
+            "x-real-ip": "102.16.26.233"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "callback_url": "https://riverbed-velocity-diagnosis.ngrok-free.dev/api/public/candidature",
+            "candidature_id": "6a019ab74a61a58c51e42e69",
+            "offre_id": "1777372758524",
+            "titre_poste": "Data Annotation Specialist",
+            "description_poste": "Data analyste",
+            "competences_requises": "Licence en informatique\nreact etc",
+            "annees_experience": "1 à 3 ans en annotation de données ou traitement du langage",
+            "langues_requises": "Français courant (C1 minimum), notions d'anglais technique",
+            "exigences_ia": "Test",
+            "type_contrat": "CDI",
+            "localisation": "Antananarivo",
+            "email_recruteur": "developers@solumadateam.com",
+            "test_requis": false,
+            "automatisation_active": true,
+            "lien_calendar": "https://cal.com/developers-solumada-tzjmox/data-analyst-reservation",
+            "callback_secret": "cf0ea7ed9e184a748b7868d2d588c8b265b3af51ef2f53fa3c0c33e0c808c06a",
+            "candidat_nom": "Ramandimbisoa Ricardo",
+            "candidat_email": "ramandimbisoa.r@zurcher.edu.mg",
+            "candidat_telephone": "+261380710538",
+            "date_candidature": "2026-05-11T09:00:39.094Z",
+            "cv_base64": "JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCA3IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNyAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0F1dGhvciAoXChhbm9ueW1vdXNcKSkgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MDMyNzA2Mzc1NyswMCcwMCcpIC9DcmVhdG9yIChcKHVuc3BlY2lmaWVkXCkpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MDMyNzA2Mzc1NyswMCcwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0IChcKHVuc3BlY2lmaWVkXCkpIC9UaXRsZSAoXChhbm9ueW1vdXNcKSkgL1RyYXBwZWQgL0ZhbHNlCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9Db3VudCAxIC9LaWRzIFsgNCAwIFIgXSAvVHlwZSAvUGFnZXMKPj4KZW5kb2JqCjggMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMTk3OQo+PgpzdHJlYW0KR2F1MEQ+QkFMWCdSbkIzMyxeKklFJUxnOmFodUQlNjxecmMuKEdncmknayRnOCQrQCleMTxGdXJxSlg+K1lkaCk0PShqbF84cnFTU19KP1BSPUwsOVVBa0gpXmNOVzVjM1kkaHJaci0xWWVjc0tmS1pyMiwrRnVRMjtBM1EmRW5KWllrZl1fa08+b2dwLSUuUz9zKHBgI0BOWS1DXEoucmQxSiEmbVdbb0BpJFojPCJgITxTVzdsZFNlMCRZNUwxO0JLTCwtc1Y5QHN1b0FEakJDbXVHNmEjNiNea2dSWC8xNTJrWlpDcCk3KkFzN2RdSD01QktoZktGIkEpYjstaSgvaDpicE8lU3FTXSRKWitMT1MxS0g3SjhzdSFIJ1dIYTdCLUkyJ3EvY1k8TiFGc1JVKnQiaC1xYm9XUERicDskU3JSKExfVHM2bW5NSkBwQmFjN25rdT9ISmAwTWloTllKYCsxLGonPmA5dT9QZWBhW3FiWCQpJUZ0ZyQ/VyJbLkNdbkhNOlBhYCZjOWljKmFHSCErbEBFOjVKVlM0M0QicltDZTgqXS1pKlpFWkxhaEZfYkheSlAxb046KWAuZD1NLEg0YTheaWZzO2s3LG9GMHMoKCREcGsxTUk9MF8/PyJlKzNGXS9fJktxN2dual9YLVYwJzcqU0I5VTtWRCxHWDxoSElTTDcrXGFhKGo3Z0NlT0RyLlJiZ2RVTDhkQ18iSiREXDh0SCtnL24jcVdkbGJJal08NC1fJnE/NjFOXl5sdF5nV1VzaV9mbVw4JThjIWowKVBNXm1gXDhdT1NjXlZaZyxRRC4pMERHbSpjVyJ1Wj4oZyouZTVAaCxPaD4/X1RaImc7cVZNX3ItdUgjUCZlbVdFMFQ+LSpkc242KFZmU2VuLCM7XiRQO1hJMHRcYD1UR21DTzxoXGdTa0ljbGQzJGlGPCJVJjQkRzpqcXBCLzBiOytSck8wKE9uRGgzRiJZPz11UUAuN1daMjdmLyw8O1FDTXEuUkRCSW0hUV1UNyRKdD85TjUnWmRYYVBvLyF0IzpWblNKQ1hAQEorXFxfM0RUPl45S3AoPlpdRixvbCZVcHU3J1pmRXIpMlwyIjdETkMxWjBvaVZiOldvUC5nZjo1SEhAY1I0QSosYjJjcTAyMFpVUjMxP1lBXTc5ajZPWVFxZDhARVE9VHBoUDMxYENyZS8wViE1bm9PWzYxQD9JSV1NIWhpblEzSUFSQmFdVDtydWN1cD5GcWlhX2tlYj4/Q0ozUkB1bF9KLi46UWNLL0FhI2xUWkBnKlgmUXBwb1kvcyhEN0tnJC1BbWJSNE1nXDZqcVluZiZQNWAoTyt1K3AxOUFrJmMtOSxwJkZIc0xGUzE3TjZXPTNMcCxfYnFTOylaaS46WVViJE46cE5iMmhTLCRFOnAtKltxSHE0OERXPC9xaSQ9L1xaKSlFQHM6IkRKcC9eb2lnbzJWRVdhWFlQKVUqJUZSQC5NNl07bi9VRU1yIShqTkA9ZFU4Z09uWi1hNCZDSih1VTU5OmtydT1RSWhEQ1w/XmNJWWRTQEhXUSMvMTJNZkZpJnRscT0xQ2tcRm5OV0tCUTRsXTtZWlA1JU8mbWhHKVk8S0BnLVQyPy5jL2JbV0dbPDA/UEU/P2RlXUlbW0JBJk43YnVZViFRMykjOFpgQjRoNUVcODklNmZWWjxSUS1lTE4rVyleQUBpaUInLltdTmojZTguKXRzaiMmVXM5MzlyT0ZoLmRYSEdBR2E8KV1QS2FYWC1wXjUvS3VVIkpFW1ZWWi9QPV4yXixnRy81JHIpOXQoZWVrYSNiNC02UmpRU1UwKCwyNGVSbUZsQlFiJldeP0EyQ2djXCZZMUxRVj0pJ08hMiVaIW9pNnFuTyhEW1IjQzRcVk82bVhEQFdkYERwZEAqcl5eVF88Y0pDUyE6MWpfakxBNzxkOyUwL2JBQClNUChjWkFASk8zJzx1RUVWODBIP0c5NUlkKExoTS1XQFFpQ1A3VVdAXmZ0NWsmKipDUmRQVEdZWkZebCRXNDQhYC1yXSteO0A0MVJTN1BpbEEibUFKQkU9LkNOckRoLWU4bVRDN1Y9a25bSyskS0IiKTFjL1subGozclc1UU9sZU81cGluPmRWZGxpIUlOXUleVy8zckFiUmBMKy0pRl8hRydaa24pOVplW0BrTERcUUtdRE49QSkmaFZiZ3MnbE9wPkIpOiFIZkw0aE4zQm51a2c4cSxpZSgzZ0FWcTdCJUg5ZzFvbzs7L0c7VyEhYkw4I1ZkSE09RDJuJD9qaV0nLSRTXWVQX0MlRWRcdVU0ZztbUyhgbE5WT2shIUY2WjgtVkVubWswWHBNWUoyNUxjNT03LHFYIlp1YSszLktpTlRMMDc+aDwwZFVUNDVGNW45OV9DMkJxSHNmSGE/L2Y2P2FhRTYvTDwjOjZoWEZsc2UkY0MmT3U4S0I5azwybGdxKDNLVDVpPkVUdVgyXWsnMDZcWl4wRScjZ0E+SixXWmo3MFtHX1thQjFsW1U9MmdQbW4zYG1wOk4tUDstI0NUajhYbnRBUkVMb25UaTwjJl5gYy82VCcoV2UzTkBCbGZKTSkybTJIb0phIWVtRUwhSilERy5mfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTAyIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKMDAwMDAwMDMyMSAwMDAwMCBuIAowMDAwMDAwNTI0IDAwMDAwIG4gCjAwMDAwMDA1OTIgMDAwMDAgbiAKMDAwMDAwMDg3MiAwMDAwMCBuIAowMDAwMDAwOTMxIDAwMDAwIG4gCnRyYWlsZXIKPDwKL0lEIApbPGRlNjA3MWMwZjZhMDQ1N2E5NTRkYWEzNGEzNzJjZGFjPjxkZTYwNzFjMGY2YTA0NTdhOTU0ZGFhMzRhMzcyY2RhYz5dCiUgUmVwb3J0TGFiIGdlbmVyYXRlZCBQREYgZG9jdW1lbnQgLS0gZGlnZXN0IChvcGVuc291cmNlKQoKL0luZm8gNiAwIFIKL1Jvb3QgNSAwIFIKL1NpemUgOQo+PgpzdGFydHhyZWYKMzAwMQolJUVPRgo=",
+            "cv_mimetype": "application/pdf"
+          },
+          "webhookUrl": "https://optimumdev.app.n8n.cloud/webhook/candidature-reception",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "13b - Interview Scheduled Status": {
+      "main": [
+        [
+          {
+            "node": "13c - Send Confirmed Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "01 - Candidate Webhook": {
+      "main": [
+        [
+          {
+            "node": "02 - Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 - Extract Data": {
+      "main": [
+        [
+          {
+            "node": "03 - Prepare Claude Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 - Prepare Claude Prompt": {
+      "main": [
+        [
+          {
+            "node": "04 - Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 - Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "04b - Extract Claude JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04b - Extract Claude JSON": {
+      "main": [
+        [
+          {
+            "node": "05 - Parse Claude Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 - Parse Claude Response": {
+      "main": [
+        [
+          {
+            "node": "06 - Update MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 - Update MongoDB": {
+      "main": [
+        [
+          {
+            "node": "07a - Build Acknowledgment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07 - Candidate Acknowledgment Email": {
+      "main": [
+        [
+          {
+            "node": "07b - Test Required?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07b - Test Required?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "08 - Qualified (>= 7)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08 - Qualified (>= 7)?": {
+      "main": [
+        [
+          {
+            "node": "09a_b - Build Recruiter Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "09b_b - Build Interview Invitation Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "20 - To Review (>= 4)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09b - Interview Invitation": {
+      "main": [
+        [
+          {
+            "node": "10 - Wait 48h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 - Wait 48h": {
+      "main": [
+        [
+          {
+            "node": "11 - Check Cal.com",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11 - Check Cal.com": {
+      "main": [
+        [
+          {
+            "node": "12 - Booking Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 - Booking Found?": {
+      "main": [
+        [
+          {
+            "node": "13 - No Booking?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13 - No Booking?": {
+      "main": [
+        [
+          {
+            "node": "14a - Build Reminder 1 Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13b - Interview Scheduled Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14 - Reminder 1": {
+      "main": [
+        [
+          {
+            "node": "15 - Wait 24h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15 - Wait 24h": {
+      "main": [
+        [
+          {
+            "node": "16 - Check Cal.com 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "16 - Check Cal.com 2": {
+      "main": [
+        [
+          {
+            "node": "17 - Booking Found 2?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "17 - Booking Found 2?": {
+      "main": [
+        [
+          {
+            "node": "18 - No Booking 2?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18 - No Booking 2?": {
+      "main": [
+        [
+          {
+            "node": "19a - Build Reminder 2 Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13b - Interview Scheduled Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20 - To Review (>= 4)?": {
+      "main": [
+        [
+          {
+            "node": "21 - Notify Recruiter (To Review)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "22a - Build Rejection Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "22a - Build Rejection Email": {
+      "main": [
+        [
+          {
+            "node": "22 - Rejection Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07a - Build Acknowledgment Email": {
+      "main": [
+        [
+          {
+            "node": "07 - Candidate Acknowledgment Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09a_b - Build Recruiter Email": {
+      "main": [
+        [
+          {
+            "node": "09a - Notify Recruiter (Qualified)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09b_b - Build Interview Invitation Email": {
+      "main": [
+        [
+          {
+            "node": "09b - Interview Invitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14a - Build Reminder 1 Email": {
+      "main": [
+        [
+          {
+            "node": "14 - Reminder 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "19a - Build Reminder 2 Email": {
+      "main": [
+        [
+          {
+            "node": "19 - Final Reminder 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "19 - Final Reminder 2": {
+      "main": [
+        [
+          {
+            "node": "20 - Wait 24h (final check)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "20 - Wait 24h (final check)": {
+      "main": [
+        [
+          {
+            "node": "21 - Check Cal.com 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "21 - Check Cal.com 3": {
+      "main": [
+        [
+          {
+            "node": "22a - Booking Found 3?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "22a - Booking Found 3?": {
+      "main": [
+        [
+          {
+            "node": "22b - No Booking 3?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "22b - No Booking 3?": {
+      "main": [
+        [
+          {
+            "node": "22c - Build Recruiter Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "13b - Interview Scheduled Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "22c - Build Recruiter Alert Email": {
+      "main": [
+        [
+          {
+            "node": "22d - Recruiter No-Booking Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "64a96cfe-5048-40d2-b09b-f6c00f8dc203",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "afc83c8eed816bd60e45cedd7670d3e536b7e09132dc39868b3fdc725f0a61b3"
+  },
+  "id": "Dln7pMm9P8tiA0Ju",
+  "tags": []
+}
