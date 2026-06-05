@@ -46,12 +46,13 @@ app.set("trust proxy", 1);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      styleSrc:   ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc:    ["'self'", "https://fonts.gstatic.com"],
-      scriptSrc:  ["'self'", "'unsafe-inline'"],
-      imgSrc:     ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "https:"],
+      defaultSrc:    ["'self'"],
+      styleSrc:      ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:       ["'self'", "https://fonts.gstatic.com"],
+      scriptSrc:     ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],  // autorise onclick="..." et autres handlers inline
+      imgSrc:        ["'self'", "https:", "data:"],
+      connectSrc:    ["'self'", "https:"],
     },
   },
   crossOriginEmbedderPolicy: false,
