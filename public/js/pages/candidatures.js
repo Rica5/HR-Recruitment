@@ -185,7 +185,7 @@ function renderPage() {
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             ${c.cv_path     ? `<a href="${fileUrl(c.cv_path)}"     target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="CV">📄</a>` : ''}
             ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="Lettre">📝</a>` : ''}
-            <button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="Qualifier">✓</button>
+            ${((_jobOffersMap[c.offre_id]||{}).test_requis&&!['Test convoqué','Test passé'].includes(c.statut))?'<button class="btn-icon" style="color:#cbd5e1;cursor:not-allowed;font-weight:700" disabled title="Test requis avant qualification">✓</button>':`<button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="Qualifier">✓</button>`}
             <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE',this)" title="Éliminer">✗</button>
             <button class="btn-icon" onclick="event.stopPropagation();relaunchWorkflow('${c._id}')" title="Relancer l'analyse IA">🔄</button>
             <button class="btn-icon" onclick="event.stopPropagation();if(confirm(LANG==='en'?'Delete this application?':'Supprimer cette candidature ?'))deleteApplication('${c._id}')" title="${t('btn.delete')}">🗑️</button>
@@ -299,6 +299,7 @@ function switchCandTab(tab) {
 function showApplicationDetail(id) {
   const c = _applications.find(x => x._id === id); if (!c) return;
   const offer = _jobOffersMap[c.offre_id] || {};
+  const testBlocked = !!(offer.test_requis && !['Test convoqué', 'Test passé'].includes(c.statut));
   const modal = document.getElementById('modal-cand');
 
   // Update hero
@@ -390,7 +391,9 @@ function showApplicationDetail(id) {
 
       <!-- Decision buttons -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
-        <button onclick="applyDecision('${c._id}','QUALIFIE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#dcfce7;color:#166534;border:2px solid #bbf7d0;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#bbf7d0';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#dcfce7';this.style.transform='none'"><span style="font-size:24px">✅</span>Qualifier</button>
+        ${testBlocked
+          ? `<button style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#f1f5f9;color:#94a3b8;border:2px solid #e2e8f0;border-radius:var(--r-lg);cursor:not-allowed;font-weight:700;font-size:12px" disabled title="Convoquer au test d'abord"><span style="font-size:24px;opacity:.4">✅</span>Qualifier<span style="font-size:10px;font-weight:400">📋 Test requis</span></button>`
+          : `<button onclick="applyDecision('${c._id}','QUALIFIE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#dcfce7;color:#166534;border:2px solid #bbf7d0;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#bbf7d0';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#dcfce7';this.style.transform='none'"><span style="font-size:24px">✅</span>Qualifier</button>`}
         <button onclick="applyDecision('${c._id}','A_REVOIR',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fef9c3;color:#854d0e;border:2px solid #fde68a;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fde68a';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fef9c3';this.style.transform='none'"><span style="font-size:24px">🔄</span>À revoir</button>
         <button onclick="applyDecision('${c._id}','NON_SELECTIONNE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fee2e2;color:#991b1b;border:2px solid #fecaca;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fecaca';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fee2e2';this.style.transform='none'"><span style="font-size:24px">❌</span>Éliminer</button>
       </div>
@@ -398,7 +401,7 @@ function showApplicationDetail(id) {
       <!-- Secondary actions -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
         <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">🔄 Relancer l'analyse IA</button>
-        ${offer.test_requis ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:600" onclick="scheduleTest('${c._id}')">📋 Convoquer au test</button>` : ''}
+        ${offer.test_requis ? (offer.test_date ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:600" onclick="scheduleTest('${c._id}')">📋 Convoquer au test</button>` : `<button class="btn btn-sm" style="background:#f8fafc;color:#94a3b8;border:1.5px solid #e2e8f0;font-weight:600;cursor:not-allowed" disabled title="Définir la date du test dans l'offre d'abord">📋 Convoquer au test</button>`) : ''}
         ${offer.lien_rdv ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;border:none;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)" onclick="openRdvCalcom('${c._id}','${c.offre_id}')">📅 Prise de RDV cal.com</button>` : ''}
         ${!c.non_interesse ? `<button class="btn btn-sm" style="background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0;font-weight:500" onclick="markNotInterested('${c._id}')">✗ Pas intéressé</button>` : ''}
       </div>

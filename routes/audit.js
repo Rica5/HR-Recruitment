@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');
+const { escapeRegex } = require('../utils/text');
 
 // GET /api/audit?page=1&limit=50&action=&entity_type=&q=
 router.get('/', async (req, res) => {
@@ -13,10 +14,13 @@ router.get('/', async (req, res) => {
     const filter = {};
     if (action)      filter.action      = action;
     if (entity_type) filter.entity_type = entity_type;
-    if (q) filter.$or = [
-      { entity_label: { $regex: q, $options: 'i' } },
-      { user_email:   { $regex: q, $options: 'i' } },
-    ];
+    if (q) {
+      const rx = escapeRegex(q);
+      filter.$or = [
+        { entity_label: { $regex: rx, $options: 'i' } },
+        { user_email:   { $regex: rx, $options: 'i' } },
+      ];
+    }
 
     const [logs, total] = await Promise.all([
       AuditLog.find(filter).sort({ created_at: -1 }).skip(skip).limit(limit),

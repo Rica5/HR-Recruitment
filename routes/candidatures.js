@@ -201,7 +201,7 @@ router.get("/calcom/slots", async (req, res) => {
 
   let username = '', eventTypeSlug = '';
   try {
-    const offre = await Offre.findOne({ offre_id });
+    const offre = await Offre.findOne({ offre_id, company: req.user.company });
     const lienRdv = offre?.lien_rdv || offre?.lien_calendar;
     if (!lienRdv)
       return res.status(400).json({ success: false, error: "This offer has no cal.com link configured" });
@@ -372,12 +372,12 @@ router.patch("/:id", async (req, res) => {
 // POST /api/candidatures/:id/envoyer-emails-qualification — delegates to n8n
 router.post("/:id/envoyer-emails-qualification", async (req, res) => {
   try {
-    const candidature = await Candidature.findById(req.params.id);
+    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
     if (!candidature)
       return res
         .status(404)
         .json({ success: false, error: "Application not found" });
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
     if (!offre)
       return res
         .status(404)
@@ -435,12 +435,12 @@ router.post("/:id/envoyer-emails-qualification", async (req, res) => {
 // POST /api/candidatures/:id/envoyer-email-refus
 router.post("/:id/envoyer-email-refus", async (req, res) => {
   try {
-    const candidature = await Candidature.findById(req.params.id);
+    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
     if (!candidature)
       return res
         .status(404)
         .json({ success: false, error: "Application not found" });
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
     if (!offre)
       return res
         .status(404)
@@ -455,8 +455,8 @@ router.post("/:id/envoyer-email-refus", async (req, res) => {
 // POST /api/candidatures/:id/convoquer-test
 router.post("/:id/convoquer-test", async (req, res) => {
   try {
-    const candidature = await Candidature.findByIdAndUpdate(
-      req.params.id,
+    const candidature = await Candidature.findOneAndUpdate(
+      { _id: req.params.id, company: req.user.company },
       { statut: "Test convoqué" },
       { new: true },
     );
@@ -465,7 +465,7 @@ router.post("/:id/convoquer-test", async (req, res) => {
         .status(404)
         .json({ success: false, error: "Application not found" });
 
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
     if (!offre)
       return res
         .status(404)
@@ -498,8 +498,8 @@ router.post("/:id/rdv-manuel", async (req, res) => {
       statut: "Entretien planifié",
       rdv_pris: true,
     };
-    const candidature = await Candidature.findByIdAndUpdate(
-      req.params.id,
+    const candidature = await Candidature.findOneAndUpdate(
+      { _id: req.params.id, company: req.user.company },
       update,
       { new: true },
     );
@@ -528,12 +528,12 @@ router.post("/:id/planifier-rdv", async (req, res) => {
     if (!date)
       return res.status(400).json({ success: false, error: "Date required" });
 
-    const candidature = await Candidature.findById(req.params.id);
+    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
     if (!candidature)
       return res
         .status(404)
         .json({ success: false, error: "Application not found" });
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
     if (!offre)
       return res
         .status(404)
@@ -650,8 +650,8 @@ router.post("/:id/planifier-rdv", async (req, res) => {
 // POST /api/candidatures/:id/relancer-workflow
 router.post("/:id/relancer-workflow", async (req, res) => {
   try {
-    const candidature = await Candidature.findByIdAndUpdate(
-      req.params.id,
+    const candidature = await Candidature.findOneAndUpdate(
+      { _id: req.params.id, company: req.user.company },
       {
         $set: {
           score: null,
@@ -672,7 +672,7 @@ router.post("/:id/relancer-workflow", async (req, res) => {
         .status(404)
         .json({ success: false, error: "Application not found" });
 
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
     if (!offre)
       return res
         .status(404)

@@ -37,6 +37,8 @@ router.get('/me', verifyToken, async (req, res) => {
 // PATCH /api/auth/theme
 router.patch('/theme', verifyToken, async (req, res) => {
   try {
+    if (!['solumada', 'optimum'].includes(req.body.theme))
+      return res.status(400).json({ success: false, error: 'Invalid theme' });
     const user = await User.findByIdAndUpdate(req.user.id, { theme: req.body.theme }, { new: true }).select('-password');
     res.json({ success: true, user, token: signToken(user) });
   } catch (err) {

@@ -987,16 +987,31 @@ describe('Candidatures — Actions spécifiques', () => {
     expect(updated.statut).toBe('En cours');
   });
 
-  test('POST /:id/envoyer-emails-qualification — 200 (n8n mocké)', async () => {
+  test('POST /:id/envoyer-emails-qualification — 400 si automatisation_active=true (géré par n8n)', async () => {
+    // offre du beforeEach a automatisation_active=true par défaut
     const res = await request(app)
       .post(`/api/candidatures/${cand._id}/envoyer-emails-qualification`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/full automation/i);
+  });
+
+  test('POST /:id/envoyer-emails-qualification — 200 si automatisation_active=false (flow manuel)', async () => {
+    const offreManuel = await createOffer('solumada', { automatisation_active: false });
+    const candManuel = await createCandidature(offreManuel.offre_id, 'solumada', {
+      candidat_nom: 'Manuel Test',
+      candidat_email: 'manuel@test.com',
+    });
+    const res = await request(app)
+      .post(`/api/candidatures/${candManuel._id}/envoyer-emails-qualification`)
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
 
-  test('POST /:id/envoyer-emails-qualification — 200 même sans email (qualifié sans invitation)', async () => {
-    const candSansEmail = await createCandidature(offre.offre_id, 'solumada', {
+  test('POST /:id/envoyer-emails-qualification — 200 même sans email si automatisation=false', async () => {
+    const offreManuel = await createOffer('solumada', { automatisation_active: false });
+    const candSansEmail = await createCandidature(offreManuel.offre_id, 'solumada', {
       candidat_nom:   'Sans Email',
       candidat_email: '',
     });
@@ -1007,11 +1022,25 @@ describe('Candidatures — Actions spécifiques', () => {
     expect(res.body.message).toMatch(/no email/i);
   });
 
-  test('POST /:id/envoyer-email-refus — 200', async () => {
+  test('POST /:id/envoyer-email-refus — 200 (recommandation != NON_SELECTIONNE)', async () => {
+    // cand n'a pas de recommandation NON_SELECTIONNE → envoi manuel autorisé
     const res = await request(app)
       .post(`/api/candidatures/${cand._id}/envoyer-email-refus`)
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
+  });
+
+  test('POST /:id/envoyer-email-refus — 400 si auto + NON_SELECTIONNE (déjà rejeté par n8n)', async () => {
+    const candAutoRejected = await createCandidature(offre.offre_id, 'solumada', {
+      candidat_nom:   'Déjà Rejeté',
+      candidat_email: 'rejected@test.com',
+      recommandation: 'NON_SELECTIONNE',
+    });
+    const res = await request(app)
+      .post(`/api/candidatures/${candAutoRejected._id}/envoyer-email-refus`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/automatically rejected/i);
   });
 
   test('POST /:id/rdv-manuel — 404 si candidature inexistante', async () => {

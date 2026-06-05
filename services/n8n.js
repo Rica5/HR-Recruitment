@@ -78,6 +78,7 @@ async function triggerAIAnalysis(candidature, offre) {
     test_requis: offre.test_requis === true,
     automatisation_active: offre.automatisation_active !== false,
     lien_calendar: offre.lien_rdv || offre.lien_calendar || "",
+    formule_remerciement: offre.formule_remerciement || "",
     callback_secret: process.env.N8N_CALLBACK_SECRET || "",
     candidat_nom: candidature.candidat_nom,
     candidat_email: candidature.candidat_email,

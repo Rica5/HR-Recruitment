@@ -7,7 +7,6 @@ const { createRateLimiter }    = require('../middleware/rateLimiter');
 const { logAudit }             = require('../services/audit');
 const { verifyCallbackSecret } = require('../middleware/callbackAuth');
 const { upload, handleUploadError } = require('../middleware/upload');
-const { sendAcknowledgmentEmail }   = require('../services/email');
 
 // Rate limiter: 5 applications max per IP per 10 minutes
 const applicationRateLimiter = createRateLimiter({
@@ -68,13 +67,6 @@ router.post('/candidature', applicationRateLimiter, upload.fields([{ name: 'cv',
     triggerAIAnalysis(candidature, offre).catch(e =>
       console.warn('WF2 not triggered:', e.message)
     );
-
-    // Acknowledgment email to the candidate (fire-and-forget) if an email was provided
-    if (candidature.candidat_email) {
-      sendAcknowledgmentEmail({ candidature, offre }).catch(e =>
-        console.warn('Acknowledgment email not sent:', e.message)
-      );
-    }
 
     logAudit({ action: 'CANDIDATURE_RECUE', entity_type: 'candidature', entity_id: candidature._id.toString(), entity_label: candidature.candidat_nom, user_email: 'public', details: { offre_id: data.offre_id, canal: 'plateforme' } });
 
@@ -147,6 +139,29 @@ router.patch('/candidature/:id/rdv-confirme', verifyCallbackSecret, async (req, 
 
     logAudit({ action: 'RDV_CONFIRME_N8N', entity_type: 'candidature', entity_id: req.params.id, entity_label: candidature.candidat_nom, user_email: 'n8n', details: { date, heure, lieu } });
 
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PATCH /api/public/candidature/:id/no-rdv — n8n callback quand aucune réservation après relances
+router.patch('/candidature/:id/no-rdv', verifyCallbackSecret, async (req, res) => {
+  try {
+    const candidature = await Candidature.findByIdAndUpdate(
+      req.params.id,
+      { statut: 'Pas intéressé' },
+      { new: true }
+    );
+    if (!candidature) return res.status(404).json({ success: false, error: 'Application not found' });
+    logAudit({
+      action: 'RDV_AUCUNE_RESERVATION',
+      entity_type: 'candidature',
+      entity_id: req.params.id,
+      entity_label: candidature.candidat_nom,
+      user_email: 'n8n',
+      details: {},
+    });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
