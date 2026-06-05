@@ -1,10 +1,12 @@
 'use strict';
 
-// Determine language from logged-in user's company (runs before any render)
+// Determine language: logged-in user company → pre-login theme selection → default fr
 const LANG = (() => {
   try {
     const company = JSON.parse(localStorage.getItem('rh_user'))?.company;
-    return company === 'optimum' ? 'en' : 'fr';
+    if (company) return company === 'optimum' ? 'en' : 'fr';
+    const theme = localStorage.getItem('rh_theme');
+    return theme === 'optimum' ? 'en' : 'fr';
   } catch {
     return 'fr';
   }

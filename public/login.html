@@ -462,10 +462,10 @@
         <div class="lp-feat-progress" id="feat-progress-1"></div>
       </div>
       <div class="lp-feat" onclick="selectFeat(2)">
-        <div class="lp-feat-icon">🏢</div>
+        <div class="lp-feat-icon">🤖</div>
         <div style="flex:1;min-width:0">
-          <div class="lp-feat-label">Multi-sociétés</div>
-          <div class="lp-feat-sub">Solumada et Optimum avec isolation stricte des données.</div>
+          <div class="lp-feat-label">Analyse IA des CV</div>
+          <div class="lp-feat-sub">Scoring automatique et recommandations par intelligence artificielle.</div>
         </div>
         <div class="lp-feat-progress" id="feat-progress-2"></div>
       </div>
@@ -601,6 +601,10 @@ applyTheme(_savedTheme);
 switchLoginTheme(_savedTheme);
 
 function switchLoginTheme(t) {
+  const newLang = t === 'optimum' ? 'en' : 'fr';
+  const needsReload = newLang !== LANG;
+  localStorage.setItem('rh_theme', t);
+  if (needsReload) { location.reload(); return; }
   applyTheme(t);
   document.querySelectorAll('.lp-switch-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
   const cfg = COMPANY_CONFIG[t] || COMPANY_CONFIG.solumada;
