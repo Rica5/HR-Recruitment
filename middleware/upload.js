@@ -5,7 +5,9 @@ const fs     = require('fs');
 // Shared disk storage for CV / cover-letter uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '..', 'uploads');
+    const dir = process.env.UPLOAD_DIR
+      ? path.resolve(process.env.UPLOAD_DIR)
+      : path.join(__dirname, '..', 'uploads');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -26,7 +28,7 @@ const ALLOWED_EXT = new Set(['.pdf', '.doc', '.docx']);
 
 function fileFilter(req, file, cb) {
   const ext = path.extname(file.originalname).toLowerCase();
-  if (ALLOWED_MIMES.has(file.mimetype) || ALLOWED_EXT.has(ext)) {
+  if (ALLOWED_MIMES.has(file.mimetype) && ALLOWED_EXT.has(ext)) {
     return cb(null, true);
   }
   cb(new Error('INVALID_FILE_TYPE'));

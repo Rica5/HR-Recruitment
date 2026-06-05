@@ -59,7 +59,7 @@ router.post(
     try {
       const data = { ...req.body };
 
-      const offre = await Offre.findOne({ offre_id: data.offre_id, company: req.user.company });
+      const offre = await Offre.findOne({ offre_id: data.offre_id });
       if (!offre)
         return res
           .status(404)
@@ -153,7 +153,7 @@ router.get("/", async (req, res) => {
     const limit = Math.min(500, parseInt(req.query.limit) || 50);
     const skip = (page - 1) * limit;
 
-    const filter = { company: req.user.company };
+    const filter = {};
     if (offre_id) filter.offre_id = offre_id;
     if (recommandation) filter.recommandation = recommandation;
     if (a_appeler === "true") filter.a_appeler = true;
@@ -201,7 +201,7 @@ router.get("/calcom/slots", async (req, res) => {
 
   let username = '', eventTypeSlug = '';
   try {
-    const offre = await Offre.findOne({ offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id });
     const lienRdv = offre?.lien_rdv || offre?.lien_calendar;
     if (!lienRdv)
       return res.status(400).json({ success: false, error: "This offer has no cal.com link configured" });
@@ -309,7 +309,7 @@ router.get("/batch-status", async (req, res) => {
     const ids = (req.query.ids || '').split(',').filter(Boolean);
     if (!ids.length) return res.json({ success: true, candidatures: [] });
     const candidatures = await Candidature.find(
-      { _id: { $in: ids }, company: req.user.company },
+      { _id: { $in: ids } },
       { candidat_nom: 1, candidat_email: 1, score: 1, recommandation: 1, statut: 1 }
     ).lean();
     res.json({ success: true, candidatures });
@@ -321,7 +321,7 @@ router.get("/batch-status", async (req, res) => {
 // GET /api/candidatures/:id
 router.get("/:id", async (req, res) => {
   try {
-    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
+    const candidature = await Candidature.findOne({ _id: req.params.id });
     if (!candidature)
       return res
         .status(404)
@@ -345,7 +345,7 @@ router.patch("/:id", async (req, res) => {
         .json({ success: false, error: "No editable fields provided" });
 
     const candidature = await Candidature.findOneAndUpdate(
-      { _id: req.params.id, company: req.user.company },
+      { _id: req.params.id },
       update,
       { new: true },
     );
@@ -372,12 +372,12 @@ router.patch("/:id", async (req, res) => {
 // POST /api/candidatures/:id/envoyer-emails-qualification — delegates to n8n
 router.post("/:id/envoyer-emails-qualification", async (req, res) => {
   try {
-    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
+    const candidature = await Candidature.findOne({ _id: req.params.id });
     if (!candidature)
       return res
         .status(404)
         .json({ success: false, error: "Application not found" });
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
@@ -435,12 +435,12 @@ router.post("/:id/envoyer-emails-qualification", async (req, res) => {
 // POST /api/candidatures/:id/envoyer-email-refus
 router.post("/:id/envoyer-email-refus", async (req, res) => {
   try {
-    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
+    const candidature = await Candidature.findOne({ _id: req.params.id });
     if (!candidature)
       return res
         .status(404)
         .json({ success: false, error: "Application not found" });
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
@@ -456,7 +456,7 @@ router.post("/:id/envoyer-email-refus", async (req, res) => {
 router.post("/:id/convoquer-test", async (req, res) => {
   try {
     const candidature = await Candidature.findOneAndUpdate(
-      { _id: req.params.id, company: req.user.company },
+      { _id: req.params.id },
       { statut: "Test convoqué" },
       { new: true },
     );
@@ -465,7 +465,7 @@ router.post("/:id/convoquer-test", async (req, res) => {
         .status(404)
         .json({ success: false, error: "Application not found" });
 
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
@@ -499,7 +499,7 @@ router.post("/:id/rdv-manuel", async (req, res) => {
       rdv_pris: true,
     };
     const candidature = await Candidature.findOneAndUpdate(
-      { _id: req.params.id, company: req.user.company },
+      { _id: req.params.id },
       update,
       { new: true },
     );
@@ -528,12 +528,12 @@ router.post("/:id/planifier-rdv", async (req, res) => {
     if (!date)
       return res.status(400).json({ success: false, error: "Date required" });
 
-    const candidature = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
+    const candidature = await Candidature.findOne({ _id: req.params.id });
     if (!candidature)
       return res
         .status(404)
         .json({ success: false, error: "Application not found" });
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
@@ -651,7 +651,7 @@ router.post("/:id/planifier-rdv", async (req, res) => {
 router.post("/:id/relancer-workflow", async (req, res) => {
   try {
     const candidature = await Candidature.findOneAndUpdate(
-      { _id: req.params.id, company: req.user.company },
+      { _id: req.params.id },
       {
         $set: {
           score: null,
@@ -672,7 +672,7 @@ router.post("/:id/relancer-workflow", async (req, res) => {
         .status(404)
         .json({ success: false, error: "Application not found" });
 
-    const offre = await Offre.findOne({ offre_id: candidature.offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
@@ -709,7 +709,7 @@ router.post("/:id/relancer-workflow", async (req, res) => {
 // POST /api/candidatures/:id/upload-cv
 router.post("/:id/upload-cv", upload.single("cv"), handleUploadError, async (req, res) => {
   try {
-    const c = await Candidature.findOne({ _id: req.params.id, company: req.user.company });
+    const c = await Candidature.findOne({ _id: req.params.id });
     if (!c) return res.status(404).json({ success: false, error: "Application not found" });
     if (!req.file) return res.status(400).json({ success: false, error: "No file received" });
 
@@ -739,7 +739,7 @@ router.post("/:id/upload-cv", upload.single("cv"), handleUploadError, async (req
 
 router.delete("/:id", async (req, res) => {
   try {
-    const c = await Candidature.findOneAndDelete({ _id: req.params.id, company: req.user.company });
+    const c = await Candidature.findOneAndDelete({ _id: req.params.id });
     if (c?.cv_path) {
       const f = path.join(__dirname, "..", c.cv_path);
       if (fs.existsSync(f)) fs.unlinkSync(f);
@@ -770,7 +770,7 @@ router.post('/batch-cv', upload.array('cvs', 50), handleUploadError, async (req,
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ success: false, error: 'No CV sent' });
 
-    const offre = await Offre.findOne({ offre_id, company: req.user.company });
+    const offre = await Offre.findOne({ offre_id });
     if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
 
     const created = [];

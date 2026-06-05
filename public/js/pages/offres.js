@@ -36,6 +36,17 @@ function drawOffersList(offers) {
       <option>Freelance</option>
       <option value="Alternance">${t('contract.alternance')}</option>
     </select>
+    <select class="filter-select" id="f-company" onchange="filterOffers()">
+      <option value="">${t('filter.all_companies')}</option>
+      <option value="solumada">Solumada</option>
+      <option value="optimum">Optimum Solutions</option>
+    </select>
+    <select class="filter-select" id="f-owner" onchange="filterOffers()">
+      <option value="">${t('filter.all_recruiters')}</option>
+      <option value="mine">${t('filter.my_offers')}</option>
+    </select>
+    <span id="offres-count" style="font-size:13px;color:var(--text-3);white-space:nowrap;align-self:center"></span>
+    <button id="btn-reset-filters" class="btn btn-ghost btn-sm" style="display:none;white-space:nowrap" onclick="resetOfferFilters()">✕ ${t('filter.reset')}</button>
   </div>
   <div id="offres-list"></div>
   ${offerModalHTML()}
@@ -88,14 +99,42 @@ function renderOfferCards(offers) {
 }
 
 function filterOffers() {
-  const q = document.getElementById('q-offres')?.value.toLowerCase() || '';
-  const s = document.getElementById('f-statut')?.value || '';
-  const c = document.getElementById('f-contrat')?.value || '';
+  const q    = document.getElementById('q-offres')?.value.toLowerCase() || '';
+  const s    = document.getElementById('f-statut')?.value || '';
+  const c    = document.getElementById('f-contrat')?.value || '';
+  const co   = document.getElementById('f-company')?.value || '';
+  const own  = document.getElementById('f-owner')?.value || '';
+
   let results = _jobOffers;
-  if (q) results = results.filter(o => o.titre_poste.toLowerCase().includes(q) || o.localisation.toLowerCase().includes(q));
-  if (s) results = results.filter(o => o.statut === s);
-  if (c) results = results.filter(o => o.type_contrat === c);
+  if (q)   results = results.filter(o =>
+    o.titre_poste.toLowerCase().includes(q) ||
+    (o.localisation||'').toLowerCase().includes(q) ||
+    (o.offre_id||'').toLowerCase().includes(q) ||
+    (o.email_recruteur||'').toLowerCase().includes(q)
+  );
+  if (s)   results = results.filter(o => o.statut === s);
+  if (c)   results = results.filter(o => o.type_contrat === c);
+  if (co)  results = results.filter(o => o.company === co);
+  if (own === 'mine') results = results.filter(o => o.email_recruteur === Auth.user()?.email);
+
+  // Compteur + bouton reset
+  const countEl = document.getElementById('offres-count');
+  const resetEl = document.getElementById('btn-reset-filters');
+  const active  = !!(q || s || c || co || own);
+  if (countEl) countEl.textContent = active
+    ? t('filter.offers_count').replace('{n}', results.length)
+    : '';
+  if (resetEl) resetEl.style.display = active ? '' : 'none';
+
   renderOfferCards(results);
+}
+
+function resetOfferFilters() {
+  ['q-offres','f-statut','f-contrat','f-company','f-owner'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  filterOffers();
 }
 
 function copyOfferLink(id) { copyText(`${location.origin}/postuler?offre_id=${id}`, t('toast.copied')); }
