@@ -81,15 +81,15 @@ async function renderSettings() {
       <div class="card-body">
         <div class="form-group">
           <label class="form-label">URL n8n Cloud</label>
-          <input class="form-control" id="n8n-url" value="https://optimumdev.app.n8n.cloud" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
+          <input class="form-control" id="n8n-url" value="…" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
         </div>
         <div class="form-group">
           <label class="form-label">WF1 — ID Workflow offre</label>
-          <input class="form-control" value="aHs7A6YIopVPV5u3" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
+          <input class="form-control" id="n8n-wf1-id" value="…" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
         </div>
         <div class="form-group">
           <label class="form-label">WF2 — ID Workflow candidature</label>
-          <input class="form-control" value="4LmZn4gtORYnL1mP" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
+          <input class="form-control" id="n8n-wf2-id" value="…" readonly style="opacity:.7;font-family:var(--mono);font-size:13px">
         </div>
         <p class="pg-text-xs">${n8nDesc}</p>
       </div>
@@ -109,6 +109,15 @@ async function renderSettings() {
   </div>`;
 
   window._settingsConfirmMsg = confirmMsg;
+
+  // Charger les valeurs n8n depuis le .env via l'API
+  api.get('/api/n8n/config').then(r => {
+    if (!r?.success) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    set('n8n-url',    r.n8n_base_url);
+    set('n8n-wf1-id', r.wf1_id || '—');
+    set('n8n-wf2-id', r.wf2_id);
+  }).catch(() => {});
 }
 
 async function saveProfile(btn) {

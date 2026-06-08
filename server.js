@@ -35,7 +35,6 @@ if (IS_PROD && !process.env.BASE_URL)
   throw new Error("BASE_URL is required in production");
 if (!process.env.JWT_SECRET)           console.warn("⚠️  JWT_SECRET not defined — using default secret (dev only)");
 if (!process.env.N8N_CALLBACK_SECRET)  console.warn("⚠️  N8N_CALLBACK_SECRET not defined — n8n callbacks will be rejected");
-if (!process.env.EMAIL_USER)           console.warn("⚠️  EMAIL_USER not defined — email sending disabled");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 

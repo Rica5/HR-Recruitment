@@ -1,18 +1,18 @@
-const nodemailer = require('nodemailer');
+const EMAIL_API_URL = 'https://mailer.solumada.mg/send';
 
-function getTransporter() {
-  if (process.env.EMAIL_SERVICE === 'gmail') {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+async function sendViaApi(to, name, subject, html) {
+  const form = new FormData();
+  form.append('to', to);
+  form.append('from', name);
+  form.append('subject', subject);
+  form.append('html', html);
+
+  const res = await fetch(EMAIL_API_URL, { method: 'POST', body: form });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Email API error ${res.status}: ${body}`);
   }
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false,
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
+  return res.json();
 }
 
 // ── Per-company branding (colors aligned with the app themes) ──
@@ -42,6 +42,10 @@ function getBranding(company) {
 
 function getLanguage(company) {
   return company === 'optimum' ? 'en' : 'fr';
+}
+
+function fromName(company) {
+  return `${getBranding(company).name} — Recrutement`;
 }
 
 // ── Reusable, email-client-safe layout (tables + inline styles) ──
@@ -114,11 +118,6 @@ function detailTable(rows) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0">${trs}</table>`;
 }
 
-function fromHeader(company) {
-  const b = getBranding(company);
-  return `"${b.name} — Recrutement" <${process.env.EMAIL_USER}>`;
-}
-
 // Append ?guests=email to a Cal.com booking URL so the recruiter receives a calendar invite
 function withGuest(url, email) {
   if (!url || url === '#' || !email) return url || '#';
@@ -128,8 +127,6 @@ function withGuest(url, email) {
 
 // ── Recruiter notification: job offer created ──
 async function sendJobOfferEmail({ offre, applicationLink }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
-  const transporter = getTransporter();
   const isEn = getLanguage(offre.company) === 'en';
   const body = isEn
     ? `<p style="margin:0 0 14px">Your new job offer is now live. Here is a summary:</p>
@@ -150,11 +147,11 @@ async function sendJobOfferEmail({ offre, applicationLink }) {
        ])}
        <p style="margin:16px 0 6px">Partagez le lien ci-dessous aux candidats pour recevoir leurs candidatures :</p>
        <p style="margin:0;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:14px;word-break:break-all;font-size:13px;color:#475569">${applicationLink}</p>`;
-  await transporter.sendMail({
-    from: fromHeader(offre.company),
-    to: offre.email_recruteur,
-    subject: isEn ? `✅ Job offer created — ${offre.titre_poste}` : `✅ Offre créée — ${offre.titre_poste}`,
-    html: emailLayout({
+  await sendViaApi(
+    offre.email_recruteur,
+    fromName(offre.company),
+    isEn ? `✅ Job offer created — ${offre.titre_poste}` : `✅ Offre créée — ${offre.titre_poste}`,
+    emailLayout({
       company: offre.company,
       preheader: isEn ? `Your offer "${offre.titre_poste}" is now live` : `Votre offre « ${offre.titre_poste} » est en ligne`,
       title: isEn ? 'Job Offer Created Successfully' : 'Offre créée avec succès',
@@ -163,15 +160,13 @@ async function sendJobOfferEmail({ offre, applicationLink }) {
       ctaLabel: isEn ? '🔗 Open application link' : '🔗 Ouvrir le lien de candidature',
       ctaUrl: applicationLink,
     }),
-  });
+  );
   console.log(`[EMAIL] Job offer email sent to ${offre.email_recruteur}`);
 }
 
 // ── Acknowledgment email: confirmation to candidate ──
 async function sendAcknowledgmentEmail({ candidature, offre }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
   if (!candidature.candidat_email) return;
-  const transporter = getTransporter();
   const isEn = getLanguage(offre.company) === 'en';
   const thankYouMessage = offre.formule_remerciement || (
     isEn
@@ -197,14 +192,11 @@ async function sendAcknowledgmentEmail({ candidature, offre }) {
          ['Localisation', offre.localisation],
        ])}
        <p style="margin:6px 0 0;color:#64748b;font-size:13px">Notre équipe examinera votre dossier dans les meilleurs délais. Vous serez recontacté(e) si votre profil correspond à nos besoins.</p>`;
-  await transporter.sendMail({
-    from:    fromHeader(offre.company),
-    replyTo: offre.email_recruteur,
-    to:      candidature.candidat_email,
-    subject: isEn
-      ? `📩 Application received — ${offre.titre_poste}`
-      : `📩 Candidature reçue — ${offre.titre_poste}`,
-    html: emailLayout({
+  await sendViaApi(
+    candidature.candidat_email,
+    fromName(offre.company),
+    isEn ? `📩 Application received — ${offre.titre_poste}` : `📩 Candidature reçue — ${offre.titre_poste}`,
+    emailLayout({
       company: offre.company,
       preheader: isEn
         ? `Your application for ${offre.titre_poste} has been received`
@@ -213,14 +205,12 @@ async function sendAcknowledgmentEmail({ candidature, offre }) {
       subtitle: offre.titre_poste,
       bodyHtml: body,
     }),
-  });
+  );
   console.log(`[EMAIL] Acknowledgment sent to ${candidature.candidat_email}`);
 }
 
 // ── Interview invitation + recruiter notification ──
 async function sendQualificationEmails({ candidature, offre }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
-  const transporter = getTransporter();
   const isEn = getLanguage(offre.company) === 'en';
   const appointmentLink = withGuest(offre.lien_rdv || offre.lien_calendar || '#', offre.email_recruteur);
 
@@ -234,14 +224,11 @@ async function sendQualificationEmails({ candidature, offre }) {
          <p style="margin:0 0 14px">Suite à l'examen de votre candidature pour le poste de <strong>${offre.titre_poste}</strong>, nous souhaitons vous rencontrer dans le cadre d'un entretien.</p>
          <p style="margin:0 0 6px">Merci de réserver le créneau qui vous convient le mieux en cliquant sur le bouton ci-dessous.</p>
          <p style="margin:14px 0 0;color:#64748b;font-size:13px">⏳ Merci de réserver votre créneau dans les <strong>48 heures</strong>.</p>`;
-    await transporter.sendMail({
-      from:    fromHeader(offre.company),
-      replyTo: offre.email_recruteur,
-      to:      candidature.candidat_email,
-      subject: isEn
-        ? `📅 Interview invitation — ${offre.titre_poste}`
-        : `📅 Invitation à un entretien — ${offre.titre_poste}`,
-      html: emailLayout({
+    await sendViaApi(
+      candidature.candidat_email,
+      fromName(offre.company),
+      isEn ? `📅 Interview invitation — ${offre.titre_poste}` : `📅 Invitation à un entretien — ${offre.titre_poste}`,
+      emailLayout({
         company: offre.company,
         preheader: isEn
           ? `Interview invitation for ${offre.titre_poste}`
@@ -252,7 +239,7 @@ async function sendQualificationEmails({ candidature, offre }) {
         ctaLabel: isEn ? '📅 Schedule my interview' : '📅 Planifier mon entretien',
         ctaUrl: appointmentLink,
       }),
-    });
+    );
   }
 
   const b = getBranding(offre.company);
@@ -273,13 +260,13 @@ async function sendQualificationEmails({ candidature, offre }) {
          ['Score', `<strong style="color:${b.colorDark}">${candidature.score ?? 'N/A'}/10</strong>`],
          ['Poste', offre.titre_poste],
        ])}`;
-  await transporter.sendMail({
-    from: fromHeader(offre.company),
-    to: offre.email_recruteur,
-    subject: isEn
+  await sendViaApi(
+    offre.email_recruteur,
+    fromName(offre.company),
+    isEn
       ? `🟢 Candidate qualified — ${candidature.candidat_nom} (${candidature.score ?? '?'}/10)`
       : `🟢 Candidat qualifié — ${candidature.candidat_nom} (${candidature.score ?? '?'}/10)`,
-    html: emailLayout({
+    emailLayout({
       company: offre.company,
       preheader: isEn
         ? `${candidature.candidat_nom} has been qualified`
@@ -288,16 +275,14 @@ async function sendQualificationEmails({ candidature, offre }) {
       subtitle: candidature.candidat_nom,
       bodyHtml: recruiterBody,
     }),
-  });
+  );
 
   console.log(`[EMAIL] Qualification emails sent for ${candidature.candidat_nom}`);
 }
 
 // ── Interview reminder (D+2 and D+4 after invitation) ──
 async function sendInterviewReminder({ candidature, offre, numRelance = 1 }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
   if (!candidature.candidat_email) return;
-  const transporter = getTransporter();
   const isEn = getLanguage(offre.company) === 'en';
   const appointmentLink = withGuest(offre.lien_rdv || offre.lien_calendar || '#', offre.email_recruteur);
   const lastWarning = numRelance >= 2
@@ -312,14 +297,13 @@ async function sendInterviewReminder({ candidature, offre, numRelance = 1 }) {
     : `<p style="margin:0 0 14px">Bonjour <strong>${candidature.candidat_nom}</strong>,</p>
        <p style="margin:0 0 6px">Nous vous avions invité(e) à planifier votre entretien pour le poste de <strong>${offre.titre_poste}</strong>, mais nous n'avons pas encore reçu votre réservation.</p>
        ${lastWarning}`;
-  await transporter.sendMail({
-    from:    fromHeader(offre.company),
-    replyTo: offre.email_recruteur,
-    to:      candidature.candidat_email,
-    subject: isEn
+  await sendViaApi(
+    candidature.candidat_email,
+    fromName(offre.company),
+    isEn
       ? `⏰ Reminder (${numRelance}/2) — Schedule your interview for ${offre.titre_poste}`
       : `⏰ Rappel (${numRelance}/2) — Planifiez votre entretien pour ${offre.titre_poste}`,
-    html: emailLayout({
+    emailLayout({
       company: offre.company,
       preheader: isEn
         ? `Reminder: schedule your interview for ${offre.titre_poste}`
@@ -330,14 +314,12 @@ async function sendInterviewReminder({ candidature, offre, numRelance = 1 }) {
       ctaLabel: isEn ? '📅 Book my slot' : '📅 Réserver mon créneau',
       ctaUrl: appointmentLink,
     }),
-  });
+  );
   console.log(`[EMAIL] Reminder ${numRelance} sent to ${candidature.candidat_email}`);
 }
 
 // ── Test summons ──
 async function sendTestSummons({ candidature, offre }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
-  const transporter = getTransporter();
   const isEn = getLanguage(offre.company) === 'en';
   const testDateStr = offre.test_date
     ? new Date(offre.test_date).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
@@ -361,14 +343,11 @@ async function sendTestSummons({ candidature, offre }) {
            offre.test_lieu ? ['📍 Lieu', offre.test_lieu] : null,
          ])}
          <p style="margin:6px 0 0;color:#64748b;font-size:13px">Veuillez vous présenter muni(e) d'une pièce d'identité et de tout document justifiant votre parcours.</p>`;
-    await transporter.sendMail({
-      from:    fromHeader(offre.company),
-      replyTo: offre.email_recruteur,
-      to:      candidature.candidat_email,
-      subject: isEn
-        ? `📋 Test summons — ${offre.titre_poste}`
-        : `📋 Convocation test — ${offre.titre_poste}`,
-      html: emailLayout({
+    await sendViaApi(
+      candidature.candidat_email,
+      fromName(offre.company),
+      isEn ? `📋 Test summons — ${offre.titre_poste}` : `📋 Convocation test — ${offre.titre_poste}`,
+      emailLayout({
         company: offre.company,
         preheader: isEn
           ? `Test summons — ${offre.titre_poste}`
@@ -377,7 +356,7 @@ async function sendTestSummons({ candidature, offre }) {
         subtitle: offre.titre_poste,
         bodyHtml: body,
       }),
-    });
+    );
   }
 
   const detailLine = `${testDateStr}${offre.test_heure ? ` ${isEn ? 'at' : 'à'} ${offre.test_heure}` : ''}${offre.test_lieu ? ` — ${offre.test_lieu}` : ''}`;
@@ -386,13 +365,13 @@ async function sendTestSummons({ candidature, offre }) {
        ${detailTable([['Test scheduled', detailLine]])}`
     : `<p style="margin:0 0 14px">La convocation au test a été envoyée à <strong>${candidature.candidat_nom}</strong> pour le poste <strong>${offre.titre_poste}</strong>.</p>
        ${detailTable([['Test prévu', detailLine]])}`;
-  await transporter.sendMail({
-    from: fromHeader(offre.company),
-    to: offre.email_recruteur,
-    subject: isEn
+  await sendViaApi(
+    offre.email_recruteur,
+    fromName(offre.company),
+    isEn
       ? `📋 Test summons sent — ${candidature.candidat_nom} / ${offre.titre_poste}`
       : `📋 Test convoqué — ${candidature.candidat_nom} / ${offre.titre_poste}`,
-    html: emailLayout({
+    emailLayout({
       company: offre.company,
       preheader: isEn
         ? `Test summons sent for ${candidature.candidat_nom}`
@@ -401,16 +380,14 @@ async function sendTestSummons({ candidature, offre }) {
       subtitle: candidature.candidat_nom,
       bodyHtml: recruiterBody,
     }),
-  });
+  );
 
   console.log(`[EMAIL] Test summons sent for ${candidature.candidat_nom}`);
 }
 
 // ── Rejection email ──
 async function sendRejectionEmail({ candidature, offre }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
   if (!candidature.candidat_email) return;
-  const transporter = getTransporter();
   const isEn = getLanguage(offre.company) === 'en';
   const body = isEn
     ? `<p style="margin:0 0 14px">Hello <strong>${candidature.candidat_nom}</strong>,</p>
@@ -423,14 +400,13 @@ async function sendRejectionEmail({ candidature, offre }) {
        <p style="margin:0 0 14px">Après examen attentif de votre dossier, nous avons le regret de vous informer que nous ne pouvons pas donner une suite favorable à votre candidature pour ce poste.</p>
        <p style="margin:0 0 14px">Cette décision ne remet nullement en cause vos compétences. Nous conservons votre dossier et reviendrons vers vous si une opportunité correspondant à votre profil se présente.</p>
        <p style="margin:0">Nous vous souhaitons pleine réussite dans vos recherches.</p>`;
-  await transporter.sendMail({
-    from:    fromHeader(offre.company),
-    replyTo: offre.email_recruteur,
-    to:      candidature.candidat_email,
-    subject: isEn
+  await sendViaApi(
+    candidature.candidat_email,
+    fromName(offre.company),
+    isEn
       ? `Regarding your application — ${offre.titre_poste}`
       : `Suite de votre candidature — ${offre.titre_poste}`,
-    html: emailLayout({
+    emailLayout({
       company: offre.company,
       preheader: isEn
         ? `Regarding your application for ${offre.titre_poste}`
@@ -439,14 +415,12 @@ async function sendRejectionEmail({ candidature, offre }) {
       subtitle: offre.titre_poste,
       bodyHtml: body,
     }),
-  });
+  );
   console.log(`[EMAIL] Rejection email sent to ${candidature.candidat_email}`);
 }
 
 // ── New user credentials ──
 async function sendCredentialsEmail({ nom, email, password, loginUrl, company }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
-  const transporter = getTransporter();
   const isEn = getLanguage(company) === 'en';
   const body = isEn
     ? `<p style="margin:0 0 14px">Hello <strong>${nom}</strong>,</p>
@@ -463,13 +437,13 @@ async function sendCredentialsEmail({ nom, email, password, loginUrl, company })
          ['Mot de passe', `<span style="font-family:monospace;font-size:15px;font-weight:700">${password}</span>`],
        ])}
        <p style="margin:6px 0 0;color:#94a3b8;font-size:12px">🔒 Pour votre sécurité, nous vous recommandons de modifier votre mot de passe après votre première connexion.</p>`;
-  await transporter.sendMail({
-    from: fromHeader(company),
-    to: email,
-    subject: isEn
+  await sendViaApi(
+    email,
+    fromName(company),
+    isEn
       ? `🎉 Welcome to the HR platform — ${getBranding(company).name}`
       : `🎉 Bienvenue sur la plateforme RH — ${getBranding(company).name}`,
-    html: emailLayout({
+    emailLayout({
       company,
       preheader: isEn ? 'Your login credentials for the HR platform' : 'Vos identifiants de connexion à la plateforme RH',
       title: isEn ? `Welcome, ${nom}! 🎉` : `Bienvenue, ${nom} ! 🎉`,
@@ -478,14 +452,12 @@ async function sendCredentialsEmail({ nom, email, password, loginUrl, company })
       ctaLabel: isEn ? 'Log in' : 'Se connecter',
       ctaUrl: loginUrl,
     }),
-  });
+  );
   console.log(`[EMAIL] Credentials sent to ${email}`);
 }
 
 // ── Password reset ──
 async function sendPasswordResetEmail({ nom, email, resetUrl, company }) {
-  if (!process.env.EMAIL_USER) return console.log('[EMAIL] Not configured — skipped');
-  const transporter = getTransporter();
   const isEn = getLanguage(company) === 'en';
   const body = isEn
     ? `<p style="margin:0 0 14px">Hello <strong>${nom}</strong>,</p>
@@ -494,11 +466,11 @@ async function sendPasswordResetEmail({ nom, email, resetUrl, company }) {
     : `<p style="margin:0 0 14px">Bonjour <strong>${nom}</strong>,</p>
        <p style="margin:0 0 6px">Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous pour en choisir un nouveau.</p>
        <p style="margin:14px 0 0;color:#94a3b8;font-size:13px">Ce lien est valable <strong>1 heure</strong>. Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>`;
-  await transporter.sendMail({
-    from: fromHeader(company),
-    to: email,
-    subject: isEn ? '🔒 Password reset request' : '🔒 Réinitialisation de votre mot de passe',
-    html: emailLayout({
+  await sendViaApi(
+    email,
+    fromName(company),
+    isEn ? '🔒 Password reset request' : '🔒 Réinitialisation de votre mot de passe',
+    emailLayout({
       company,
       preheader: isEn ? 'Reset your password' : 'Réinitialisez votre mot de passe',
       title: isEn ? 'Password Reset 🔒' : 'Réinitialisation du mot de passe 🔒',
@@ -506,7 +478,7 @@ async function sendPasswordResetEmail({ nom, email, resetUrl, company }) {
       ctaLabel: isEn ? 'Reset my password' : 'Réinitialiser mon mot de passe',
       ctaUrl: resetUrl,
     }),
-  });
+  );
   console.log(`[EMAIL] Password reset sent to ${email}`);
 }
 

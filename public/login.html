@@ -600,6 +600,48 @@ const _savedTheme = localStorage.getItem('rh_theme') || 'solumada';
 applyTheme(_savedTheme);
 switchLoginTheme(_savedTheme);
 
+function translateLoginPage() {
+  if (LANG !== 'en') return;
+  const set = (sel, txt) => { const el = typeof sel === 'string' ? document.querySelector(sel) : sel; if (el) el.textContent = txt; };
+  const ph  = (id, txt)  => { const el = document.getElementById(id); if (el) el.placeholder = txt; };
+  // Left panel
+  set('.lp-headline',  'Manage your recruitment intelligently');
+  set('.lp-tagline',   'A complete HR platform to post job offers, analyze applications with AI and track every step of the process.');
+  const feats = document.querySelectorAll('.lp-feat');
+  if (feats[0]) { feats[0].querySelector('.lp-feat-label').textContent = 'AI Application Analysis'; feats[0].querySelector('.lp-feat-sub').textContent = 'Automatic scoring via Claude + n8n, summary and recommendation per CV.'; }
+  if (feats[1]) { feats[1].querySelector('.lp-feat-label').textContent = 'Automated Workflows'; feats[1].querySelector('.lp-feat-sub').textContent = 'Emails, reminders and qualifications triggered automatically.'; }
+  if (feats[2]) { feats[2].querySelector('.lp-feat-label').textContent = 'AI CV Analysis'; feats[2].querySelector('.lp-feat-sub').textContent = 'Automatic scoring and recommendations by artificial intelligence.'; }
+  set('.lp-footer-badge', '');
+  const badge = document.querySelector('.lp-footer-badge');
+  if (badge) badge.innerHTML = '<div class="lp-footer-dot"></div>HR Recruitment — Platform v2';
+  // Right panel
+  set('.lp-right-label', 'Admin space');
+  set('#panel-login .lp-panel-icon', '👋');
+  set('#panel-login .lp-panel-title', 'Welcome back!');
+  set('#panel-login .lp-panel-sub',   'Sign in to your recruitment space.');
+  document.querySelectorAll('.lp-label')[0] && (document.querySelectorAll('.lp-label')[0].textContent = 'Email address');
+  document.querySelectorAll('.lp-label')[1] && (document.querySelectorAll('.lp-label')[1].textContent = 'Password');
+  ph('email',    'admin@company.com');
+  set('#btn-login', ''); document.getElementById('btn-login').innerHTML = 'Sign in <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+  set('#panel-login .lp-link', 'Forgot password?');
+  // Forgot panel
+  set('#panel-forgot .lp-panel-title', 'Forgot password');
+  set('#panel-forgot .lp-panel-sub',   'Enter your email and we will send you a reset link valid for 1 hour.');
+  document.querySelectorAll('.lp-label')[2] && (document.querySelectorAll('.lp-label')[2].textContent = 'Email address');
+  ph('forgot-email', 'your@email.com');
+  set('#btn-forgot', ''); document.getElementById('btn-forgot').innerHTML = 'Send link <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+  set('#panel-forgot .lp-link', '← Back to login');
+  // Reset panel
+  set('#reset-panel .lp-panel-title', 'New password');
+  set('#reset-panel .lp-panel-sub',   'Choose a secure password of at least 6 characters.');
+  document.querySelectorAll('.lp-label')[3] && (document.querySelectorAll('.lp-label')[3].textContent = 'New password');
+  document.querySelectorAll('.lp-label')[4] && (document.querySelectorAll('.lp-label')[4].textContent = 'Confirm');
+  ph('reset-pwd',  'Minimum 6 characters');
+  ph('reset-pwd2', 'Repeat password');
+  set('#btn-reset', 'Save');
+}
+translateLoginPage();
+
 function switchLoginTheme(t) {
   const newLang = t === 'optimum' ? 'en' : 'fr';
   const needsReload = newLang !== LANG;

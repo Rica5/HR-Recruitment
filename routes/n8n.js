@@ -42,6 +42,16 @@ router.post('/trigger/wf2', async (req, res) => {
   }
 });
 
+// GET /api/n8n/config — valeurs .env pour la page settings
+router.get('/config', (req, res) => {
+  res.json({
+    success: true,
+    n8n_base_url: N8N_BASE,
+    wf2_id:       WF2_ID,
+    wf1_id:       process.env.N8N_WF1_ID || '',
+  });
+});
+
 // GET /api/n8n/links
 router.get('/links', (req, res) => {
   res.json({
