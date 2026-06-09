@@ -93,12 +93,13 @@ async function loadAudit(page) {
     return;
   }
 
-  const prevLabel = LANG === 'en' ? '← Previous' : '← Précédent';
-  const nextLabel = LANG === 'en' ? 'Next →' : 'Suivant →';
-  const pageLabel = LANG === 'en' ? `Page ${_auditPage} / ${pages}` : `Page ${_auditPage} / ${pages}`;
-  const entryLabel = LANG === 'en'
-    ? `${total.toLocaleString('en-GB')} entr${total > 1 ? 'ies' : 'y'}`
-    : `${total.toLocaleString('fr-FR')} entrée${total > 1 ? 's' : ''}`;
+  const prevLabel = t('audit.prev');
+  const nextLabel = t('audit.next');
+  const pageLabel = `Page ${_auditPage} / ${pages}`;
+  const _locale = LANG === 'en' ? 'en-GB' : 'fr-FR'; // BCP 47 locale for number formatting
+  const entryLabel = total === 1
+    ? tf('audit.entries_one', total.toLocaleString(_locale))
+    : tf('audit.entries_many', total.toLocaleString(_locale));
 
   body.innerHTML = `
   <div class="table-wrap" style="border-radius:var(--r)">
@@ -106,10 +107,10 @@ async function loadAudit(page) {
       <thead>
         <tr style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;background:var(--surface-2)">
           <th style="padding:10px 16px;font-weight:600;text-align:left;white-space:nowrap">${t('table.date')}</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">${LANG === 'en' ? 'Action' : 'Action'}</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">${LANG === 'en' ? 'Entity' : 'Entité'}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${t('audit.col_action')}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${t('audit.col_entity')}</th>
           <th style="padding:10px 16px;font-weight:600;text-align:left">${t('table.email')}</th>
-          <th style="padding:10px 16px;font-weight:600;text-align:left">${LANG === 'en' ? 'Details' : 'Détails'}</th>
+          <th style="padding:10px 16px;font-weight:600;text-align:left">${t('audit.col_details')}</th>
         </tr>
       </thead>
       <tbody>

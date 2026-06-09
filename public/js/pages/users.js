@@ -15,8 +15,8 @@ async function loadUsers() {
 function drawUsersPage() {
   const el = document.getElementById('page-content');
   const currentUser = Auth.user();
-  const activeLabel   = LANG === 'en' ? 'Active'   : 'Actif';
-  const inactiveLabel = LANG === 'en' ? 'Inactive' : 'Inactif';
+  const activeLabel   = t('users.active');
+  const inactiveLabel = t('users.inactive');
 
   el.innerHTML = `
   <div class="users-page">
@@ -76,8 +76,8 @@ function companyBadge(company) {
 }
 
 function userModalHTML() {
-  const pwdHint = LANG === 'en' ? 'Minimum 6 characters' : 'Minimum 6 caractères';
-  const subtitleLabel = LANG === 'en' ? 'Access management' : 'Gestion des accès';
+  const pwdHint = t('users.pwd_hint');
+  const subtitleLabel = t('users.subtitle');
   return `
   <div id="modal-user" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)" onclick="if(event.target===this)closeUserModal()">
     <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:460px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)">
@@ -107,6 +107,13 @@ function userModalHTML() {
             <input class="form-control" type="email" id="um-email" placeholder="jean@exemple.mg">
           </div>
           <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">${t('users.company')} <span class="req">*</span></label>
+            <select class="form-control" id="um-company">
+              <option value="solumada">Solumada</option>
+              <option value="optimum">Optimum Solutions</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
             <label class="form-label" id="um-pwd-label">${t('form.password')} <span class="req">*</span></label>
             <div style="display:flex;gap:8px">
               <input class="form-control" type="text" id="um-pwd" placeholder="${pwdHint}" style="flex:1;font-family:var(--mono);font-size:13px;letter-spacing:.03em">
@@ -134,19 +141,18 @@ function openUserModal(userId) {
   const u = userId ? _users.find(x => x._id === userId) : null;
   document.getElementById('user-modal-id').value = userId || '';
   document.getElementById('user-modal-title').textContent = u ? t('users.modal_edit') : t('users.modal_create');
-  document.getElementById('um-nom').value = u?.nom || '';
-  document.getElementById('um-email').value = u?.email || '';
+  document.getElementById('um-nom').value     = u?.nom   || '';
+  document.getElementById('um-email').value   = u?.email || '';
+  document.getElementById('um-company').value = u?.company || Auth.user()?.company || 'solumada';
 
   const pwdInput = document.getElementById('um-pwd');
   const pwdLabel = document.getElementById('um-pwd-label');
   if (u) {
     pwdInput.value = '';
-    const leaveBlank = LANG === 'en' ? '(leave blank = unchanged)' : '(laisser vide = inchangé)';
-    pwdLabel.innerHTML = `${t('form.password')} <span style="color:var(--text-3);font-weight:400">${leaveBlank}</span>`;
+    pwdLabel.innerHTML = `${t('form.password')} <span style="color:var(--text-3);font-weight:400">${t('users.pwd_leave_blank')}</span>`;
   } else {
     pwdInput.value = generatePassword();
-    const autoGen = LANG === 'en' ? '— auto-generated' : '— généré automatiquement';
-    pwdLabel.innerHTML = `${t('form.password')} <span class="req">*</span> <span style="color:var(--text-3);font-weight:400;font-size:11px">${autoGen}</span>`;
+    pwdLabel.innerHTML = `${t('form.password')} <span class="req">*</span> <span style="color:var(--text-3);font-weight:400;font-size:11px">${t('users.pwd_auto_generated')}</span>`;
   }
 
   modal.style.display = 'flex';
@@ -166,8 +172,8 @@ async function submitUser(btn) {
   if (!id && (!password || password.length < 6)) { toast(t('toast.password_required_min6'), 'error'); return; }
   if (password && password.length < 6) { toast(t('toast.min_6_chars'), 'error'); return; }
 
-  // Company is assigned server-side (admin's own company) — not sent from the form
-  const data = { nom, email };
+  const company = document.getElementById('um-company').value;
+  const data = { nom, email, company };
   if (password) data.password = password;
 
   return withLoading(btn, async () => {
@@ -188,9 +194,8 @@ async function submitUser(btn) {
 async function toggleUserActif(userId) {
   const u = _users.find(x => x._id === userId);
   if (!u) return;
-  const confirmMsg = LANG === 'en'
-    ? `${u.actif !== false ? 'Deactivate' : 'Activate'} this user?`
-    : `${u.actif !== false ? 'Désactiver' : 'Réactiver'} cet utilisateur ?`;
+  const action = u.actif !== false ? t('users.toggle_deactivate') : t('users.toggle_reactivate');
+  const confirmMsg = tf('users.toggle_confirm', action);
   if (!confirm(confirmMsg)) return;
   const r = await api.patch(`/api/users/${userId}/toggle-actif`, {});
   if (r?.success) {

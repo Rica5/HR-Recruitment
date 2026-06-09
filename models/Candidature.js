@@ -55,5 +55,8 @@ const candidatureSchema = new mongoose.Schema({
 candidatureSchema.index({ company: 1, offre_id: 1 });
 candidatureSchema.index({ company: 1, recommandation: 1 });
 candidatureSchema.index({ company: 1, score: -1, date_candidature: -1 });
+// Cron reminder queries: qualifiés, sans RDV, non désintéressés
+candidatureSchema.index({ recommandation: 1, rdv_pris: 1, non_interesse: 1, relance_1_envoyee_le: 1 });
+candidatureSchema.index({ recommandation: 1, rdv_pris: 1, non_interesse: 1, relance_2_envoyee_le: 1 });
 
 module.exports = mongoose.model('Candidature', candidatureSchema);

@@ -164,7 +164,7 @@ function renderPage() {
       <tr onclick="showApplicationDetail('${c._id}')">
         <td>
           <div style="display:flex;align-items:center;gap:10px">
-            <div class="avatar">${initials(c.candidat_nom)}</div>
+            <div class="avatar" style="${avatarColor(c.recommandation)}">${initials(c.candidat_nom)}</div>
             <div>
               <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:4px">
                 ${c.candidat_nom}
@@ -177,18 +177,18 @@ function renderPage() {
         </td>
         <td style="font-size:13px;color:var(--text-2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titre_poste}</td>
         <td>${channelBadge(c.canal_candidature)}</td>
-        <td style="min-width:140px">${c.score === null && !c.recommandation ? renderPendingBadge(c._id) : renderScoreBar(c.score)}</td>
+        <td>${c.score === null && !c.recommandation ? renderPendingBadge(c._id) : renderScorePill(c.score)}</td>
         <td>${c.recommandation ? renderBadge(c.recommandation) : `<span class="badge badge-gray">${t('badge.pending')}</span>`}</td>
         <td>${applicationStatusBadge(c.statut)}</td>
-        <td style="font-size:12px;color:var(--text-3)">${formatDate(c.date_candidature)}</td>
+        <td style="font-size:12px;color:var(--text-3);white-space:nowrap">${formatDate(c.date_candidature)}</td>
         <td>
-          <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <div class="row-actions">
             ${c.cv_path     ? `<a href="${fileUrl(c.cv_path)}"     target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="CV">📄</a>` : ''}
             ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="Lettre">📝</a>` : ''}
             ${((_jobOffersMap[c.offre_id]||{}).test_requis&&!['Test convoqué','Test passé'].includes(c.statut))?'<button class="btn-icon" style="color:#cbd5e1;cursor:not-allowed;font-weight:700" disabled title="Test requis avant qualification">✓</button>':`<button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="Qualifier">✓</button>`}
             <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE',this)" title="Éliminer">✗</button>
             <button class="btn-icon" onclick="event.stopPropagation();relaunchWorkflow('${c._id}')" title="Relancer l'analyse IA">🔄</button>
-            <button class="btn-icon" onclick="event.stopPropagation();if(confirm(LANG==='en'?'Delete this application?':'Supprimer cette candidature ?'))deleteApplication('${c._id}')" title="${t('btn.delete')}">🗑️</button>
+            <button class="btn-icon" onclick="event.stopPropagation();if(confirm(t('msg.delete_application_confirm')||'Supprimer ?'))deleteApplication('${c._id}')" title="${t('btn.delete')}">🗑️</button>
           </div>
         </td>
       </tr>`).join('');
@@ -609,7 +609,7 @@ async function applyDecision(id, recommandation, btn) {
 }
 
 async function scheduleTest(id) {
-  if (!confirm(LANG === 'en' ? 'Send test summons to this candidate?' : 'Envoyer la convocation au test à ce candidat ?')) return;
+  if (!confirm(t('msg.test_summons_confirm'))) return;
   const r = await api.post(`/api/candidatures/${id}/convoquer-test`, {});
   if (r?.success) {
     const c = _applications.find(x => x._id === id);

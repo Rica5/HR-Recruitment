@@ -2,21 +2,13 @@ async function renderSettings() {
   const user = Auth.user();
   const el = document.getElementById('page-content');
   const cfg = COMPANY_CONFIG[user?.company] || COMPANY_CONFIG.solumada;
-  const companyDesc = LANG === 'en'
-    ? 'Theme and data are associated with your company.'
-    : 'Le thème et les données sont associés à votre société.';
-  const n8nDesc = LANG === 'en'
-    ? 'To change these values, edit the <code class="pg-code">.env</code> file on the server.'
-    : 'Pour modifier ces valeurs, éditez le fichier <code class="pg-code">.env</code> sur le serveur.';
-  const sessionDesc = LANG === 'en'
-    ? `Logged in as administrator`
-    : `Connecté en tant qu'administrateur`;
-  const lastLoginDesc = LANG === 'en'
-    ? `Last login: ${formatDatetime(user?.lastLogin || new Date())}`
-    : `Dernière connexion : ${formatDatetime(user?.lastLogin || new Date())}`;
-  const confirmMsg = LANG === 'en' ? 'Sign out?' : 'Se déconnecter ?';
-  const pwdPlaceholder = LANG === 'en' ? 'Minimum 6 characters' : 'Minimum 6 caractères';
-  const confirmPwdPlaceholder = LANG === 'en' ? 'Repeat password' : 'Répétez le mot de passe';
+  const companyDesc = t('settings.company_desc');
+  const n8nDesc = t('settings.n8n_desc');
+  const sessionDesc = t('settings.session_desc');
+  const lastLoginDesc = tf('settings.last_login_desc', formatDatetime(user?.lastLogin || new Date()));
+  const confirmMsg = t('settings.confirm_logout');
+  const pwdPlaceholder = t('settings.pwd_placeholder');
+  const confirmPwdPlaceholder = t('settings.confirm_pwd_placeholder');
 
   el.innerHTML = `
   <div class="pg-page-wrap">
@@ -96,7 +88,7 @@ async function renderSettings() {
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="card-title">🚪 ${LANG === 'en' ? 'Session' : 'Session'}</span></div>
+      <div class="card-header"><span class="card-title">🚪 Session</span></div>
       <div class="card-body pg-flex-between">
         <div>
           <div class="pg-title">${sessionDesc}</div>
@@ -110,7 +102,6 @@ async function renderSettings() {
 
   window._settingsConfirmMsg = confirmMsg;
 
-  // Charger les valeurs n8n depuis le .env via l'API
   api.get('/api/n8n/config').then(r => {
     if (!r?.success) return;
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
@@ -150,6 +141,6 @@ async function changePassword(btn) {
 }
 
 function logout() {
-  const msg = window._settingsConfirmMsg || (LANG === 'en' ? 'Sign out?' : 'Se déconnecter ?');
+  const msg = window._settingsConfirmMsg || t('settings.confirm_logout');
   if (confirm(msg)) { Auth.clear(); location.href = '/login'; }
 }

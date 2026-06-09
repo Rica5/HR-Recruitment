@@ -89,6 +89,26 @@ function renderScoreBar(score) {
   return `<div class="score-wrap"><div class="score-bar"><div class="score-fill" style="width:${score*10}%;background:${c}"></div></div><span class="score-num" style="color:${c}">${score}/10</span></div>`;
 }
 
+// Compact colored pill — use in tables instead of the full bar
+function renderScorePill(score) {
+  if (score == null) return `<span class="badge badge-gray">${t('badge.pending')}</span>`;
+  const s = parseFloat(score);
+  const [fg, bg, br] = s >= 7
+    ? ['#15803d', '#dcfce7', '#bbf7d0']
+    : s >= 4
+    ? ['#854d0e', '#fef9c3', '#fde68a']
+    : ['#991b1b', '#fee2e2', '#fecaca'];
+  return `<span style="display:inline-flex;align-items:baseline;gap:1px;background:${bg};color:${fg};border:1px solid ${br};border-radius:7px;padding:3px 9px;font-family:var(--mono);font-weight:800;font-size:13px;letter-spacing:-.02em">${s}<span style="font-size:10px;opacity:.55;font-weight:500;margin-left:1px">/10</span></span>`;
+}
+
+// Avatar background gradient by AI recommendation
+function avatarColor(recommendation) {
+  if (recommendation === 'QUALIFIE')        return 'background:linear-gradient(135deg,#16a34a,#22c55e)';
+  if (recommendation === 'A_REVOIR')        return 'background:linear-gradient(135deg,#d97706,#f59e0b)';
+  if (recommendation === 'NON_SELECTIONNE') return 'background:linear-gradient(135deg,#dc2626,#ef4444)';
+  return 'background:linear-gradient(140deg,var(--grad-start),var(--grad-end))';
+}
+
 /* ── Dates ── */
 const _dateLocale = LANG === 'en' ? 'en-GB' : 'fr-FR';
 function formatDate(d) {

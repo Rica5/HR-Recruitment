@@ -161,7 +161,6 @@ async function sendJobOfferEmail({ offre, applicationLink }) {
       ctaUrl: applicationLink,
     }),
   );
-  console.log(`[EMAIL] Job offer email sent to ${offre.email_recruteur}`);
 }
 
 // ── Acknowledgment email: confirmation to candidate ──
@@ -206,7 +205,6 @@ async function sendAcknowledgmentEmail({ candidature, offre }) {
       bodyHtml: body,
     }),
   );
-  console.log(`[EMAIL] Acknowledgment sent to ${candidature.candidat_email}`);
 }
 
 // ── Interview invitation + recruiter notification ──
@@ -277,7 +275,6 @@ async function sendQualificationEmails({ candidature, offre }) {
     }),
   );
 
-  console.log(`[EMAIL] Qualification emails sent for ${candidature.candidat_nom}`);
 }
 
 // ── Interview reminder (D+2 and D+4 after invitation) ──
@@ -315,7 +312,6 @@ async function sendInterviewReminder({ candidature, offre, numRelance = 1 }) {
       ctaUrl: appointmentLink,
     }),
   );
-  console.log(`[EMAIL] Reminder ${numRelance} sent to ${candidature.candidat_email}`);
 }
 
 // ── Test summons ──
@@ -382,7 +378,6 @@ async function sendTestSummons({ candidature, offre }) {
     }),
   );
 
-  console.log(`[EMAIL] Test summons sent for ${candidature.candidat_nom}`);
 }
 
 // ── Rejection email ──
@@ -416,7 +411,6 @@ async function sendRejectionEmail({ candidature, offre }) {
       bodyHtml: body,
     }),
   );
-  console.log(`[EMAIL] Rejection email sent to ${candidature.candidat_email}`);
 }
 
 // ── New user credentials ──
@@ -453,7 +447,6 @@ async function sendCredentialsEmail({ nom, email, password, loginUrl, company })
       ctaUrl: loginUrl,
     }),
   );
-  console.log(`[EMAIL] Credentials sent to ${email}`);
 }
 
 // ── Password reset ──
@@ -479,7 +472,6 @@ async function sendPasswordResetEmail({ nom, email, resetUrl, company }) {
       ctaUrl: resetUrl,
     }),
   );
-  console.log(`[EMAIL] Password reset sent to ${email}`);
 }
 
 module.exports = {

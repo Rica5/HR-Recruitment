@@ -37,6 +37,10 @@ const offreSchema = new mongoose.Schema({
   date_creation:         { type: Date,    default: Date.now },
 }, { timestamps: true });
 
+// Compound indexes for stats and list queries
+offreSchema.index({ company: 1, statut: 1 });
+offreSchema.index({ company: 1, date_creation: -1 });
+
 // Si test requis → automatisation désactivée (qualification manuelle obligatoire)
 offreSchema.pre('save', function(next) {
   if (this.test_requis === true) this.automatisation_active = false;

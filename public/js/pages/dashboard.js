@@ -86,14 +86,14 @@ async function renderDashboard() {
           ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">👤</div><p>${noCands}</p></div>`
           : cands.slice(0, 6).map(c => `
             <div class="db-cand-row" onclick="goToCand('${c._id}')">
-              <div class="avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0">${initials(c.candidat_nom)}</div>
+              <div class="avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;${avatarColor(c.recommandation)}">${initials(c.candidat_nom)}</div>
               <div style="flex:1;min-width:0">
                 <div style="font-size:13px;font-weight:600;color:var(--text)">${c.candidat_nom}</div>
                 <div style="font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titre_poste}</div>
               </div>
               <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
                 ${c.recommandation ? renderBadge(c.recommandation) : `<span class="badge badge-gray" style="font-size:10px">${t('badge.pending')}</span>`}
-                ${c.score != null ? `<span style="font-size:11px;font-weight:700;color:${scoreColor(c.score)};font-family:var(--mono)">${c.score}/10</span>` : ''}
+                ${c.score != null ? renderScorePill(c.score) : ''}
               </div>
               <svg style="width:13px;height:13px;color:var(--text-3);flex-shrink:0;margin-left:4px" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
             </div>`).join('')}
@@ -169,7 +169,7 @@ async function renderDashboard() {
                 ? `<span class="badge badge-amber" style="font-size:9px;padding:1px 5px">J-${Math.ceil(diff/24)}</span>`
                 : '';
             return `<div class="db-cand-row" onclick="goToCand('${c._id}')">
-              <div class="avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0">${initials(c.candidat_nom)}</div>
+              <div class="avatar" style="width:36px;height:36px;font-size:12px;flex-shrink:0;${avatarColor(c.recommandation)}">${initials(c.candidat_nom)}</div>
               <div style="flex:1;min-width:0">
                 <div style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:5px">${c.candidat_nom} ${urgBadge}</div>
                 <div style="font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.titre_poste}</div>
@@ -283,7 +283,7 @@ function dbKpi(label, value, colorA, colorB, icon, sub, onclick) {
 
 function dbMdg(label, value, total, color, sub) {
   const pct = total > 0 ? Math.round(value / total * 100) : 0;
-  return `<div class="db-mdg-item">
+  return `<div class="db-mdg-item" style="border-left-color:${color}">
     <div class="db-mdg-val" style="color:${color}">${value}</div>
     <div class="db-mdg-label">${label}</div>
     <div class="db-mdg-sub">${sub}</div>

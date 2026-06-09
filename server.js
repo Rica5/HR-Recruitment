@@ -12,6 +12,7 @@ const authRouter         = require("./routes/auth");
 const offresRouter       = require("./routes/offres");
 const candidaturesRouter = require("./routes/candidatures");
 const n8nRouter          = require("./routes/n8n");
+const calcomRouter       = require("./routes/calcom");
 const publicRouter       = require("./routes/public");
 const auditRouter        = require("./routes/audit");
 const usersRouter        = require("./routes/users");
@@ -116,6 +117,7 @@ app.use("/api/public",       publicRouter);
 app.use("/api/offres",       verifyToken, offresRouter);
 app.use("/api/candidatures", verifyToken, candidaturesRouter);
 app.use("/api/n8n",          verifyToken, n8nRouter);
+app.use("/api/calcom",       verifyToken, calcomRouter);
 app.use("/api/audit",        verifyToken, auditRouter);
 app.use("/api/users",        verifyToken, usersRouter);
 
@@ -182,10 +184,29 @@ mongoose
           non_interesse:              false,
           relance_1_envoyee_le:       null,
           candidat_email:             { $ne: "" },
-        });
+        }).lean();
+
+        const toRemind2 = await Candidature.find({
+          recommandation:       "QUALIFIE",
+          relance_1_envoyee_le: { $lt: fortyEightHoursAgo, $ne: null },
+          rdv_pris:             false,
+          non_interesse:        false,
+          relance_2_envoyee_le: null,
+          candidat_email:       { $ne: "" },
+        }).lean();
+
+        // Batch-fetch all needed offers in one query (no N+1)
+        const allOffreIds = [...new Set([
+          ...toRemind1.map(c => c.offre_id),
+          ...toRemind2.map(c => c.offre_id),
+        ])];
+        const offresArr = allOffreIds.length
+          ? await Offre.find({ offre_id: { $in: allOffreIds } }).lean()
+          : [];
+        const offreMap = new Map(offresArr.map(o => [o.offre_id, o]));
 
         for (const cand of toRemind1) {
-          const offre = await Offre.findOne({ offre_id: cand.offre_id });
+          const offre = offreMap.get(cand.offre_id);
           if (!offre) continue;
           try {
             await sendInterviewReminder({ candidature: cand, offre, numRelance: 1 });
@@ -195,17 +216,8 @@ mongoose
           }
         }
 
-        const toRemind2 = await Candidature.find({
-          recommandation:       "QUALIFIE",
-          relance_1_envoyee_le: { $lt: fortyEightHoursAgo, $ne: null },
-          rdv_pris:             false,
-          non_interesse:        false,
-          relance_2_envoyee_le: null,
-          candidat_email:       { $ne: "" },
-        });
-
         for (const cand of toRemind2) {
-          const offre = await Offre.findOne({ offre_id: cand.offre_id });
+          const offre = offreMap.get(cand.offre_id);
           if (!offre) continue;
           try {
             await sendInterviewReminder({ candidature: cand, offre, numRelance: 2 });

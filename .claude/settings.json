@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(del \"c:\\\\Users\\\\IT SOLUMADA\\\\Desktop\\\\Solumada Recrutement app\\\\n8n\\\\WF-RDV-Manuel-Candidat.json\")",
+      "Bash(node -e \"require\\('./\\\\\"Analyse IA Candidature Complet.json\\\\\"'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/IT SOLUMADA/Desktop/Solumada Recrutement app/Analyse IA Candidature Complet.json','utf8'\\)\\); console.log\\('JSON valide'\\)\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\IT SOLUMADA\\\\Desktop\\\\Solumada Recrutement app\" -Recurse -Filter \"Offre.js\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)"
+    ]
+  }
+}

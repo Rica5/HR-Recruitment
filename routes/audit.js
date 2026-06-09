@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
     }
 
     const [logs, total] = await Promise.all([
-      AuditLog.find(filter).sort({ created_at: -1 }).skip(skip).limit(limit),
+      AuditLog.find(filter).sort({ created_at: -1 }).skip(skip).limit(limit).lean(),
       AuditLog.countDocuments(filter),
     ]);
 

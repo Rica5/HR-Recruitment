@@ -17,7 +17,7 @@ async function renderBatchCV() {
 // ─── Form view ────────────────────────────────────────────────────────────────
 
 function buildFormView() {
-  const sizeLabel = LANG === 'en' ? 'PDF, DOC, DOCX — max 10 MB / file' : 'PDF, DOC, DOCX — max 10 Mo / fichier';
+  const sizeLabel = t('batch.file_hint');
   return `
 <div style="max-width:680px;margin:0 auto;padding:24px 0">
 
@@ -119,7 +119,7 @@ function updateBatchFilePreview() {
   if (nbTop) nbTop.value = files.length;
   if (hint) hint.textContent = tf('msg.nb_top_updated', files.length);
 
-  const sizeUnit = LANG === 'en' ? 'KB' : 'Ko';
+  const sizeUnit = t('batch.size_unit');
   if (preview) {
     preview.style.display = 'block';
     preview.innerHTML = files.map((f, i) =>
@@ -341,7 +341,7 @@ async function triggerAutoWF4() {
       banner.style.background = 'var(--surface-3)';
       banner.style.border = '1px solid var(--border)';
       banner.style.color = 'var(--text)';
-      banner.innerHTML = `⚠️ ${tf('msg.wf4_error', r?.error || (LANG === 'en' ? 'unknown error' : 'erreur inconnue'))}`;
+      banner.innerHTML = `⚠️ ${tf('msg.wf4_error', r?.error || t('msg.unknown_error'))}`;
       toast(t('toast.wf4_not_triggered'), 'error');
     }
   }

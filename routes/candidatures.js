@@ -153,7 +153,7 @@ router.get("/", async (req, res) => {
     const limit = Math.min(500, parseInt(req.query.limit) || 50);
     const skip = (page - 1) * limit;
 
-    const filter = {};
+    const filter = { company: req.user.company };
     if (offre_id) filter.offre_id = offre_id;
     if (recommandation) filter.recommandation = recommandation;
     if (a_appeler === "true") filter.a_appeler = true;
@@ -175,7 +175,8 @@ router.get("/", async (req, res) => {
       Candidature.find(filter)
         .sort({ score: -1, date_candidature: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Candidature.countDocuments(filter),
     ]);
 
@@ -233,15 +234,11 @@ router.get("/calcom/slots", async (req, res) => {
       qs.append('eventTypeSlug', eventTypeSlug);
       qs.append('startTime', startTime);
       qs.append('endTime', endTime);
-      console.log(`[calcom] slots request: username=${username} slug=${eventTypeSlug}`);
       r = await axios.get(`https://api.cal.com/v2/slots/available?${qs.toString()}`, {
         headers: { "cal-api-version": "2024-08-13" },
         timeout: 10000,
       });
-      console.log('[calcom] slots response status:', r.status, '— keys:', Object.keys(r.data?.data || {}));
     } catch (pubErr) {
-      console.warn('[calcom] public slots failed:', pubErr.response?.status || pubErr.message);
-
       // Fallback: resolve eventTypeId via v1 API (needs CALCOM_API_KEY)
       const CALCOM_API_KEY = process.env.CALCOM_API_KEY;
       let eventTypeId = null;
@@ -252,11 +249,10 @@ router.get("/calcom/slots", async (req, res) => {
             timeout: 10000,
           });
           const list = etRes.data?.event_types || [];
-          console.log('[calcom] event-types v1:', list.map(e => `${e.id}:${e.slug}`).join(', '));
           const et = list.find(e => e.slug === eventTypeSlug);
           eventTypeId = et?.id ?? null;
         } catch (etErr) {
-          console.error('[calcom] event-types v1 error:', etErr.response?.status, etErr.response?.data || etErr.message);
+          console.warn('[calcom] event-types v1 error:', etErr.response?.status, etErr.message);
         }
       }
 
@@ -278,7 +274,6 @@ router.get("/calcom/slots", async (req, res) => {
     const slotsObj = dataObj.slots && typeof dataObj.slots === 'object'
       ? dataObj.slots   // nested under "slots" key
       : dataObj;        // dates at root of data
-    console.log('[calcom] slotsObj keys:', Object.keys(slotsObj).slice(0, 5), '— total days:', Object.keys(slotsObj).length);
 
     if (date) {
       const slots = Object.values(slotsObj).flat().map(s => ({ time: s.time || s.start }));
@@ -291,7 +286,6 @@ router.get("/calcom/slots", async (req, res) => {
       if (Array.isArray(daySlots) && daySlots.length > 0)
         dates[dateKey] = daySlots.map(s => ({ time: s.time || s.start }));
     }
-    console.log('[calcom] available dates:', Object.keys(dates));
     res.json({ success: true, dates });
   } catch (err) {
     const status = err.response?.status;
@@ -321,7 +315,7 @@ router.get("/batch-status", async (req, res) => {
 // GET /api/candidatures/:id
 router.get("/:id", async (req, res) => {
   try {
-    const candidature = await Candidature.findOne({ _id: req.params.id });
+    const candidature = await Candidature.findOne({ _id: req.params.id }).lean();
     if (!candidature)
       return res
         .status(404)
@@ -605,9 +599,6 @@ router.post("/:id/planifier-rdv", async (req, res) => {
             },
           );
           calcom_booking_uid = bookRes.data?.data?.uid || null;
-          console.log(
-            `✅ Cal.com booking created: ${calcom_booking_uid} for ${candidature.candidat_nom}`,
-          );
         }
       } catch (calErr) {
         console.warn(
@@ -792,7 +783,8 @@ router.post('/batch-cv', upload.array('cvs', 50), handleUploadError, async (req,
       });
 
       const abs = path.join(__dirname, '..', 'uploads', file.filename);
-      const cvBase64 = fs.existsSync(abs) ? fs.readFileSync(abs).toString('base64') : '';
+      const cvBuf = fs.existsSync(abs) ? await fs.promises.readFile(abs) : null;
+      const cvBase64 = cvBuf ? cvBuf.toString('base64') : '';
       const cvMimetype = file.mimetype || (file.originalname.endsWith('.pdf')
         ? 'application/pdf'
         : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');

@@ -5,9 +5,17 @@ const User = require('../models/User');
 const { signToken, verifyToken } = require('../middleware/auth');
 const { logAudit } = require('../services/audit');
 const { sendPasswordResetEmail } = require('../services/email');
+const { createRateLimiter } = require('../middleware/rateLimiter');
+
+// 10 attempts / 15 min per IP — brute-force protection
+const loginRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts. Try again in 15 minutes.',
+});
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password required' });

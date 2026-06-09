@@ -1,22 +1,29 @@
-# Dependencies
+# Dépendances
 node_modules/
 
-# Environment variables — never commit secrets
+# Variables d'environnement — NE JAMAIS COMMITER
 .env
-.env.local
-.env.*.local
 
-# Uploaded files — use external storage (S3/Cloudinary) in production
+# Fichiers uploadés (CVs, lettres) — stocker en externe en production
 uploads/
-
-# IDE / OS
-.claude/
-.DS_Store
-Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
+logs/
 
-# Misc
-{routes,models,middleware,public
+# PM2
+.pm2/
+
+# Couverture de tests
+coverage/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
