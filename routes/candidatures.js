@@ -451,21 +451,19 @@ router.post("/:id/envoyer-email-refus", async (req, res) => {
 // POST /api/candidatures/:id/convoquer-test
 router.post("/:id/convoquer-test", async (req, res) => {
   try {
-    const candidature = await Candidature.findOneAndUpdate(
-      { _id: req.params.id },
-      { statut: "Test convoqué" },
-      { new: true },
-    );
+    const candidature = await Candidature.findById(req.params.id);
     if (!candidature)
-      return res
-        .status(404)
-        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
+      return res.status(404).json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
 
     const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
-      return res
-        .status(404)
-        .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
+      return res.status(404).json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
+
+    if (!offre.test_date)
+      return res.status(400).json({ success: false, error: be(req, 'La date du test n\'est pas encore définie sur cette offre.', 'The test date is not yet defined on this offer.') });
+
+    candidature.statut = 'Test convoqué';
+    await candidature.save();
 
     sendTestSummons({ candidature, offre }).catch(e => {
       console.warn("sendTestSummons failed:", e.message);

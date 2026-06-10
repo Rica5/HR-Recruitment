@@ -557,6 +557,14 @@ async function updateApplicationStatus(id, statut) {
 }
 
 async function quickQualify(id, recommandation, btn) {
+  if (recommandation === 'QUALIFIE') {
+    const c = _applications.find(x => x._id === id);
+    const offer = _jobOffersMap[(c || {}).offre_id] || {};
+    if (offer.test_requis && !['Test convoqué', 'Test passé'].includes(c?.statut)) {
+      toast(t('cand.decision.test_required_first'), 'error');
+      return;
+    }
+  }
   return withLoading(btn, async () => {
     const r = await api.patch(`/api/candidatures/${id}`, { recommandation });
     if (r?.success) {
@@ -581,6 +589,14 @@ async function quickQualify(id, recommandation, btn) {
 }
 
 async function applyDecision(id, recommandation, btn) {
+  if (recommandation === 'QUALIFIE') {
+    const c = _applications.find(x => x._id === id);
+    const offer = _jobOffersMap[(c || {}).offre_id] || {};
+    if (offer.test_requis && !['Test convoqué', 'Test passé'].includes(c?.statut)) {
+      toast(t('cand.decision.test_required_first'), 'error');
+      return;
+    }
+  }
   return withLoading(btn, async () => {
     const statutMap = { QUALIFIE: 'En cours', A_REVOIR: 'En cours', NON_SELECTIONNE: 'Refusé' };
     const newStatut = statutMap[recommandation];
@@ -609,6 +625,12 @@ async function applyDecision(id, recommandation, btn) {
 }
 
 async function scheduleTest(id) {
+  const cand = _applications.find(x => x._id === id);
+  const offer = _jobOffersMap[(cand || {}).offre_id] || {};
+  if (!offer.test_date) {
+    toast(t('toast.test_date_not_set') || 'La date du test n\'est pas encore définie sur cette offre.', 'error');
+    return;
+  }
   if (!confirm(t('msg.test_summons_confirm'))) return;
   const r = await api.post(`/api/candidatures/${id}/convoquer-test`, {});
   if (r?.success) {
