@@ -131,9 +131,11 @@ router.post('/event-types', async (req, res) => {
       eventType: { ...et, locations: et.locations || [], bookingUrl: `https://cal.com/${username}/${et.slug}` },
     });
   } catch (err) {
+    const calErr = err.response?.data;
+    console.error('[calcom POST event-type]', JSON.stringify(calErr || err.message));
     res.status(err.response?.status || 500).json({
       success: false,
-      error: err.response?.data?.message || err.message,
+      error: calErr?.message || calErr?.error?.message || err.message,
     });
   }
 });
@@ -144,9 +146,11 @@ router.delete('/event-types/:id', async (req, res) => {
     await axios.delete(`${CAL_BASE}/event-types/${req.params.id}`, { headers: calHeaders() });
     res.json({ success: true });
   } catch (err) {
+    const calErr = err.response?.data;
+    console.error('[calcom PATCH event-type]', JSON.stringify(calErr || err.message));
     res.status(err.response?.status || 500).json({
       success: false,
-      error: err.response?.data?.message || err.message,
+      error: calErr?.message || calErr?.error?.message || err.message,
     });
   }
 });

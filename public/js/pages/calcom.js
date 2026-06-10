@@ -57,12 +57,13 @@ async function renderCalcom() {
           </div>
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Lieu</label>
+              <label class="form-label">Lieu supplémentaire</label>
+              <div style="margin-bottom:6px;font-size:12px;color:var(--text-3)">🎥 Cal Video inclus par défaut</div>
               <select class="form-control" id="cal-et-location" onchange="calToggleAddressCreate()">
-                <option value="cal-video">🎥 Cal Video (défaut)</option>
-                <option value="google-meet">🟢 Google Meet</option>
-                <option value="attendee-inperson">📍 En personne (adresse du participant)</option>
-                <option value="organizer-inperson">📍 En personne (adresse de l'organisateur)</option>
+                <option value="none">— Aucun lieu supplémentaire —</option>
+                <option value="google-meet">+ 🟢 Google Meet</option>
+                <option value="attendee-inperson">+ 📍 En personne (adresse du participant)</option>
+                <option value="organizer-inperson">+ 📍 En personne (adresse de l'organisateur)</option>
               </select>
             </div>
             <div class="form-group" id="cal-et-address-wrap" style="display:none">
@@ -256,23 +257,30 @@ async function deleteSchedule(id) {
 
 // ─── Location helpers ────────────────────────────────────────────────────────
 
-function calBuildLocations(locationVal, addressVal) {
-  const map = {
-    'cal-video':          [{ type: 'integrations:daily' }],
-    'google-meet':        [{ type: 'integrations:google:meet' }],
-    'attendee-inperson':  [{ type: 'attendeeInPerson' }],
-    'organizer-inperson': [{ type: 'inPerson', address: addressVal || '' }],
-  };
-  return map[locationVal] ?? map['cal-video'];
+function calBuildLocations(additionalVal, addressVal) {
+  const calVideo = { type: 'integration', integration: 'cal-video' };
+  if (!additionalVal || additionalVal === 'none') return [calVideo];
+  const extra = {
+    'google-meet':        { type: 'integration', integration: 'google-meet' },
+    'organizer-inperson': { type: 'address', address: addressVal || '', public: true },
+    'attendee-inperson':  { type: 'address', address: '',             public: false },
+  }[additionalVal];
+  return extra ? [calVideo, extra] : [calVideo];
 }
 
-function calLocationsToVal(locations) {
-  if (!Array.isArray(locations) || !locations.length) return 'cal-video';
-  const type = locations[0].type || '';
-  if (type === 'integrations:google:meet') return 'google-meet';
-  if (type === 'attendeeInPerson')         return 'attendee-inperson';
-  if (type === 'inPerson')                 return 'organizer-inperson';
-  return 'cal-video';
+function calLocationsToAdditional(locations) {
+  if (!Array.isArray(locations)) return { val: 'none', address: '' };
+  const extra = locations.find(
+    l => !(l.type === 'integration' && l.integration === 'cal-video')
+  );
+  if (!extra) return { val: 'none', address: '' };
+  if (extra.type === 'integration' && extra.integration === 'google-meet')
+    return { val: 'google-meet', address: '' };
+  if (extra.type === 'address' && extra.address)
+    return { val: 'organizer-inperson', address: extra.address };
+  if (extra.type === 'address')
+    return { val: 'attendee-inperson', address: '' };
+  return { val: 'none', address: '' };
 }
 
 function calToggleAddressCreate() {
@@ -287,9 +295,8 @@ function openEditEventType(id) {
   const et = (window._calcomEventTypes || []).find(e => e.id === id);
   if (!et) return;
 
-  const currentLocVal  = calLocationsToVal(et.locations);
-  const currentAddress = et.locations?.[0]?.address || '';
-  const showAddr       = currentLocVal === 'organizer-inperson';
+  const { val: currentAdditional, address: currentAddress } = calLocationsToAdditional(et.locations);
+  const showAddr = currentAdditional === 'organizer-inperson';
 
   document.getElementById('modal-edit-et')?.remove();
   document.body.insertAdjacentHTML('beforeend', `
@@ -299,7 +306,7 @@ function openEditEventType(id) {
         <div class="card-header">
           <span class="card-title">✏️ Modifier l'event type</span>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-primary btn-sm" onclick="saveEditEventType(${id},this)">${t('calcom.create_btn')}</button>
+            <button class="btn btn-primary btn-sm" onclick="saveEditEventType(${id},this)">${t('calcom.save_btn')}</button>
             <button class="btn btn-ghost btn-sm" onclick="closeEditEventType()">${t('calcom.cancel_btn')}</button>
           </div>
         </div>
@@ -324,10 +331,10 @@ function openEditEventType(id) {
             <div class="form-group">
               <label class="form-label">Lieu</label>
               <select class="form-control" id="edit-et-location" onchange="calToggleAddressEdit()">
-                <option value="cal-video"         ${currentLocVal === 'cal-video'          ? 'selected' : ''}>🎥 Cal Video (défaut)</option>
-                <option value="google-meet"        ${currentLocVal === 'google-meet'        ? 'selected' : ''}>🟢 Google Meet</option>
-                <option value="attendee-inperson"  ${currentLocVal === 'attendee-inperson'  ? 'selected' : ''}>📍 En personne (adresse du participant)</option>
-                <option value="organizer-inperson" ${currentLocVal === 'organizer-inperson' ? 'selected' : ''}>📍 En personne (adresse de l'organisateur)</option>
+                <option value="none"               ${currentAdditional === 'none'               ? 'selected' : ''}>— Aucun lieu supplémentaire —</option>
+                <option value="google-meet"        ${currentAdditional === 'google-meet'        ? 'selected' : ''}>+ 🟢 Google Meet</option>
+                <option value="attendee-inperson"  ${currentAdditional === 'attendee-inperson'  ? 'selected' : ''}>+ 📍 En personne (adresse du participant)</option>
+                <option value="organizer-inperson" ${currentAdditional === 'organizer-inperson' ? 'selected' : ''}>+ 📍 En personne (adresse de l'organisateur)</option>
               </select>
             </div>
             <div class="form-group" id="edit-et-address-wrap" style="display:${showAddr ? 'block' : 'none'}">
@@ -354,9 +361,9 @@ async function saveEditEventType(id, btn) {
   const title           = document.getElementById('edit-et-title')?.value?.trim();
   const lengthInMinutes = Number(document.getElementById('edit-et-duration')?.value);
   const description     = document.getElementById('edit-et-desc')?.value?.trim();
-  const locationVal     = document.getElementById('edit-et-location')?.value || 'cal-video';
+  const additionalVal   = document.getElementById('edit-et-location')?.value || 'none';
   const addressVal      = document.getElementById('edit-et-address')?.value?.trim() || '';
-  const locations       = calBuildLocations(locationVal, addressVal);
+  const locations       = calBuildLocations(additionalVal, addressVal);
 
   if (!title) { toast(t('calcom.et_title_required'), 'error'); return; }
 
@@ -397,9 +404,9 @@ async function createEventType(btn) {
     return;
   }
 
-  const locationVal = document.getElementById('cal-et-location')?.value || 'cal-video';
-  const addressVal  = document.getElementById('cal-et-address')?.value?.trim() || '';
-  const locations   = calBuildLocations(locationVal, addressVal);
+  const additionalVal = document.getElementById('cal-et-location')?.value || 'none';
+  const addressVal    = document.getElementById('cal-et-address')?.value?.trim() || '';
+  const locations     = calBuildLocations(additionalVal, addressVal);
 
   return withLoading(btn, async () => {
     const r = await api.post('/api/calcom/event-types', {
@@ -421,7 +428,7 @@ async function createEventType(btn) {
       }
       document.getElementById('cal-et-title').value             = '';
       document.getElementById('cal-et-desc').value              = '';
-      document.getElementById('cal-et-location').value          = 'cal-video';
+      document.getElementById('cal-et-location').value          = 'none';
       document.getElementById('cal-et-address').value           = '';
       document.getElementById('cal-et-address-wrap').style.display = 'none';
       if (offresSelect) Array.from(offresSelect.options).forEach(o => o.selected = false);
