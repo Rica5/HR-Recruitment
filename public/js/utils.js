@@ -220,3 +220,21 @@ function setActiveNav(page) {
     el.classList.toggle('active', el.dataset.page === page);
   });
 }
+
+// Cal.com stores times as UTC — convert date+heure strings to company local timezone
+function rdvAdjustForTimezone(date, heure, company) {
+  if (!date || !heure) return { date, heure };
+  try {
+    const iso    = `${date}T${heure}:00.000Z`;
+    const d      = new Date(iso);
+    if (isNaN(d.getTime())) return { date, heure };
+    const offset = ((company || Auth.user()?.company || 'solumada') === 'optimum') ? 2 : 3;
+    const local  = new Date(d.getTime() + offset * 3600000);
+    return {
+      date:  `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`,
+      heure: `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`,
+    };
+  } catch {
+    return { date, heure };
+  }
+}

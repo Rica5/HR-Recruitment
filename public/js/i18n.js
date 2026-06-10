@@ -298,6 +298,9 @@ const TRANSLATIONS = {
     'audit.RDV_PLANIFIE':           'RDV planifié',
     'audit.STATUT_CHANGE':          'Statut changé',
     'audit.USER_LOGIN':             'Connexion',
+    'audit.EMAIL_ECHEC':            'Échec email',
+    'audit.N8N_ECHEC':              'Échec n8n',
+    'audit.CALCOM_ECHEC':           'Échec Cal.com',
 
     // Settings page
     'settings.profile_card':     '👤 Profil administrateur',
@@ -890,6 +893,9 @@ const TRANSLATIONS = {
     'audit.RDV_PLANIFIE':           'Appointment scheduled',
     'audit.STATUT_CHANGE':          'Status changed',
     'audit.USER_LOGIN':             'Login',
+    'audit.EMAIL_ECHEC':            'Email failure',
+    'audit.N8N_ECHEC':              'n8n failure',
+    'audit.CALCOM_ECHEC':           'Cal.com failure',
 
     // Settings page
     'settings.profile_card':     '👤 Administrator profile',

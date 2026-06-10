@@ -3,9 +3,7 @@ const axios = require('axios');
 const EMAIL_API_URL = 'https://mailer.solumada.mg/send';
 
 async function sendViaApi(to, name, subject, html) {
-  const params = new URLSearchParams({ to, from: name, subject, html });
-  const { data } = await axios.post(EMAIL_API_URL, params.toString(), {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  const { data } = await axios.postForm(EMAIL_API_URL, { to, from: name, subject, html }, {
     timeout: 15000,
   });
   return data;

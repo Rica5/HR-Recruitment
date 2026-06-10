@@ -120,9 +120,10 @@ router.post(
       // AI analysis only if a CV is attached
       if (candidature.cv_path) {
         const trigger = offre.automatisation_active ? triggerAIAnalysis : triggerManualWorkflow;
-        trigger(candidature, offre).catch((e) =>
-          console.warn("WF not triggered:", e.message),
-        );
+        trigger(candidature, offre).catch((e) => {
+          console.warn("WF not triggered:", e.message);
+          logAudit({ action: 'N8N_ECHEC', entity_type: 'candidature', entity_id: candidature._id.toString(), entity_label: candidature.candidat_nom, user_email: req.user.email, details: { offre_id: offre.offre_id, error: e.message } });
+        });
       }
 
       logAudit({
@@ -465,9 +466,10 @@ router.post("/:id/convoquer-test", async (req, res) => {
         .status(404)
         .json({ success: false, error: "Offer not found" });
 
-    sendTestSummons({ candidature, offre }).catch(e =>
-      console.warn("sendTestSummons failed:", e.message)
-    );
+    sendTestSummons({ candidature, offre }).catch(e => {
+      console.warn("sendTestSummons failed:", e.message);
+      logAudit({ action: 'EMAIL_ECHEC', entity_type: 'candidature', entity_id: req.params.id, entity_label: candidature.candidat_nom, user_email: req.user.email, details: { type: 'sendTestSummons', error: e.message } });
+    });
     res.json({
       success: true,
       message: "Test summons sent",
@@ -601,9 +603,9 @@ router.post("/:id/planifier-rdv", async (req, res) => {
           calcom_booking_uid = bookRes.data?.data?.uid || null;
         }
       } catch (calErr) {
-        console.warn(
-          `⚠️  Cal.com booking failed for ${candidature.candidat_nom}: ${calErr.response?.data?.message || calErr.message}`,
-        );
+        const calErrMsg = calErr.response?.data?.message || calErr.message;
+        console.warn(`⚠️  Cal.com booking failed for ${candidature.candidat_nom}: ${calErrMsg}`);
+        logAudit({ action: 'CALCOM_ECHEC', entity_type: 'candidature', entity_id: req.params.id, entity_label: candidature.candidat_nom, user_email: req.user.email, details: { slot: slot_iso, error: calErrMsg } });
       }
     }
 

@@ -47,7 +47,10 @@ router.post('/', async (req, res) => {
       password,
       loginUrl: `${process.env.BASE_URL}/login`,
       company: user.company,
-    }).catch(err => console.error('[EMAIL] Credentials send failed:', err.response?.data || err.message));
+    }).catch(err => {
+      console.error('[EMAIL] Credentials send failed:', err.response?.data || err.message);
+      logAudit({ action: 'EMAIL_ECHEC', entity_type: 'user', entity_id: user._id.toString(), entity_label: user.nom, user_email: req.user.email, details: { type: 'sendCredentialsEmail', error: err.response?.data?.error || err.message } });
+    });
     res.status(201).json({ success: true, user: user.toSafe() });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

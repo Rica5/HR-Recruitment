@@ -22,7 +22,10 @@ router.post('/', async (req, res) => {
 
     const offre = await Offre.create(data);
     const applicationLink = `${process.env.BASE_URL || 'http://localhost:3000'}/postuler?offre_id=${offre.offre_id}`;
-    sendJobOfferEmail({ offre, applicationLink }).catch(e => console.warn('Email not sent:', e.message));
+    sendJobOfferEmail({ offre, applicationLink }).catch(e => {
+      console.warn('Email not sent:', e.message);
+      logAudit({ action: 'EMAIL_ECHEC', entity_type: 'offre', entity_id: offre.offre_id, entity_label: offre.titre_poste, user_email: req.user.email, details: { type: 'sendJobOfferEmail', error: e.message } });
+    });
     logAudit({ action: 'OFFRE_CREEE', entity_type: 'offre', entity_id: offre.offre_id, entity_label: offre.titre_poste, user_email: req.user.email, details: { statut: offre.statut, localisation: offre.localisation } });
     res.status(201).json({ success: true, offre, lien_candidature: applicationLink });
   } catch (err) {

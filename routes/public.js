@@ -64,9 +64,10 @@ router.post('/candidature', applicationRateLimiter, upload.fields([{ name: 'cv',
 
     const candidature = await Candidature.create(data);
 
-    triggerAIAnalysis(candidature, offre).catch(e =>
-      console.warn('WF2 not triggered:', e.message)
-    );
+    triggerAIAnalysis(candidature, offre).catch(e => {
+      console.warn('WF2 not triggered:', e.message);
+      logAudit({ action: 'N8N_ECHEC', entity_type: 'candidature', entity_id: candidature._id.toString(), entity_label: candidature.candidat_nom, user_email: 'public', details: { offre_id: data.offre_id, error: e.message } });
+    });
 
     logAudit({ action: 'CANDIDATURE_RECUE', entity_type: 'candidature', entity_id: candidature._id.toString(), entity_label: candidature.candidat_nom, user_email: 'public', details: { offre_id: data.offre_id, canal: 'plateforme' } });
 
@@ -238,9 +239,10 @@ router.post('/batch-cv/callback', verifyCallbackSecret, async (req, res) => {
 
     // Batch CV → always WF2 manual (N8N_WF2_WEBHOOK_URL), regardless of email/scenario
     if (offre && candidature.cv_path) {
-      triggerManualWorkflow(candidature, offre).catch(e =>
-        console.warn(`WF2 batch not triggered for ${candidature_id}:`, e.message)
-      );
+      triggerManualWorkflow(candidature, offre).catch(e => {
+        console.warn(`WF2 batch not triggered for ${candidature_id}:`, e.message);
+        logAudit({ action: 'N8N_ECHEC', entity_type: 'candidature', entity_id: candidature_id, entity_label: candidature.candidat_nom, user_email: 'n8n', details: { type: 'batch_cv', error: e.message } });
+      });
     }
 
     logAudit({

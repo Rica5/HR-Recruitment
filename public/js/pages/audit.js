@@ -15,6 +15,9 @@ function getActionLabel(action) {
     RDV_PLANIFIE:          'badge-blue',
     STATUT_CHANGE:         'badge-amber',
     USER_LOGIN:            'badge-gray',
+    EMAIL_ECHEC:           'badge-red',
+    N8N_ECHEC:             'badge-red',
+    CALCOM_ECHEC:          'badge-red',
   };
   return [t(`audit.${action}`) || action, cls[action] || 'badge-gray'];
 }
@@ -43,6 +46,9 @@ async function renderAudit() {
       <option value="RDV_PLANIFIE">${t('audit.RDV_PLANIFIE')}</option>
       <option value="STATUT_CHANGE">${t('audit.STATUT_CHANGE')}</option>
       <option value="USER_LOGIN">${t('audit.USER_LOGIN')}</option>
+      <option value="EMAIL_ECHEC">${t('audit.EMAIL_ECHEC')}</option>
+      <option value="N8N_ECHEC">${t('audit.N8N_ECHEC')}</option>
+      <option value="CALCOM_ECHEC">${t('audit.CALCOM_ECHEC')}</option>
     </select>
     <select class="filter-select" id="a-type" onchange="loadAudit(1)">
       <option value="">${t('filter.all_statuses')}</option>

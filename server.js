@@ -17,6 +17,7 @@ const publicRouter       = require("./routes/public");
 const auditRouter        = require("./routes/audit");
 const usersRouter        = require("./routes/users");
 const { verifyToken }    = require("./middleware/auth");
+const { logAudit }       = require("./services/audit");
 const Offre              = require("./models/Offre");
 const Candidature        = require("./models/Candidature");
 const User               = require("./models/User");
@@ -213,6 +214,7 @@ mongoose
             await Candidature.findByIdAndUpdate(cand._id, { relance_1_envoyee_le: new Date() });
           } catch (e) {
             console.warn(`[CRON] Reminder 1 not sent to ${cand.candidat_email}:`, e.message);
+            logAudit({ action: 'EMAIL_ECHEC', entity_type: 'candidature', entity_id: cand._id.toString(), entity_label: cand.candidat_nom, user_email: 'system', details: { type: 'relance_1', email: cand.candidat_email, error: e.message } });
           }
         }
 
@@ -224,6 +226,7 @@ mongoose
             await Candidature.findByIdAndUpdate(cand._id, { relance_2_envoyee_le: new Date() });
           } catch (e) {
             console.warn(`[CRON] Reminder 2 not sent to ${cand.candidat_email}:`, e.message);
+            logAudit({ action: 'EMAIL_ECHEC', entity_type: 'candidature', entity_id: cand._id.toString(), entity_label: cand.candidat_nom, user_email: 'system', details: { type: 'relance_2', email: cand.candidat_email, error: e.message } });
           }
         }
 
