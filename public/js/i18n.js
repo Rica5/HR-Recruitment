@@ -100,6 +100,8 @@ const TRANSLATIONS = {
     'table.tracking_status': 'Statut suivi',
     'table.date':            'Date',
     'table.actions':         'Actions',
+    'table.education':       'Éducation',
+    'table.experience':      'Expérience',
     'table.name':            'Nom',
     'table.email':           'Email',
     'table.company':         'Société',
@@ -497,6 +499,201 @@ const TRANSLATIONS = {
     'offer.calendar.selection_deadline':  '⏱️ Limite sélection',
     'offer.batch_eval.subtitle':          'Claude va classer les candidats analysés',
 
+    // Offer form — labels hardcodés
+    'offer.form.subtitle':               'Remplissez les informations du poste',
+    'offer.form.section_info':           'Informations du poste',
+    'offer.form.section_calendar':       'Calendrier & statut',
+    'offer.form.section_qualification':  'Mode de qualification',
+    'offer.form.rdv_required_hint':      '⚠️ Remplissez le lien RDV pour activer',
+    'offer.form.thank_you_label':        '💬 Formule de remerciement (affichée au candidat après candidature)',
+    'offer.form.btn_save':               '💾 Enregistrer l\'offre',
+    'offer.form.scenario_a_desc':        'IA analyse + emails envoyés automatiquement',
+    'offer.form.scenario_b_desc':        'IA analyse, recruteur qualifie manuellement',
+    'offer.form.scenario_c_desc':        'Test requis, qualification manuelle après',
+    'offer.form.title_placeholder':      'Ex: Développeur Full Stack Senior',
+    'offer.form.experience_placeholder': 'Ex: 3 ans minimum',
+    'offer.form.salary_placeholder':     'Ex: 2–4M Ar/mois',
+    'offer.form.languages_placeholder':  'Français, Anglais…',
+
+    // Offer chips / detail labels
+    'offer.chip.contract':           '📄 Contrat',
+    'offer.chip.location':           '📍 Localisation',
+    'offer.chip.salary':             '💰 Salaire',
+    'offer.chip.experience':         '🕐 Expérience',
+    'offer.chip.recruiter':          '✉️ Recruteur',
+    'offer.chip.created_on':         '📅 Créée le',
+    'offer.chip.qualification_mode': 'Mode qualification',
+
+    // Offer detail sections
+    'offer.section.main_missions':           '📋 Missions principales',
+    'offer.section.desired_profile':         '🎯 Profil souhaité',
+    'offer.section.qualifications':          '🎓 Diplômes & compétences requis',
+    'offer.section.thank_you_message':       '💬 Formule de remerciement',
+    'offer.section.public_application_link': '🔗 Lien de candidature publique',
+    'offer.section.recruitment_test':        '📋 Test de recrutement',
+    'offer.section.rdv_link':                '🔗 Lien RDV (Cal.com / Calendar)',
+    'offer.section.batch_selection':         '🏆 Sélection batch',
+
+    // Offer buttons
+    'offer.btn.open_calendar':    'Ouvrir le calendrier ↗',
+    'offer.btn.copy_public_link': '📋 Copier le lien',
+    'offer.btn.configure_in_offer': 'Configurer dans l\'offre',
+
+    // Offer batch eval modal
+    'offer.batch.btn_launch':        '🏆 Lancer l\'évaluation',
+    'offer.batch.no_selection':      'Aucune sélection batch pour l\'instant',
+    'offer.batch.hint':              'Lancez une évaluation depuis le bouton 🏆 sur la carte de l\'offre',
+    'offer.batch.modal_description': 'Claude va comparer tous les candidats analysés et sélectionner les meilleurs. Les sélectionnés passent en <strong>QUALIFIÉ</strong> avec une justification.',
+    'offer.batch.modal_hint':        '⏳ L\'évaluation prend 30–60 secondes. Rafraîchissez les candidatures après pour voir les résultats.',
+    'offer.batch.count_label':       'Nombre de candidats à sélectionner',
+
+    // Offer test fields
+    'offer.test.date':     'Date',
+    'offer.test.time':     'Heure',
+    'offer.test.location': 'Lieu',
+
+    // Offer misc
+    'offer.modal.job_offer':          'Offre d\'emploi',
+    'offer.empty.no_calendar_link':   'Aucun lien de calendrier configuré',
+    'offer.cand_count_one':           '{0} candidature',
+    'offer.cand_count_many':          '{0} candidatures',
+    'offer.badge.qualified_caps':     '✅ QUALIFIÉ',
+    'offer.badge.test_summoned':      '📋 Test convoqué',
+    'offer.badge.pending_test':       '⏳ À convoquer',
+
+    // Offer inspection
+    'offer.inspection.approved':         'Approuvée par l\'Inspection du Travail',
+    'offer.inspection.pending_approval': 'En attente d\'approbation — Inspection du Travail',
+    'offer.inspection.cannot_activate':  'L\'offre ne peut pas être activée sans cette approbation.',
+    'offer.inspection.btn_approve':      'Approuver',
+
+    // Candidature detail sections
+    'cand.section.candidate_info':           'Informations du candidat',
+    'cand.section.documents':                'Documents',
+    'cand.section.detected_skills':          '✅ Compétences détectées',
+    'cand.section.missing_skills':           '⚠️ Compétences manquantes',
+    'cand.section.strengths':                '✅ Points forts',
+    'cand.section.weaknesses':               '⚠️ Points faibles',
+    'cand.section.analysis_summary':         'Résumé de l\'analyse',
+    'cand.section.recruiter_notes':          '📝 Note recruteur (interne)',
+    'cand.section.interview_email_tracking': '📧 Suivi emails entretien',
+    'cand.section.manual_rdv':               '📅 RDV Manuel confirmé',
+    'cand.section.batch_selected':           '🏆 Sélectionné par évaluation batch',
+    'cand.tab.analysis':                     '📊 Analyse IA',
+    'cand.tab.decision':                     '🎯 Décision',
+    'cand.tab.infos':                        '📝 Infos',
+    'cand.badge.pending':                    'Analyse…',
+
+    // Candidature buttons
+    'cand.btn.view_cv':         '📄 Voir le CV',
+    'cand.btn.upload':          '⬆️ Uploader',
+    'cand.btn.view_cover_letter': '📝 Lettre de motivation',
+
+    // Candidature form
+    'cand.form.notes_placeholder':   'Observations internes sur ce candidat…',
+    'cand.form.application_date':    'Date candidature',
+    'cand.form.choose_cv':           'Choisir un CV (PDF, Word…)',
+    'cand.form.contact_info_hint':   'Email ou téléphone requis. Sans email, le candidat sera marqué "À appeler".',
+    'cand.form.btn_save':            '💾 Enregistrer',
+    'cand.form.select_offer':        'Sélectionner une offre…',
+
+    // Candidature modal
+    'cand.modal.title':    'Nouvelle candidature',
+    'cand.modal.subtitle': 'Saisie manuelle',
+
+    // Candidature analysis
+    'cand.analysis_in_progress_title': 'Analyse IA en cours…',
+    'cand.analysis_in_progress_text':  'Le workflow n8n analyse la candidature. Revenez dans quelques instants.',
+
+    // Candidature batch
+    'cand.batch.selected_label': 'Sélectionné par évaluation batch',
+
+    // Candidature decision
+    'cand.decision.test_required':       '📋 Test requis',
+    'cand.decision.test_required_first': 'Convoquer au test d\'abord',
+    'cand.decision.qualify':             'Qualifier',
+    'cand.decision.to_review':           'À revoir',
+    'cand.decision.eliminate':           'Éliminer',
+
+    // Candidature talent pool
+    'cand.pool.section_label':       'Vivier',
+    'cand.pool.is_potential':        'Candidat potentiel',
+    'cand.pool.mark_as_potential':   'Marquer comme potentiel',
+    'cand.pool.click_to_remove':     'Cliquer pour retirer du vivier',
+    'cand.pool.future_offers':       'À considérer pour de futures offres',
+    'cand.pool.active_badge':        'Actif',
+
+    // Candidature form extra
+    'cand.form.candidate_name':  'Nom du candidat',
+    'cand.form.cv_optional':     'CV (optionnel)',
+    'cand.form.letter_optional': 'Lettre de motivation (optionnel)',
+
+    // RDV Calcom modal
+    'rdv.modal.title':              'Prise de rendez-vous',
+    'rdv.step.available_dates':     'Dates disponibles',
+    'rdv.step.available_slots':     'Créneaux disponibles',
+    'rdv.step.meeting_type':        'Type de rencontre',
+    'rdv.type.video':               'Visio',
+    'rdv.type.video_hint':          'Lien généré par cal.com',
+    'rdv.type.in_person':           'Présentiel',
+    'rdv.type.in_person_hint':      'Saisir une adresse',
+    'rdv.placeholder.address':      'Adresse complète du lieu…',
+    'rdv.btn.confirm':              'Confirmer le rendez-vous',
+
+    // Candidature email tracking
+    'cand.email.invitation':  '✉️ Invitation',
+    'cand.email.follow_up_1': '🔔 Relance 1',
+    'cand.email.follow_up_2': '🔔 Relance 2',
+
+    // Badges généraux
+    'badge.to_call':                '📞 À APPELER',
+    'badge.appointment_booked':     '📅 RDV pris',
+    'badge.not_interested':         '✗ Non intéressé',
+    'badge.analysis_in_progress':   'Analyse…',
+
+    // Pagination
+    'pagination.prev': '← Préc.',
+    'pagination.next': 'Suiv. →',
+
+    // n8n page
+    'n8n.section.architecture':        '⚡ Architecture actuelle',
+    'n8n.section.test_webhook':        '🧪 Tester le webhook',
+    'n8n.section.recent_executions':   'Exécutions récentes — WF2',
+    'n8n.wf2.title':                   'WF2 — Analyse IA Candidature (Webhook)',
+    'n8n.wf2.active_waiting':          'Actif — En attente de candidatures',
+    'n8n.wf2.inactive':                'Inactif',
+    'n8n.wf2.connection_error':        '⚠️ Erreur de connexion',
+    'n8n.btn.open_in_n8n':             'Ouvrir dans n8n ↗',
+    'n8n.test.description':            'Envoie une candidature de test à n8n pour vérifier que le webhook fonctionne correctement. Sélectionnez d\'abord une offre existante.',
+    'n8n.test.offer_label':            'Offre de test',
+    'n8n.test.email_label':            'Email candidat test',
+    'n8n.test.btn_send':               '🚀 Envoyer test',
+    'n8n.test.wf2_triggered':          '✅ WF2 déclenché',
+    'n8n.test.from_app':               'Test depuis l\'app',
+    'n8n.test.badge_test_data':        'Données de test',
+    'n8n.empty.no_recent_executions':  'Aucune exécution récente',
+    'n8n.empty.no_offers':             'Aucune offre disponible',
+    'n8n.error.select_offer':          'Sélectionnez une offre',
+    'n8n.test.sending':                'Envoi…',
+    'n8n.test.sent':                   'Webhook envoyé !',
+    'n8n.test.loading':                'Chargement…',
+
+    // n8n architecture items
+    'n8n.arch.node.title':   'Application Node.js',
+    'n8n.arch.node.item1':   'Formulaire création offre',
+    'n8n.arch.node.item2':   'Enregistrement MongoDB',
+    'n8n.arch.node.item3':   'Email lien offre → recruteur',
+    'n8n.arch.node.item4':   'Formulaire candidature',
+    'n8n.arch.node.item5':   'Upload CV + lettre',
+    'n8n.arch.node.item6':   'Déclenche WF2 via Webhook',
+    'n8n.arch.wf2.title':    'n8n WF2 (Webhook)',
+    'n8n.arch.wf2.item1':    'Reçoit CV + lettre (base64)',
+    'n8n.arch.wf2.item2':    'Analyse Claude IA (score /10)',
+    'n8n.arch.wf2.item3':    'Met à jour MongoDB (PATCH)',
+    'n8n.arch.wf2.item4':    'Email accusé → candidat',
+    'n8n.arch.wf2.item5':    'Email résultat → recruteur',
+    'n8n.arch.wf2.item6':    'Relances agenda (48h + 24h)',
+
     // Settings page — hardcoded ternaries
     'settings.company_desc':        'Le thème et les données sont associés à votre société.',
     'settings.n8n_desc':            'Pour modifier ces valeurs, éditez le fichier <code class="pg-code">.env</code> sur le serveur.',
@@ -695,6 +892,8 @@ const TRANSLATIONS = {
     'table.tracking_status': 'Tracking status',
     'table.date':            'Date',
     'table.actions':         'Actions',
+    'table.education':       'Education',
+    'table.experience':      'Experience',
     'table.name':            'Name',
     'table.email':           'Email',
     'table.company':         'Company',
@@ -1091,6 +1290,201 @@ const TRANSLATIONS = {
     'offer.calendar.publication_date':    '📢 Publication date',
     'offer.calendar.selection_deadline':  '⏱️ Selection deadline',
     'offer.batch_eval.subtitle':          'Claude will rank the analyzed candidates',
+
+    // Offer form — labels hardcoded
+    'offer.form.subtitle':               'Fill in the position details',
+    'offer.form.section_info':           'Position information',
+    'offer.form.section_calendar':       'Calendar & status',
+    'offer.form.section_qualification':  'Qualification mode',
+    'offer.form.rdv_required_hint':      '⚠️ Fill in the appointment link to activate',
+    'offer.form.thank_you_label':        '💬 Thank-you message (shown to candidate after applying)',
+    'offer.form.btn_save':               '💾 Save offer',
+    'offer.form.scenario_a_desc':        'AI analysis + emails sent automatically',
+    'offer.form.scenario_b_desc':        'AI analysis, recruiter qualifies manually',
+    'offer.form.scenario_c_desc':        'Test required, manual qualification after',
+    'offer.form.title_placeholder':      'E.g. Senior Full Stack Developer',
+    'offer.form.experience_placeholder': 'E.g. Minimum 3 years',
+    'offer.form.salary_placeholder':     'E.g. 2–4M Ar/month',
+    'offer.form.languages_placeholder':  'French, English…',
+
+    // Offer chips / detail labels
+    'offer.chip.contract':           '📄 Contract',
+    'offer.chip.location':           '📍 Location',
+    'offer.chip.salary':             '💰 Salary',
+    'offer.chip.experience':         '🕐 Experience',
+    'offer.chip.recruiter':          '✉️ Recruiter',
+    'offer.chip.created_on':         '📅 Created on',
+    'offer.chip.qualification_mode': 'Qualification mode',
+
+    // Offer detail sections
+    'offer.section.main_missions':           '📋 Main responsibilities',
+    'offer.section.desired_profile':         '🎯 Desired profile',
+    'offer.section.qualifications':          '🎓 Required qualifications & skills',
+    'offer.section.thank_you_message':       '💬 Thank-you message',
+    'offer.section.public_application_link': '🔗 Public application link',
+    'offer.section.recruitment_test':        '📋 Recruitment test',
+    'offer.section.rdv_link':                '🔗 Appointment link (Cal.com / Calendar)',
+    'offer.section.batch_selection':         '🏆 Batch selection',
+
+    // Offer buttons
+    'offer.btn.open_calendar':      'Open calendar ↗',
+    'offer.btn.copy_public_link':   '📋 Copy link',
+    'offer.btn.configure_in_offer': 'Configure in offer',
+
+    // Offer batch eval modal
+    'offer.batch.btn_launch':        '🏆 Launch evaluation',
+    'offer.batch.no_selection':      'No batch selection yet',
+    'offer.batch.hint':              'Launch an evaluation using the 🏆 button on the offer card',
+    'offer.batch.modal_description': 'Claude will compare all analyzed candidates and select the best ones. Selected candidates move to <strong>QUALIFIED</strong> with a justification.',
+    'offer.batch.modal_hint':        '⏳ Evaluation takes 30–60 seconds. Refresh applications after to see results.',
+    'offer.batch.count_label':       'Number of candidates to select',
+
+    // Offer test fields
+    'offer.test.date':     'Date',
+    'offer.test.time':     'Time',
+    'offer.test.location': 'Location',
+
+    // Offer misc
+    'offer.modal.job_offer':          'Job offer',
+    'offer.empty.no_calendar_link':   'No calendar link configured',
+    'offer.cand_count_one':           '{0} application',
+    'offer.cand_count_many':          '{0} applications',
+    'offer.badge.qualified_caps':     '✅ QUALIFIED',
+    'offer.badge.test_summoned':      '📋 Test scheduled',
+    'offer.badge.pending_test':       '⏳ Pending test',
+
+    // Offer inspection
+    'offer.inspection.approved':         'Approved by Labor Inspection',
+    'offer.inspection.pending_approval': 'Pending approval — Labor Inspection',
+    'offer.inspection.cannot_activate':  'The offer cannot be activated without this approval.',
+    'offer.inspection.btn_approve':      'Approve',
+
+    // Candidature detail sections
+    'cand.section.candidate_info':           'Candidate information',
+    'cand.section.documents':                'Documents',
+    'cand.section.detected_skills':          '✅ Detected skills',
+    'cand.section.missing_skills':           '⚠️ Missing skills',
+    'cand.section.strengths':                '✅ Strengths',
+    'cand.section.weaknesses':               '⚠️ Weaknesses',
+    'cand.section.analysis_summary':         'Analysis summary',
+    'cand.section.recruiter_notes':          '📝 Recruiter notes (internal)',
+    'cand.section.interview_email_tracking': '📧 Interview email tracking',
+    'cand.section.manual_rdv':               '📅 Manual appointment confirmed',
+    'cand.section.batch_selected':           '🏆 Selected by batch evaluation',
+    'cand.tab.analysis':                     '📊 AI Analysis',
+    'cand.tab.decision':                     '🎯 Decision',
+    'cand.tab.infos':                        '📝 Info',
+    'cand.badge.pending':                    'Analysing…',
+
+    // Candidature buttons
+    'cand.btn.view_cv':           '📄 View CV',
+    'cand.btn.upload':            '⬆️ Upload',
+    'cand.btn.view_cover_letter': '📝 Cover letter',
+
+    // Candidature form
+    'cand.form.notes_placeholder':   'Internal notes about this candidate…',
+    'cand.form.application_date':    'Application date',
+    'cand.form.choose_cv':           'Choose CV (PDF, Word…)',
+    'cand.form.contact_info_hint':   'Email or phone required. Without email, candidate will be marked "To call".',
+    'cand.form.btn_save':            '💾 Save',
+    'cand.form.select_offer':        'Select an offer…',
+
+    // Candidature modal
+    'cand.modal.title':    'New application',
+    'cand.modal.subtitle': 'Manual entry',
+
+    // Candidature analysis
+    'cand.analysis_in_progress_title': 'AI analysis in progress…',
+    'cand.analysis_in_progress_text':  'The n8n workflow is analyzing the application. Come back shortly.',
+
+    // Candidature batch
+    'cand.batch.selected_label': 'Selected by batch evaluation',
+
+    // Candidature decision
+    'cand.decision.test_required':       '📋 Test required',
+    'cand.decision.test_required_first': 'Schedule test first',
+    'cand.decision.qualify':             'Qualify',
+    'cand.decision.to_review':           'To review',
+    'cand.decision.eliminate':           'Reject',
+
+    // Candidature talent pool
+    'cand.pool.section_label':       'Talent pool',
+    'cand.pool.is_potential':        'Talent pool candidate',
+    'cand.pool.mark_as_potential':   'Add to talent pool',
+    'cand.pool.click_to_remove':     'Click to remove from pool',
+    'cand.pool.future_offers':       'Consider for future opportunities',
+    'cand.pool.active_badge':        'Active',
+
+    // Candidature form extra
+    'cand.form.candidate_name':  'Candidate name',
+    'cand.form.cv_optional':     'CV (optional)',
+    'cand.form.letter_optional': 'Cover letter (optional)',
+
+    // RDV Calcom modal
+    'rdv.modal.title':              'Book appointment',
+    'rdv.step.available_dates':     'Available dates',
+    'rdv.step.available_slots':     'Available time slots',
+    'rdv.step.meeting_type':        'Meeting type',
+    'rdv.type.video':               'Video call',
+    'rdv.type.video_hint':          'Link generated by cal.com',
+    'rdv.type.in_person':           'In person',
+    'rdv.type.in_person_hint':      'Enter an address',
+    'rdv.placeholder.address':      'Full meeting address…',
+    'rdv.btn.confirm':              'Confirm appointment',
+
+    // Candidature email tracking
+    'cand.email.invitation':  '✉️ Invitation',
+    'cand.email.follow_up_1': '🔔 Follow-up 1',
+    'cand.email.follow_up_2': '🔔 Follow-up 2',
+
+    // General badges
+    'badge.to_call':              '📞 TO CALL',
+    'badge.appointment_booked':   '📅 Appt. booked',
+    'badge.not_interested':       '✗ Not interested',
+    'badge.analysis_in_progress': 'Analysis…',
+
+    // Pagination
+    'pagination.prev': '← Prev',
+    'pagination.next': 'Next →',
+
+    // n8n page
+    'n8n.section.architecture':        '⚡ Current architecture',
+    'n8n.section.test_webhook':        '🧪 Test webhook',
+    'n8n.section.recent_executions':   'Recent executions — WF2',
+    'n8n.wf2.title':                   'WF2 — Application AI Analysis (Webhook)',
+    'n8n.wf2.active_waiting':          'Active — Waiting for applications',
+    'n8n.wf2.inactive':                'Inactive',
+    'n8n.wf2.connection_error':        '⚠️ Connection error',
+    'n8n.btn.open_in_n8n':             'Open in n8n ↗',
+    'n8n.test.description':            'Send a test application to n8n to verify the webhook is working correctly. First select an existing offer.',
+    'n8n.test.offer_label':            'Test offer',
+    'n8n.test.email_label':            'Test candidate email',
+    'n8n.test.btn_send':               '🚀 Send test',
+    'n8n.test.wf2_triggered':          '✅ WF2 triggered',
+    'n8n.test.from_app':               'Test from app',
+    'n8n.test.badge_test_data':        'Test data',
+    'n8n.empty.no_recent_executions':  'No recent executions',
+    'n8n.empty.no_offers':             'No offers available',
+    'n8n.error.select_offer':          'Select an offer',
+    'n8n.test.sending':                'Sending…',
+    'n8n.test.sent':                   'Webhook sent!',
+    'n8n.test.loading':                'Loading…',
+
+    // n8n architecture items
+    'n8n.arch.node.title':   'Node.js Application',
+    'n8n.arch.node.item1':   'Job offer creation form',
+    'n8n.arch.node.item2':   'MongoDB registration',
+    'n8n.arch.node.item3':   'Offer link email → recruiter',
+    'n8n.arch.node.item4':   'Application form',
+    'n8n.arch.node.item5':   'CV + cover letter upload',
+    'n8n.arch.node.item6':   'Triggers WF2 via Webhook',
+    'n8n.arch.wf2.title':    'n8n WF2 (Webhook)',
+    'n8n.arch.wf2.item1':    'Receives CV + cover letter (base64)',
+    'n8n.arch.wf2.item2':    'Claude AI analysis (score /10)',
+    'n8n.arch.wf2.item3':    'Updates MongoDB (PATCH)',
+    'n8n.arch.wf2.item4':    'Acknowledgement email → candidate',
+    'n8n.arch.wf2.item5':    'Result email → recruiter',
+    'n8n.arch.wf2.item6':    'Scheduled follow-ups (48h + 24h)',
 
     // Settings page — hardcoded ternaries
     'settings.company_desc':        'Theme and data are associated with your company.',

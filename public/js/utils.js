@@ -22,6 +22,7 @@ const api = {
       headers: {
         ...(opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
         ...(Auth.token() ? { 'Authorization': `Bearer ${Auth.token()}` } : {}),
+        'X-Lang': (Auth.user()?.company === 'optimum') ? 'en' : 'fr',
         ...(opts.headers || {}),
       },
     });

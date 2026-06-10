@@ -2,6 +2,7 @@ const express      = require('express');
 const router       = express.Router();
 const axios        = require('axios');
 const Candidature  = require('../models/Candidature');
+const { be }       = require('../middleware/i18n');
 
 const CAL_BASE = 'https://api.cal.com/v2';
 
@@ -107,7 +108,7 @@ router.get('/event-types', async (req, res) => {
 router.post('/event-types', async (req, res) => {
   const { title, lengthInMinutes, description, scheduleId } = req.body;
   if (!title || !lengthInMinutes)
-    return res.status(400).json({ success: false, error: 'title and lengthInMinutes are required' });
+    return res.status(400).json({ success: false, error: be(req, 'title et lengthInMinutes sont requis', 'title and lengthInMinutes are required') });
   try {
     const slug    = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const payload = { title, slug, lengthInMinutes: Number(lengthInMinutes) };
@@ -159,7 +160,7 @@ router.get('/schedules', async (req, res) => {
 router.post('/schedules', async (req, res) => {
   const { name, timeZone, availability, dateOverrides } = req.body;
   if (!name || !timeZone)
-    return res.status(400).json({ success: false, error: 'name and timeZone are required' });
+    return res.status(400).json({ success: false, error: be(req, 'name et timeZone sont requis', 'name and timeZone are required') });
   try {
     // Step 1: create the schedule (Cal.com ignores dateOverrides on POST)
     const createPayload = { name, timeZone, isDefault: false };
@@ -266,7 +267,7 @@ router.post('/bookings/:uid/cancel', async (req, res) => {
 router.post('/bookings/:uid/reschedule', async (req, res) => {
   try {
     const { start, reason, candidature_id } = req.body;
-    if (!start) return res.status(400).json({ success: false, error: 'start is required' });
+    if (!start) return res.status(400).json({ success: false, error: be(req, 'start est requis', 'start is required') });
 
     const r = await axios.post(
       `${CAL_BASE}/bookings/${req.params.uid}/reschedule`,

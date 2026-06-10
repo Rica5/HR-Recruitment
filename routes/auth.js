@@ -6,6 +6,7 @@ const { signToken, verifyToken } = require('../middleware/auth');
 const { logAudit } = require('../services/audit');
 const { sendPasswordResetEmail } = require('../services/email');
 const { createRateLimiter } = require('../middleware/rateLimiter');
+const { be } = require('../middleware/i18n');
 
 // 10 attempts / 15 min per IP — brute-force protection
 const loginRateLimiter = createRateLimiter({
@@ -18,10 +19,10 @@ const loginRateLimiter = createRateLimiter({
 router.post('/login', loginRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ success: false, error: 'Email and password required' });
+    if (!email || !password) return res.status(400).json({ success: false, error: be(req, 'Email et mot de passe requis', 'Email and password required') });
     const user = await User.findOne({ email, actif: true });
     if (!user || !(await user.checkPassword(password)))
-      return res.status(401).json({ success: false, error: 'Incorrect credentials' });
+      return res.status(401).json({ success: false, error: be(req, 'Identifiants incorrects', 'Incorrect credentials') });
     user.lastLogin = new Date();
     await user.save();
     logAudit({ action: 'USER_LOGIN', entity_type: 'user', entity_id: user._id.toString(), entity_label: user.nom, user_email: user.email, details: { ip: req.ip } });
@@ -35,7 +36,7 @@ router.post('/login', loginRateLimiter, async (req, res) => {
 router.get('/me', verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (!user) return res.status(404).json({ success: false, error: be(req, 'Utilisateur introuvable', 'User not found') });
     res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -46,7 +47,7 @@ router.get('/me', verifyToken, async (req, res) => {
 router.patch('/theme', verifyToken, async (req, res) => {
   try {
     if (!['solumada', 'optimum'].includes(req.body.theme))
-      return res.status(400).json({ success: false, error: 'Invalid theme' });
+      return res.status(400).json({ success: false, error: be(req, 'Thème invalide', 'Invalid theme') });
     const user = await User.findByIdAndUpdate(req.user.id, { theme: req.body.theme }, { new: true }).select('-password');
     res.json({ success: true, user, token: signToken(user) });
   } catch (err) {
@@ -58,10 +59,10 @@ router.patch('/theme', verifyToken, async (req, res) => {
 router.post('/setup', async (req, res) => {
   try {
     const count = await User.countDocuments();
-    if (count > 0) return res.status(403).json({ success: false, error: 'Setup already completed' });
+    if (count > 0) return res.status(403).json({ success: false, error: be(req, 'Configuration déjà effectuée', 'Setup already completed') });
     const { nom, email, password, company } = req.body;
     if (!company || !['solumada', 'optimum'].includes(company))
-      return res.status(400).json({ success: false, error: "company required: 'solumada' or 'optimum'" });
+      return res.status(400).json({ success: false, error: be(req, "Société requise : 'solumada' ou 'optimum'", "company required: 'solumada' or 'optimum'") });
     const user = await User.create({ nom, email, password, role: 'admin', company });
     res.status(201).json({ success: true, token: signToken(user), user: user.toSafe() });
   } catch (err) {
@@ -76,7 +77,7 @@ router.patch('/me', verifyToken, async (req, res) => {
     const updates = {};
     if (nom) updates.nom = nom;
     if (password) {
-      if (password.length < 6) return res.status(400).json({ success: false, error: 'Password too short' });
+      if (password.length < 6) return res.status(400).json({ success: false, error: be(req, 'Mot de passe trop court (6 caractères minimum)', 'Password too short (minimum 6 characters)') });
       const bcrypt = require('bcryptjs');
       updates.password = await bcrypt.hash(password, 12);
     }
@@ -91,7 +92,7 @@ router.patch('/me', verifyToken, async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+    if (!email) return res.status(400).json({ success: false, error: be(req, 'Email requis', 'Email required') });
     const user = await User.findOne({ email: email.toLowerCase() });
     // Always respond OK to avoid revealing if the email exists
     if (!user) return res.json({ success: true });
@@ -111,10 +112,10 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body;
-    if (!token || !password) return res.status(400).json({ success: false, error: 'Token and password required' });
-    if (password.length < 6) return res.status(400).json({ success: false, error: 'Minimum 6 characters' });
+    if (!token || !password) return res.status(400).json({ success: false, error: be(req, 'Token et mot de passe requis', 'Token and password required') });
+    if (password.length < 6) return res.status(400).json({ success: false, error: be(req, '6 caractères minimum', 'Minimum 6 characters') });
     const user = await User.findOne({ resetToken: token, resetTokenExpiry: { $gt: new Date() } });
-    if (!user) return res.status(400).json({ success: false, error: 'Link invalid or expired' });
+    if (!user) return res.status(400).json({ success: false, error: be(req, 'Lien invalide ou expiré', 'Link invalid or expired') });
     user.password = password;
     user.resetToken = undefined;
     user.resetTokenExpiry = undefined;

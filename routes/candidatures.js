@@ -15,6 +15,7 @@ const { sendRejectionEmail, sendTestSummons } = require("../services/email");
 const { logAudit } = require("../services/audit");
 const { upload, handleUploadError } = require("../middleware/upload");
 const { escapeRegex } = require("../utils/text");
+const { be } = require("../middleware/i18n");
 
 // Fields editable by admins via PATCH
 const ADMIN_EDITABLE = new Set([
@@ -63,12 +64,12 @@ router.post(
       if (!offre)
         return res
           .status(404)
-          .json({ success: false, error: "Offer not found" });
+          .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
 
       if (offre.automatisation_active && !data.candidat_email) {
         return res.status(400).json({
           success: false,
-          error: "Email required — this offer uses full automation",
+          error: be(req, "Email requis — cette offre utilise l'automatisation complète", "Email required — this offer uses full automation"),
         });
       }
 
@@ -81,7 +82,7 @@ router.post(
           .status(410)
           .json({
             success: false,
-            error: `Application deadline exceeded (${dateStr}) — application not accepted`,
+            error: be(req, `Date limite dépassée (${dateStr}) — candidature non acceptée`, `Application deadline exceeded (${dateStr}) — application not accepted`),
           });
       }
 
@@ -95,7 +96,7 @@ router.post(
             .status(409)
             .json({
               success: false,
-              error: "This candidate has already applied for this offer",
+              error: be(req, 'Ce candidat a déjà postulé à cette offre', 'This candidate has already applied for this offer'),
             });
       }
 
@@ -199,21 +200,21 @@ router.get("/", async (req, res) => {
 router.get("/calcom/slots", async (req, res) => {
   const { date, offre_id, days } = req.query;
   if (!offre_id)
-    return res.status(400).json({ success: false, error: "offre_id parameter required" });
+    return res.status(400).json({ success: false, error: be(req, 'Paramètre offre_id requis', 'offre_id parameter required') });
 
   let username = '', eventTypeSlug = '';
   try {
     const offre = await Offre.findOne({ offre_id });
     const lienRdv = offre?.lien_rdv || offre?.lien_calendar;
     if (!lienRdv)
-      return res.status(400).json({ success: false, error: "This offer has no cal.com link configured" });
+      return res.status(400).json({ success: false, error: be(req, "Cette offre n'a pas de lien cal.com configuré", "This offer has no cal.com link configured") });
 
     const calUrl = new URL(lienRdv);
     const parts = calUrl.pathname.split("/").filter(Boolean);
     username = parts[0];
     eventTypeSlug = parts[1];
     if (!username || !eventTypeSlug)
-      return res.status(400).json({ success: false, error: "lien_rdv invalid — expected format: https://cal.com/username/event-slug" });
+      return res.status(400).json({ success: false, error: be(req, "lien_rdv invalide — format attendu : https://cal.com/username/event-slug", "lien_rdv invalid — expected format: https://cal.com/username/event-slug") });
 
     let startTime, endTime;
     if (date) {
@@ -259,7 +260,7 @@ router.get("/calcom/slots", async (req, res) => {
 
       if (!eventTypeId) {
         const msg = pubErr.response?.data?.message || pubErr.message;
-        return res.status(502).json({ success: false, error: `cal.com error: ${msg}` });
+        return res.status(502).json({ success: false, error: be(req, `Erreur cal.com : ${msg}`, `cal.com error: ${msg}`) });
       }
 
       r = await axios.get("https://api.cal.com/v2/slots/available", {
@@ -293,7 +294,7 @@ router.get("/calcom/slots", async (req, res) => {
     const msg    = err.response?.data?.message || err.message;
     const detail = status === 404
       ? `Event type not found on cal.com — check lien_rdv (username="${username}", slug="${eventTypeSlug}")`
-      : `cal.com error: ${msg}`;
+      : be(req, `Erreur cal.com : ${msg}`, `cal.com error: ${msg}`);
     res.status(502).json({ success: false, error: detail });
   }
 });
@@ -320,7 +321,7 @@ router.get("/:id", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
     res.json({ success: true, candidature });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -337,7 +338,7 @@ router.patch("/:id", async (req, res) => {
     if (!Object.keys(update).length)
       return res
         .status(400)
-        .json({ success: false, error: "No editable fields provided" });
+        .json({ success: false, error: be(req, 'Aucun champ modifiable fourni', 'No editable fields provided') });
 
     const candidature = await Candidature.findOneAndUpdate(
       { _id: req.params.id },
@@ -347,7 +348,7 @@ router.patch("/:id", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
     if (update.statut) {
       logAudit({
         action: "STATUT_CHANGE",
@@ -371,12 +372,12 @@ router.post("/:id/envoyer-emails-qualification", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
     const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
-        .json({ success: false, error: "Offer not found" });
+        .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
 
     if (!candidature.candidat_email) {
       await Candidature.findByIdAndUpdate(req.params.id, {
@@ -402,7 +403,7 @@ router.post("/:id/envoyer-emails-qualification", async (req, res) => {
         .status(502)
         .json({
           success: false,
-          error: result.error || "Qualification webhook unavailable",
+          error: result.error || be(req, 'Webhook de qualification indisponible', 'Qualification webhook unavailable'),
         });
     }
 
@@ -434,12 +435,12 @@ router.post("/:id/envoyer-email-refus", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
     const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
-        .json({ success: false, error: "Offer not found" });
+        .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
     await sendRejectionEmail({ candidature, offre });
     res.json({ success: true, message: "Rejection email sent" });
   } catch (err) {
@@ -458,13 +459,13 @@ router.post("/:id/convoquer-test", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
 
     const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
-        .json({ success: false, error: "Offer not found" });
+        .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
 
     sendTestSummons({ candidature, offre }).catch(e => {
       console.warn("sendTestSummons failed:", e.message);
@@ -502,7 +503,7 @@ router.post("/:id/rdv-manuel", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
     logAudit({
       action: "RDV_PLANIFIE",
       entity_type: "candidature",
@@ -522,18 +523,18 @@ router.post("/:id/planifier-rdv", async (req, res) => {
   try {
     const { date, heure, lieu, note, slot_iso, type_rdv } = req.body;
     if (!date)
-      return res.status(400).json({ success: false, error: "Date required" });
+      return res.status(400).json({ success: false, error: be(req, 'Date requise', 'Date required') });
 
     const candidature = await Candidature.findOne({ _id: req.params.id });
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
     const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
-        .json({ success: false, error: "Offer not found" });
+        .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
 
     const CALCOM_API_KEY = process.env.CALCOM_API_KEY;
     let calcom_booking_uid = null;
@@ -663,13 +664,13 @@ router.post("/:id/relancer-workflow", async (req, res) => {
     if (!candidature)
       return res
         .status(404)
-        .json({ success: false, error: "Application not found" });
+        .json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
 
     const offre = await Offre.findOne({ offre_id: candidature.offre_id });
     if (!offre)
       return res
         .status(404)
-        .json({ success: false, error: "Offer not found" });
+        .json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
 
     const result = await triggerAIAnalysis(candidature, offre);
     if (result.success) {
@@ -690,7 +691,7 @@ router.post("/:id/relancer-workflow", async (req, res) => {
         .status(502)
         .json({
           success: false,
-          error: result.error || "n8n webhook unavailable",
+          error: result.error || be(req, 'Webhook n8n indisponible', 'n8n webhook unavailable'),
         });
     }
   } catch (err) {
@@ -703,8 +704,8 @@ router.post("/:id/relancer-workflow", async (req, res) => {
 router.post("/:id/upload-cv", upload.single("cv"), handleUploadError, async (req, res) => {
   try {
     const c = await Candidature.findOne({ _id: req.params.id });
-    if (!c) return res.status(404).json({ success: false, error: "Application not found" });
-    if (!req.file) return res.status(400).json({ success: false, error: "No file received" });
+    if (!c) return res.status(404).json({ success: false, error: be(req, 'Candidature introuvable', 'Application not found') });
+    if (!req.file) return res.status(400).json({ success: false, error: be(req, 'Aucun fichier reçu', 'No file received') });
 
     if (c.cv_path) {
       const oldFile = path.join(__dirname, "..", c.cv_path);
@@ -759,12 +760,12 @@ router.delete("/:id", async (req, res) => {
 router.post('/batch-cv', upload.array('cvs', 50), handleUploadError, async (req, res) => {
   try {
     const { offre_id } = req.body;
-    if (!offre_id) return res.status(400).json({ success: false, error: 'offre_id required' });
+    if (!offre_id) return res.status(400).json({ success: false, error: be(req, 'offre_id requis', 'offre_id required') });
     if (!req.files || req.files.length === 0)
-      return res.status(400).json({ success: false, error: 'No CV sent' });
+      return res.status(400).json({ success: false, error: be(req, 'Aucun CV envoyé', 'No CV sent') });
 
     const offre = await Offre.findOne({ offre_id });
-    if (!offre) return res.status(404).json({ success: false, error: 'Offer not found' });
+    if (!offre) return res.status(404).json({ success: false, error: be(req, 'Offre introuvable', 'Offer not found') });
 
     const created = [];
     for (const file of req.files) {

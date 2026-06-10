@@ -309,7 +309,7 @@ function openCreateSchedule() {
 
   const tzOptions = [
     { tz: 'Indian/Antananarivo', label: 'Madagascar (UTC+3)' },
-    { tz: 'Indian/Mauritius',    label: 'Île Maurice (UTC+4)' },
+    { tz: 'Indian/Mauritius',    label: LANG === 'en' ? 'Mauritius (UTC+4)' : 'Île Maurice (UTC+4)' },
   ].map(({ tz, label }) => `<option value="${tz}">${label}</option>`).join('');
 
   const dayPillHtml = [
@@ -513,7 +513,7 @@ function openEditSchedule(scheduleId) {
 
   const tzOptions = [
     { tz: 'Indian/Antananarivo', label: 'Madagascar (UTC+3)' },
-    { tz: 'Indian/Mauritius',    label: 'Île Maurice (UTC+4)' },
+    { tz: 'Indian/Mauritius',    label: LANG === 'en' ? 'Mauritius (UTC+4)' : 'Île Maurice (UTC+4)' },
   ].map(({ tz, label }) => `<option value="${tz}"${s.timeZone === tz ? ' selected' : ''}>${label}</option>`).join('');
 
   const dayPillHtml = [

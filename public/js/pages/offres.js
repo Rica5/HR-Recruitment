@@ -104,7 +104,7 @@ ${offers.map(o => {
       ${o.statut === 'Active' ? `<button class="btn-icon" title="${t('btn.copy_link')}" onclick="event.stopPropagation();copyOfferLink('${o.offre_id}')">🔗</button>` : ''}
       <button class="btn-icon" title="${t('btn.edit')}" onclick="event.stopPropagation();editOffer('${o.offre_id}')">✏️</button>
       <div style="position:relative">
-        <button class="btn-icon" title="Plus d'options" onclick="event.stopPropagation();toggleOfferMenu('${o.offre_id}')">•••</button>
+        <button class="btn-icon" title="${LANG==='en'?'More options':'Plus d\'options'}" onclick="event.stopPropagation();toggleOfferMenu('${o.offre_id}')">•••</button>
         <div id="offer-menu-${o.offre_id}" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);min-width:170px;z-index:50;overflow:hidden">
           ${hasBatch ? `<button onclick="event.stopPropagation();closeOfferMenu();openBatchEvalModal('${o.offre_id}')" class="offer-menu-item">🏆 ${t('btn.evaluate_candidates')}</button>` : ''}
           <button onclick="event.stopPropagation();closeOfferMenu();cloneOffer('${o.offre_id}')" class="offer-menu-item">⧉ ${t('btn.clone_offer')}</button>
@@ -266,26 +266,26 @@ function showOfferDetail(id) {
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:26px">${approved?'✅':'⏳'}</span>
           <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;color:${approved?'#166534':'#854d0e'}">${approved?"Approuvée par l'Inspection du Travail":"En attente d'approbation — Inspection du Travail"}</div>
+            <div style="font-size:13px;font-weight:700;color:${approved?'#166534':'#854d0e'}">${approved?t('offer.inspection.approved'):t('offer.inspection.pending_approval')}</div>
             ${approved && o.approbation_inspection.date_approbation ? `<div style="font-size:11px;color:#166534;margin-top:2px">Le ${formatDate(o.approbation_inspection.date_approbation)}</div>` : ''}
-            ${!approved ? `<div style="font-size:11px;color:#92400e;margin-top:2px">L'offre ne peut pas être activée sans cette approbation.</div>` : ''}
+            ${!approved ? `<div style="font-size:11px;color:#92400e;margin-top:2px">${t('offer.inspection.cannot_activate')}</div>` : ''}
           </div>
-          ${!approved ? `<button class="btn btn-sm" style="background:#d97706;color:#fff;border:none;flex-shrink:0;font-weight:700" onclick="approveOffer('${o.offre_id}',this)">Approuver</button>` : ''}
+          ${!approved ? `<button class="btn btn-sm" style="background:#d97706;color:#fff;border:none;flex-shrink:0;font-weight:700" onclick="approveOffer('${o.offre_id}',this)">${t('offer.inspection.btn_approve')}</button>` : ''}
         </div>
         ${o.approbation_inspection?.commentaire ? `<div style="font-size:12px;color:var(--text-2);margin-top:10px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-style:italic">${o.approbation_inspection.commentaire}</div>` : ''}
       </div>` : ''}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-        ${infoChip('📄 Contrat', o.type_contrat)}
-        ${infoChip('📍 Localisation', o.localisation)}
-        ${infoChip('🔵 Statut', o.statut)}
-        ${o.salaire ? infoChip('💰 Salaire', o.salaire) : ''}
-        ${o.annees_experience ? infoChip('🕐 Expérience', o.annees_experience) : ''}
-        ${o.langues_requises ? infoChip('🌍 Langues', o.langues_requises) : ''}
-        ${infoChip('✉️ Recruteur', o.email_recruteur)}
-        ${infoChip('📅 Créée le', formatDate(o.date_creation))}
+        ${infoChip(t('offer.chip.contract'), o.type_contrat)}
+        ${infoChip(t('offer.chip.location'), o.localisation)}
+        ${infoChip(t('offer.form.statut'), o.statut)}
+        ${o.salaire ? infoChip(t('offer.chip.salary'), o.salaire) : ''}
+        ${o.annees_experience ? infoChip(t('offer.chip.experience'), o.annees_experience) : ''}
+        ${o.langues_requises ? infoChip(t('offer.form.languages'), o.langues_requises) : ''}
+        ${infoChip(t('offer.chip.recruiter'), o.email_recruteur)}
+        ${infoChip(t('offer.chip.created_on'), formatDate(o.date_creation))}
         <div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px;grid-column:1/-1;display:flex;align-items:center;gap:12px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);flex-shrink:0">Mode qualification</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);flex-shrink:0">${t('offer.chip.qualification_mode')}</div>
           ${o.test_requis
             ? `<span class="badge badge-amber" style="font-size:12px;padding:4px 12px">${t('offer.badge.test_c')}</span>`
             : (o.automatisation_active
@@ -296,40 +296,40 @@ function showOfferDetail(id) {
 
       ${o.missions_principales ? `
       <div style="margin-bottom:16px;padding:16px 18px;background:var(--surface-2);border-radius:var(--r-lg);border-left:3px solid var(--accent)">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:8px">📋 Missions principales</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:8px">${t('offer.section.main_missions')}</div>
         <p style="font-size:13px;color:var(--text-2);line-height:1.85;white-space:pre-line">${o.missions_principales}</p>
       </div>` : ''}
 
       ${o.profil_souhaite ? `
       <div style="margin-bottom:16px;padding:16px 18px;background:#faf5ff;border-radius:var(--r-lg);border-left:3px solid #a78bfa">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:8px">🎯 Profil souhaité</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:8px">${t('offer.section.desired_profile')}</div>
         <p style="font-size:13px;color:var(--text-2);line-height:1.85;white-space:pre-line">${o.profil_souhaite}</p>
       </div>` : ''}
 
       ${o.competences_requises ? `
       <div style="margin-bottom:16px;padding:16px 18px;background:#eff6ff;border-radius:var(--r-lg);border-left:3px solid #60a5fa">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#2563eb;margin-bottom:8px">🎓 Diplômes & compétences requis</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#2563eb;margin-bottom:8px">${t('offer.section.qualifications')}</div>
         <p style="font-size:13px;color:var(--text-2);line-height:1.8">${o.competences_requises}</p>
       </div>` : ''}
 
       ${o.formule_remerciement ? `
       <div style="margin-bottom:16px;padding:14px 16px;background:#f0fdf4;border-radius:var(--r-lg);border:1px solid #bbf7d0">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#166534;margin-bottom:6px">💬 Formule de remerciement</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#166534;margin-bottom:6px">${t('offer.section.thank_you_message')}</div>
         <p style="font-size:12px;color:#166534;font-style:italic;line-height:1.7">${o.formule_remerciement}</p>
       </div>` : ''}
 
       ${o.statut === 'Active' ? `
       <div style="padding:16px 18px;background:var(--accent-soft);border-radius:var(--r-lg);border:1px solid var(--accent-light)">
-        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">🔗 Lien de candidature publique</div>
+        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">${t('offer.section.public_application_link')}</div>
         <div style="font-size:12px;color:var(--accent-mid);word-break:break-all;margin-bottom:10px;font-family:var(--mono)">${location.origin}/postuler?offre_id=${o.offre_id}</div>
-        <button class="btn btn-sm" style="background:var(--accent);color:white;border:none;font-weight:600" onclick="copyOfferLink('${o.offre_id}')">📋 Copier le lien</button>
+        <button class="btn btn-sm" style="background:var(--accent);color:white;border:none;font-weight:600" onclick="copyOfferLink('${o.offre_id}')">${t('offer.btn.copy_public_link')}</button>
       </div>` : ''}
     </div>
 
     <!-- ── Tab Candidatures ── -->
     <div class="offre-tab-panel" id="offre-panel-cands" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap">
-        <div style="font-size:14px;font-weight:700;color:var(--text)">${offerApplications.length} candidature${offerApplications.length!==1?'s':''}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">${offerApplications.length===1?tf('offer.cand_count_one',offerApplications.length):tf('offer.cand_count_many',offerApplications.length)}</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           ${offerApplications.some(c => c.score != null) ? `<button class="btn btn-sm" style="background:var(--accent-soft);color:var(--accent-mid);border:1.5px solid var(--accent-light);font-weight:700" onclick="openBatchEvalModal('${o.offre_id}')">${t('btn.evaluate_candidates')}</button>` : ''}
           <button class="btn btn-primary btn-sm" onclick="launchNewApplicationForOffer('${o.offre_id}')">${t('btn.new_application')}</button>
@@ -371,7 +371,7 @@ function showOfferDetail(id) {
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
             ${channelBadge(c.canal_candidature)}
             ${c.score!=null?`<span style="font-family:var(--mono);font-size:13px;font-weight:700;color:${scoreColor(c.score)}">${c.score}/10</span>`:''}
-            ${showTestBadge ? (testConvoque ? '<span class="badge" style="background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe">📋 Test convoqué</span>' : '<span class="badge badge-gray">⏳ À convoquer</span>') : ''}
+            ${showTestBadge ? (testConvoque ? `<span class="badge" style="background:#ede9fe;color:#7c3aed;border:1px solid #ddd6fe">${t('offer.badge.test_summoned')}</span>` : `<span class="badge badge-gray">${t('offer.badge.pending_test')}</span>`) : ''}
             ${c.recommandation?renderBadge(c.recommandation):'<span class="badge badge-gray">En attente</span>'}
           </div>
           <svg style="width:14px;height:14px;color:var(--text-3);flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
@@ -382,31 +382,31 @@ function showOfferDetail(id) {
     <!-- ── Tab Calendrier ── -->
     <div class="offre-tab-panel" id="offre-panel-cal" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
-        ${calChip('📅 Date butoire', o.date_butoire?formatDate(o.date_butoire):t('offer.calendar.not_set'), !!o.date_butoire)}
+        ${calChip(t('offer.form.deadline'), o.date_butoire?formatDate(o.date_butoire):t('offer.calendar.not_set'), !!o.date_butoire)}
         ${calChip(t('offer.calendar.publication_date'), o.date_parution_prevue?formatDate(o.date_parution_prevue):t('offer.calendar.not_set'), !!o.date_parution_prevue)}
         ${calChip(t('offer.calendar.selection_deadline'), o.date_limite_selection?formatDate(o.date_limite_selection):t('offer.calendar.not_set'), !!o.date_limite_selection)}
       </div>
 
       ${o.test_requis && (o.test_date || o.test_heure || o.test_lieu) ? `
       <div style="padding:18px;background:#faf5ff;border:1px solid #ddd6fe;border-radius:var(--r-lg);margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:14px">📋 Test de recrutement</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:14px">${t('offer.section.recruitment_test')}</div>
         <div style="display:flex;gap:24px;flex-wrap:wrap">
-          ${o.test_date?`<div><div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Date</div><div style="font-size:15px;font-weight:700">${formatDate(o.test_date)}</div></div>`:''}
-          ${o.test_heure?`<div><div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Heure</div><div style="font-size:15px;font-weight:700">${o.test_heure}</div></div>`:''}
-          ${o.test_lieu?`<div><div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Lieu</div><div style="font-size:15px;font-weight:700">${o.test_lieu}</div></div>`:''}
+          ${o.test_date?`<div><div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${t('offer.test.date')}</div><div style="font-size:15px;font-weight:700">${formatDate(o.test_date)}</div></div>`:''}
+          ${o.test_heure?`<div><div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${t('offer.test.time')}</div><div style="font-size:15px;font-weight:700">${o.test_heure}</div></div>`:''}
+          ${o.test_lieu?`<div><div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${t('offer.test.location')}</div><div style="font-size:15px;font-weight:700">${o.test_lieu}</div></div>`:''}
         </div>
       </div>` : ''}
 
       ${appointmentLink ? `
       <div style="padding:16px 18px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">🔗 Lien RDV (Cal.com / Calendar)</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">${t('offer.section.rdv_link')}</div>
         <a href="${appointmentLink}" target="_blank" style="font-size:12px;color:var(--accent-mid);word-break:break-all;display:block;margin-bottom:12px;font-family:var(--mono)">${appointmentLink}</a>
-        <a href="${appointmentLink}" target="_blank" class="btn btn-secondary btn-sm">Ouvrir le calendrier ↗</a>
+        <a href="${appointmentLink}" target="_blank" class="btn btn-secondary btn-sm">${t('offer.btn.open_calendar')}</a>
       </div>` : `
       <div class="empty-state" style="padding:48px 0">
         <div class="empty-icon">📅</div>
-        <p>Aucun lien de calendrier configuré</p>
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="closeModal('modal-offre');editOffer('${o.offre_id}')">Configurer dans l'offre</button>
+        <p>${t('offer.empty.no_calendar_link')}</p>
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="closeModal('modal-offre');editOffer('${o.offre_id}')">${t('offer.btn.configure_in_offer')}</button>
       </div>`}
     </div>
 
@@ -415,8 +415,8 @@ function showOfferDetail(id) {
       ${batchSelected.length === 0 ? `
       <div class="empty-state" style="padding:48px 0">
         <div class="empty-icon">🏆</div>
-        <p>Aucune sélection batch pour l'instant</p>
-        <p style="font-size:12px;color:var(--text-3);margin-top:6px">Lancez une évaluation depuis le bouton 🏆 sur la carte de l'offre</p>
+        <p>${t('offer.batch.no_selection')}</p>
+        <p style="font-size:12px;color:var(--text-3);margin-top:6px">${t('offer.batch.hint')}</p>
       </div>` : `
       <div style="display:flex;flex-direction:column;gap:10px">
         ${batchSelected.map((c, i) => `
@@ -426,7 +426,7 @@ function showOfferDetail(id) {
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
               <span style="font-size:14px;font-weight:700;color:var(--text)">${c.candidat_nom}</span>
               ${c.score != null ? `<span style="background:var(--accent-soft);color:var(--accent-mid);border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${c.score}/10</span>` : ''}
-              <span style="background:#dcfce7;color:#166534;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">✅ QUALIFIÉ</span>
+              <span style="background:#dcfce7;color:#166534;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">${t('offer.badge.qualified_caps')}</span>
               ${c.candidat_email ? `<span style="font-size:11px;color:var(--text-3)">${c.candidat_email}</span>` : ''}
             </div>
             <p style="font-size:13px;color:var(--text-2);line-height:1.75;margin:0 0 10px">${c.batch_justification}</p>
@@ -686,7 +686,7 @@ function offerModalHTML() {
         <div style="position:absolute;bottom:-70px;left:-30px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.05);pointer-events:none"></div>
         <button onclick="closeModal('modal-offre')" class="btn-modal-close" style="position:absolute;top:16px;right:16px">✕</button>
         <div style="position:relative;z-index:1">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.6);margin-bottom:8px">Offre d'emploi</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.6);margin-bottom:8px">${t('offer.modal.job_offer')}</div>
           <div style="font-size:20px;font-weight:800;color:white;letter-spacing:-.02em;line-height:1.25;margin-bottom:12px;padding-right:44px" id="modal-offre-title"></div>
           <div id="modal-offre-badges" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
@@ -706,10 +706,10 @@ function offerModalHTML() {
       <!-- Footer actions -->
       <div style="padding:14px 24px;border-top:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:var(--surface-2)">
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" id="btn-offre-edit">✏️ Modifier</button>
-          <button class="btn btn-secondary btn-sm" id="btn-offre-pdf">📄 Exporter PDF</button>
+          <button class="btn btn-secondary btn-sm" id="btn-offre-edit">✏️ ${t('btn.edit')}</button>
+          <button class="btn btn-secondary btn-sm" id="btn-offre-pdf">📄 ${t('btn.export_pdf')}</button>
         </div>
-        <button class="btn btn-primary btn-sm" id="btn-offre-newcand">+ Nouvelle candidature</button>
+        <button class="btn btn-primary btn-sm" id="btn-offre-newcand">+ ${t('btn.new_application')}</button>
       </div>
     </div>
   </div>
@@ -722,8 +722,8 @@ function offerModalHTML() {
       <div style="background:linear-gradient(135deg,var(--surface-2),var(--surface));padding:22px 28px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:16px;flex-shrink:0">
         <div style="width:44px;height:44px;background:linear-gradient(135deg,var(--grad-start),var(--grad-end));border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 14px var(--accent-glow)">💼</div>
         <div style="flex:1">
-          <div style="font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.01em" id="form-offre-title">Nouvelle offre</div>
-          <div style="font-size:12px;color:var(--text-3);margin-top:1px">Remplissez les informations du poste</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.01em" id="form-offre-title">${t('offer.form.new_title')}</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:1px">${t('offer.form.subtitle')}</div>
         </div>
         <button class="btn-icon" onclick="closeModal('modal-create-offre')" style="flex-shrink:0">✕</button>
       </div>
@@ -734,86 +734,86 @@ function offerModalHTML() {
 
         <!-- Section: Poste -->
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
-          <span style="background:var(--accent);color:white;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px">1</span> Informations du poste
+          <span style="background:var(--accent);color:white;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px">1</span> ${t('offer.form.section_info')}
         </div>
         <div class="form-grid" style="margin-bottom:24px">
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Titre du poste <span class="req">*</span></label>
-            <input class="form-control" id="fo-titre_poste" placeholder="Ex: Développeur Full Stack Senior">
+            <label class="form-label">${t('offer.form.title')} <span class="req">*</span></label>
+            <input class="form-control" id="fo-titre_poste" placeholder="${t('offer.form.title_placeholder')}">
           </div>
           <div class="form-group">
-            <label class="form-label">Type de contrat <span class="req">*</span></label>
-            <select class="form-control" id="fo-type_contrat"><option value="">Sélectionner…</option><option>CDI</option><option>CDD</option><option>Stage</option><option>Freelance</option><option>Alternance</option></select>
+            <label class="form-label">${t('offer.form.contract')} <span class="req">*</span></label>
+            <select class="form-control" id="fo-type_contrat"><option value="">—</option><option>CDI</option><option>CDD</option><option>Stage</option><option>Freelance</option><option>Alternance</option></select>
           </div>
           <div class="form-group">
-            <label class="form-label">Localisation <span class="req">*</span></label>
-            <input class="form-control" id="fo-localisation" placeholder="Ex: Antananarivo, Télétravail…">
+            <label class="form-label">${t('offer.form.location')} <span class="req">*</span></label>
+            <input class="form-control" id="fo-localisation" placeholder="${LANG === 'en' ? 'E.g. Antananarivo, Remote…' : 'Ex: Antananarivo, Télétravail…'}">
           </div>
           <div class="form-group">
-            <label class="form-label">Années d'expérience</label>
-            <input class="form-control" id="fo-annees_experience" placeholder="Ex: 3 ans minimum">
+            <label class="form-label">${t('offer.form.experience')}</label>
+            <input class="form-control" id="fo-annees_experience" placeholder="${t('offer.form.experience_placeholder')}">
           </div>
           <div class="form-group">
-            <label class="form-label">Salaire</label>
-            <input class="form-control" id="fo-salaire" placeholder="Ex: 2–4M Ar/mois">
+            <label class="form-label">${t('offer.form.salary')}</label>
+            <input class="form-control" id="fo-salaire" placeholder="${t('offer.form.salary_placeholder')}">
           </div>
           <div class="form-group">
-            <label class="form-label">Langues</label>
-            <input class="form-control" id="fo-langues_requises" placeholder="Français, Anglais…">
+            <label class="form-label">${t('offer.form.languages')}</label>
+            <input class="form-control" id="fo-langues_requises" placeholder="${t('offer.form.languages_placeholder')}">
           </div>
           <div class="form-group">
-            <label class="form-label">Email recruteur <span class="req">*</span></label>
+            <label class="form-label">${t('offer.form.recruiter_email')} <span class="req">*</span></label>
             <input class="form-control" id="fo-email_recruteur" type="email" placeholder="rh@solumada.mg">
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Missions principales <span class="req">*</span></label>
-            <textarea class="form-control" id="fo-missions_principales" rows="3" placeholder="Responsabilités, missions clés…"></textarea>
+            <label class="form-label">${t('offer.form.missions')} <span class="req">*</span></label>
+            <textarea class="form-control" id="fo-missions_principales" rows="3" placeholder="${LANG === 'en' ? 'Key responsibilities, main tasks…' : 'Responsabilités, missions clés…'}"></textarea>
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Profil souhaité</label>
-            <textarea class="form-control" id="fo-profil_souhaite" rows="2" placeholder="Formation, qualités, expérience attendue…"></textarea>
+            <label class="form-label">${t('offer.form.profile')}</label>
+            <textarea class="form-control" id="fo-profil_souhaite" rows="2" placeholder="${LANG === 'en' ? 'Education, qualities, expected experience…' : 'Formation, qualités, expérience attendue…'}"></textarea>
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label">Diplôme(s) et compétences requis <span class="req">*</span></label>
-            <textarea class="form-control" id="fo-competences_requises" rows="2" placeholder="Ex: Licence en informatique, React, 3 ans…"></textarea>
+            <label class="form-label">${t('offer.form.skills')} <span class="req">*</span></label>
+            <textarea class="form-control" id="fo-competences_requises" rows="2" placeholder="${LANG === 'en' ? 'E.g. CS degree, React, 3 years…' : 'Ex: Licence en informatique, React, 3 ans…'}"></textarea>
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label class="form-label" style="color:var(--accent-mid)">🤖 Exigences IA (guide le scoring Claude)</label>
-            <textarea class="form-control" id="fo-exigences_ia" rows="2" placeholder="Ex: Docker éliminatoire, management obligatoire…" style="border-color:var(--accent-light)"></textarea>
+            <label class="form-label" style="color:var(--accent-mid)">🤖 ${t('offer.form.ai_prompt')}</label>
+            <textarea class="form-control" id="fo-exigences_ia" rows="2" placeholder="${LANG === 'en' ? 'E.g. Docker mandatory, management required…' : 'Ex: Docker éliminatoire, management obligatoire…'}" style="border-color:var(--accent-light)"></textarea>
           </div>
         </div>
 
         <!-- Section: Calendrier -->
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
-          <span style="background:var(--accent);color:white;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px">2</span> Calendrier & statut
+          <span style="background:var(--accent);color:white;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px">2</span> ${t('offer.form.section_calendar')}
         </div>
         <div style="padding:16px 18px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft);margin-bottom:24px">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
             <div class="form-group" style="margin:0">
-              <label class="form-label">Date butoire</label>
+              <label class="form-label">${t('offer.form.deadline')}</label>
               <input class="form-control" type="date" id="fo-date_butoire">
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label">Date parution prévue</label>
+              <label class="form-label">${t('offer.form.publish_date')}</label>
               <input class="form-control" type="date" id="fo-date_parution_prevue">
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label">Limite sélection</label>
+              <label class="form-label">${t('offer.form.limit')}</label>
               <input class="form-control" type="date" id="fo-date_limite_selection">
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div class="form-group" style="margin:0">
-              <label class="form-label">Statut</label>
+              <label class="form-label">${t('offer.form.statut')}</label>
               <select class="form-control" id="fo-statut">
-                <option value="En pause">En pause</option>
-                <option value="Active" id="fo-statut-active">Active</option>
-                <option value="Fermée">Fermée</option>
+                <option value="En pause">${t('status.paused')}</option>
+                <option value="Active" id="fo-statut-active">${t('status.active')}</option>
+                <option value="Fermée">${t('status.closed')}</option>
               </select>
-              <div id="fo-statut-hint" style="display:none;font-size:11px;color:#d97706;margin-top:4px;font-weight:500">⚠️ Remplissez le lien RDV pour activer</div>
+              <div id="fo-statut-hint" style="display:none;font-size:11px;color:#d97706;margin-top:4px;font-weight:500">${t('offer.form.rdv_required_hint')}</div>
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label">🔗 Lien RDV (Cal.com / Calendar)</label>
+              <label class="form-label">${t('offer.section.rdv_link')}</label>
               <input class="form-control" id="fo-lien_rdv" placeholder="https://cal.com/..." oninput="syncStatutWithCalendar()">
             </div>
           </div>
@@ -821,57 +821,57 @@ function offerModalHTML() {
 
         <!-- Section: Mode de qualification -->
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
-          <span style="background:var(--accent);color:white;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px">3</span> Mode de qualification
+          <span style="background:var(--accent);color:white;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px">3</span> ${t('offer.form.section_qualification')}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
           <div id="card-scenario-A" onclick="setScenario('A')" style="cursor:pointer;border:2px solid var(--accent);background:var(--accent-soft);border-radius:var(--r-lg);padding:16px;transition:.15s;display:flex;flex-direction:column;gap:6px">
             <input type="radio" name="fo-scenario" value="A" checked style="display:none">
             <div style="font-size:22px">🤖</div>
-            <div style="font-size:12px;font-weight:700;color:var(--text)">Scénario A</div>
-            <div style="font-size:11px;color:var(--text-3);line-height:1.5">IA analyse + emails envoyés automatiquement</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${LANG==='en'?'Scenario A':'Scénario A'}</div>
+            <div style="font-size:11px;color:var(--text-3);line-height:1.5">${t('offer.form.scenario_a_desc')}</div>
           </div>
           <div id="card-scenario-B" onclick="setScenario('B')" style="cursor:pointer;border:2px solid var(--border);background:var(--surface);border-radius:var(--r-lg);padding:16px;transition:.15s;display:flex;flex-direction:column;gap:6px">
             <input type="radio" name="fo-scenario" value="B" style="display:none">
             <div style="font-size:22px">👤</div>
-            <div style="font-size:12px;font-weight:700;color:var(--text)">Scénario B</div>
-            <div style="font-size:11px;color:var(--text-3);line-height:1.5">IA analyse, recruteur qualifie manuellement</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${LANG==='en'?'Scenario B':'Scénario B'}</div>
+            <div style="font-size:11px;color:var(--text-3);line-height:1.5">${t('offer.form.scenario_b_desc')}</div>
           </div>
           <div id="card-scenario-C" onclick="setScenario('C')" style="cursor:pointer;border:2px solid var(--border);background:var(--surface);border-radius:var(--r-lg);padding:16px;transition:.15s;display:flex;flex-direction:column;gap:6px">
             <input type="radio" name="fo-scenario" value="C" style="display:none">
             <div style="font-size:22px">📋</div>
-            <div style="font-size:12px;font-weight:700;color:var(--text)">Scénario C</div>
-            <div style="font-size:11px;color:var(--text-3);line-height:1.5">Test requis, qualification manuelle après</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${LANG==='en'?'Scenario C':'Scénario C'}</div>
+            <div style="font-size:11px;color:var(--text-3);line-height:1.5">${t('offer.form.scenario_c_desc')}</div>
           </div>
         </div>
 
         <!-- Test details (shown only if scenario C) -->
         <div id="fo-test-section" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:16px 18px;background:#faf5ff;border-radius:var(--r-lg);border:1px solid #ddd6fe;margin-bottom:16px">
           <div class="form-group" style="margin:0">
-            <label class="form-label" style="color:#7c3aed">Date du test</label>
+            <label class="form-label" style="color:#7c3aed">${t('offer.form.test_date')}</label>
             <input class="form-control" type="date" id="fo-test_date">
           </div>
           <div class="form-group" style="margin:0">
-            <label class="form-label" style="color:#7c3aed">Heure</label>
+            <label class="form-label" style="color:#7c3aed">${t('offer.form.test_time')}</label>
             <input class="form-control" id="fo-test_heure" placeholder="Ex: 09h00">
           </div>
           <div class="form-group" style="margin:0">
-            <label class="form-label" style="color:#7c3aed">Lieu</label>
-            <input class="form-control" id="fo-test_lieu" placeholder="Ex: Siège Antananarivo">
+            <label class="form-label" style="color:#7c3aed">${t('offer.form.test_location')}</label>
+            <input class="form-control" id="fo-test_lieu" placeholder="${LANG==='en'?'E.g. HQ Antananarivo':'Ex: Siège Antananarivo'}">
           </div>
         </div>
 
         <!-- Section: Remerciement -->
         <div class="form-group" style="margin-bottom:0">
-          <label class="form-label">💬 Formule de remerciement (affichée au candidat après candidature)</label>
-          <textarea class="form-control" id="fo-formule_remerciement" rows="2" maxlength="400" placeholder="Ex: Nous vous remercions de l'intérêt porté à notre entreprise…" oninput="updateCharCount(this, 400)"></textarea>
+          <label class="form-label">${t('offer.form.thank_you_label')}</label>
+          <textarea class="form-control" id="fo-formule_remerciement" rows="2" maxlength="400" placeholder="${LANG==='en'?'E.g. Thank you for your interest in our company…':'Ex: Nous vous remercions de l\'intérêt porté à notre entreprise…'}" oninput="updateCharCount(this, 400)"></textarea>
           <p id="fo-formule_remerciement-count" style="font-size:11px;color:var(--text-3);margin:4px 0 0;text-align:right">0 / 400</p>
         </div>
       </div>
 
       <!-- Footer -->
       <div style="padding:16px 28px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:10px;background:var(--surface-2);flex-shrink:0">
-        <button class="btn btn-secondary" onclick="closeModal('modal-create-offre')">Annuler</button>
-        <button class="btn btn-primary" onclick="submitOffer(this)">💾 Enregistrer l'offre</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-create-offre')">${t('btn.cancel')}</button>
+        <button class="btn btn-primary" onclick="submitOffer(this)">${t('offer.form.btn_save')}</button>
       </div>
     </div>
   </div>`;
@@ -1058,19 +1058,19 @@ function batchEvalModalHTML() {
     </div>
     <div style="padding:24px">
       <div style="margin-bottom:20px;padding:14px 16px;background:var(--accent-soft);border-radius:var(--r-lg);border:1px solid var(--accent-light);font-size:13px;color:var(--accent-mid);line-height:1.6">
-        Claude va comparer tous les candidats analysés et sélectionner les meilleurs. Les sélectionnés passent en <strong>QUALIFIÉ</strong> avec une justification de sélection.
+        ${t('offer.batch.modal_description')}
       </div>
       <div class="form-group" style="margin-bottom:20px">
-        <label class="form-label">Nombre de candidats à sélectionner</label>
+        <label class="form-label">${t('offer.batch.count_label')}</label>
         <input type="number" id="batch-nb-top" value="20" min="1" max="200" class="form-control" style="text-align:center;font-size:22px;font-weight:700" placeholder="Ex : 20">
       </div>
       <div style="font-size:11px;color:var(--text-3);padding:10px 12px;background:var(--surface-2);border-radius:var(--r);border:1px solid var(--border)">
-        ⏳ L'évaluation prend 30–60 secondes. Rafraîchissez les candidatures après pour voir les résultats et les justifications.
+        ${t('offer.batch.modal_hint')}
       </div>
     </div>
     <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:var(--surface-2)">
-      <button class="btn btn-secondary" onclick="document.getElementById('modal-batch-eval').style.display='none'">Annuler</button>
-      <button class="btn btn-primary" id="btn-batch-eval-confirm" onclick="confirmBatchEval(this)">🏆 Lancer l'évaluation</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-batch-eval').style.display='none'">${t('btn.cancel')}</button>
+      <button class="btn btn-primary" id="btn-batch-eval-confirm" onclick="confirmBatchEval(this)">${t('offer.batch.btn_launch')}</button>
     </div>
   </div>
 </div>`;
@@ -1084,7 +1084,9 @@ function openBatchEvalModal(offerId) {
   const apps = _offerApplications[offerId] || [];
   const analyzedCount = apps.filter(c => c.score != null).length;
   const subtitle = document.getElementById('batch-eval-subtitle');
-  if (subtitle) subtitle.textContent = `${analyzedCount} candidat${analyzedCount !== 1 ? 's' : ''} analysé${analyzedCount !== 1 ? 's' : ''} — ${o?.titre_poste || offerId}`;
+  if (subtitle) subtitle.textContent = LANG === 'en'
+    ? `${analyzedCount} candidate${analyzedCount !== 1 ? 's' : ''} analyzed — ${o?.titre_poste || offerId}`
+    : `${analyzedCount} candidat${analyzedCount !== 1 ? 's' : ''} analysé${analyzedCount !== 1 ? 's' : ''} — ${o?.titre_poste || offerId}`;
   const input = document.getElementById('batch-nb-top');
   if (input) input.value = 20;
   document.getElementById('modal-batch-eval').style.display = 'flex';
@@ -1097,7 +1099,7 @@ async function confirmBatchEval(btn) {
 
   const orig = btn.textContent;
   btn.disabled = true;
-  btn.textContent = '⏳ Envoi…';
+  btn.textContent = LANG === 'en' ? '⏳ Sending…' : '⏳ Envoi…';
 
   try {
     const r = await api.post(`/api/offres/${_batchEvalOfferId}/evaluer-candidats`, { nb_top });
@@ -1108,7 +1110,7 @@ async function confirmBatchEval(btn) {
       toast(r?.error || t('toast.trigger_error'), 'error');
     }
   } catch (e) {
-    toast('Erreur réseau', 'error');
+    toast(t('toast.network_error'), 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = orig;

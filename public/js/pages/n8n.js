@@ -10,29 +10,29 @@ async function renderN8n() {
 
   <!-- Architecture -->
   <div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent)">
-    <div class="card-header"><span class="card-title">⚡ Architecture actuelle</span></div>
+    <div class="card-header"><span class="card-title">${t('n8n.section.architecture')}</span></div>
     <div class="card-body">
       <div class="pg-grid-2">
         <div class="pg-surface">
-          <div class="pg-label">Application Node.js</div>
+          <div class="pg-label">${t('n8n.arch.node.title')}</div>
           <div class="pg-col-8">
-            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Formulaire création offre</div>
-            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Enregistrement MongoDB</div>
-            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Email lien offre → recruteur</div>
-            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Formulaire candidature</div>
-            <div class="pg-flex-8"><span class="pg-dot-accent"></span>Upload CV + lettre</div>
-            <div class="pg-flex-8" style="color:var(--accent-mid);font-weight:600"><span style="font-size:16px">→</span>Déclenche WF2 via Webhook</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>${t('n8n.arch.node.item1')}</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>${t('n8n.arch.node.item2')}</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>${t('n8n.arch.node.item3')}</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>${t('n8n.arch.node.item4')}</div>
+            <div class="pg-flex-8"><span class="pg-dot-accent"></span>${t('n8n.arch.node.item5')}</div>
+            <div class="pg-flex-8" style="color:var(--accent-mid);font-weight:600"><span style="font-size:16px">→</span>${t('n8n.arch.node.item6')}</div>
           </div>
         </div>
         <div class="pg-surface">
-          <div class="pg-label" style="color:#7c3aed">n8n WF2 (Webhook)</div>
+          <div class="pg-label" style="color:#7c3aed">${t('n8n.arch.wf2.title')}</div>
           <div class="pg-col-8">
-            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Reçoit CV + lettre (base64)</div>
-            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Analyse Claude IA (score /10)</div>
-            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Met à jour MongoDB (PATCH)</div>
-            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Email accusé → candidat</div>
-            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Email résultat → recruteur</div>
-            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>Relances agenda (48h + 24h)</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>${t('n8n.arch.wf2.item1')}</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>${t('n8n.arch.wf2.item2')}</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>${t('n8n.arch.wf2.item3')}</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>${t('n8n.arch.wf2.item4')}</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>${t('n8n.arch.wf2.item5')}</div>
+            <div class="pg-flex-8"><span class="pg-dot" style="background:#7c3aed"></span>${t('n8n.arch.wf2.item6')}</div>
           </div>
         </div>
       </div>
@@ -42,14 +42,14 @@ async function renderN8n() {
   <!-- WF2 status -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-header">
-      <span class="card-title">WF2 — Analyse IA Candidature (Webhook)</span>
-      <a href="https://optimumdev.app.n8n.cloud/workflow/4LmZn4gtORYnL1mP" target="_blank" class="btn btn-secondary btn-sm">Ouvrir dans n8n ↗</a>
+      <span class="card-title">${t('n8n.wf2.title')}</span>
+      <a href="https://optimumdev.app.n8n.cloud/workflow/4LmZn4gtORYnL1mP" target="_blank" class="btn btn-secondary btn-sm">${t('n8n.btn.open_in_n8n')}</a>
     </div>
     <div class="card-body">
       <div class="pg-status-row">
         <div class="pg-dot" style="background:${wf2Data?.active ? '#22c55e' : '#94a3b8'};${wf2Data?.active ? 'box-shadow:0 0 0 3px rgba(34,197,94,.2)' : ''}; width:12px; height:12px;"></div>
         <div>
-          <div class="pg-title">${wf2Data?.error ? '⚠️ Erreur de connexion' : wf2Data?.active ? 'Actif — En attente de candidatures' : 'Inactif'}</div>
+          <div class="pg-title">${wf2Data?.error ? t('n8n.wf2.connection_error') : wf2Data?.active ? t('n8n.wf2.active_waiting') : t('n8n.wf2.inactive')}</div>
           <div class="pg-muted">
             URL Webhook : <code class="pg-code">https://optimumdev.app.n8n.cloud/webhook/candidature-reception</code>
           </div>
@@ -61,26 +61,23 @@ async function renderN8n() {
   <!-- Webhook test -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-header">
-      <span class="card-title">🧪 Tester le webhook</span>
-      <span class="badge badge-amber">Données de test</span>
+      <span class="card-title">${t('n8n.section.test_webhook')}</span>
+      <span class="badge badge-amber">${t('n8n.test.badge_test_data')}</span>
     </div>
     <div class="card-body">
-      <p class="pg-text-sm" style="margin-bottom:16px">
-        Envoie une candidature de test à n8n pour vérifier que le webhook fonctionne correctement.
-        Sélectionnez d'abord une offre existante.
-      </p>
+      <p class="pg-text-sm" style="margin-bottom:16px">${t('n8n.test.description')}</p>
       <div class="form-group">
-        <label class="form-label">Offre de test</label>
+        <label class="form-label">${t('n8n.test.offer_label')}</label>
         <select class="form-control" id="test-offre-id" style="max-width:400px">
-          <option value="">Chargement...</option>
+          <option value="">${t('n8n.test.loading')}</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Email candidat test</label>
+        <label class="form-label">${t('n8n.test.email_label')}</label>
         <input class="form-control" id="test-email" value="test@example.com" style="max-width:300px">
       </div>
       <div class="pg-flex-10">
-        <button class="btn btn-primary" id="btn-test-wh" onclick="testWebhook()">🚀 Envoyer test</button>
+        <button class="btn btn-primary" id="btn-test-wh" onclick="testWebhook()">${t('n8n.test.btn_send')}</button>
         <span id="test-result" class="pg-text-xs"></span>
       </div>
     </div>
@@ -89,8 +86,8 @@ async function renderN8n() {
   <!-- Recent executions -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Exécutions récentes — WF2</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadExecutions()">↻ Actualiser</button>
+      <span class="card-title">${t('n8n.section.recent_executions')}</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadExecutions()">↻ ${LANG==='en'?'Refresh':'Actualiser'}</button>
     </div>
     <div class="card-body" id="execs-list">
       <div style="text-align:center"><div class="spinner"></div></div>
@@ -103,7 +100,7 @@ async function renderN8n() {
   if (offersResponse?.offres?.length) {
     sel.innerHTML = offersResponse.offres.map(o => `<option value="${o.offre_id}">${o.titre_poste}</option>`).join('');
   } else {
-    sel.innerHTML = '<option value="">Aucune offre disponible</option>';
+    sel.innerHTML = `<option value="">${t('n8n.empty.no_offers')}</option>`;
   }
 
   loadExecutions();
@@ -116,7 +113,7 @@ async function loadExecutions() {
   const response = await api.get(`/api/n8n/executions/${WF2_ID}`);
   const executions = response?.executions || [];
   if (!executions.length) {
-    el.innerHTML = `<div class="pg-text-xs" style="text-align:center;padding:16px">Aucune exécution récente</div>`;
+    el.innerHTML = `<div class="pg-text-xs" style="text-align:center;padding:16px">${t('n8n.empty.no_recent_executions')}</div>`;
     return;
   }
   el.innerHTML = `<div class="pg-col-6">
@@ -140,19 +137,19 @@ async function testWebhook() {
   const offerId = document.getElementById('test-offre-id').value;
   const email = document.getElementById('test-email').value;
 
-  if (!offerId) { toast('Sélectionnez une offre', 'error'); return; }
+  if (!offerId) { toast(t('n8n.error.select_offer'), 'error'); return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-top-color:#fff"></div> Envoi...';
+  btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-top-color:#fff"></div> ${t('n8n.test.sending')}`;
   resultEl.textContent = '';
 
   const r = await api.post('/api/n8n/trigger/wf2', {
     candidature_id:   'test-' + Date.now(),
     offre_id:         offerId,
-    candidat_nom:     'Candidat Test',
+    candidat_nom:     LANG === 'en' ? 'Test Candidate' : 'Candidat Test',
     candidat_email:   email,
-    titre_poste:      'Poste Test',
-    description_poste:'Test depuis l\'app',
+    titre_poste:      LANG === 'en' ? 'Test Position' : 'Poste Test',
+    description_poste: t('n8n.test.from_app'),
     competences_requises: 'Test',
     type_contrat:     'CDI',
     localisation:     'Antananarivo',
@@ -162,14 +159,14 @@ async function testWebhook() {
   });
 
   btn.disabled = false;
-  btn.innerHTML = '🚀 Envoyer test';
+  btn.innerHTML = t('n8n.test.btn_send');
 
   if (r?.success) {
-    toast('Webhook envoyé !', 'success');
-    resultEl.textContent = '✅ WF2 déclenché';
+    toast(t('n8n.test.sent'), 'success');
+    resultEl.textContent = t('n8n.test.wf2_triggered');
     setTimeout(loadExecutions, 2000);
   } else {
-    toast(r?.error || 'Erreur', 'error');
-    resultEl.textContent = `❌ ${r?.error || 'Erreur'}`;
+    toast(r?.error || t('toast.error'), 'error');
+    resultEl.textContent = `❌ ${r?.error || t('toast.error')}`;
   }
 }

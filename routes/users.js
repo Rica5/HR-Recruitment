@@ -5,6 +5,7 @@ const User     = require('../models/User');
 const { signToken } = require('../middleware/auth');
 const { logAudit }  = require('../services/audit');
 const { sendCredentialsEmail } = require('../services/email');
+const { be } = require('../middleware/i18n');
 
 // GET /api/users — list all users (cross-company for admin management)
 router.get('/', async (req, res) => {
@@ -21,16 +22,16 @@ router.post('/', async (req, res) => {
   try {
     const { nom, email, password } = req.body;
     if (!nom || !email || !password)
-      return res.status(400).json({ success: false, error: 'Name, email and password required' });
+      return res.status(400).json({ success: false, error: be(req, 'Nom, email et mot de passe requis', 'Name, email and password required') });
     if (password.length < 6)
-      return res.status(400).json({ success: false, error: 'Password: minimum 6 characters' });
+      return res.status(400).json({ success: false, error: be(req, 'Mot de passe : 6 caractères minimum', 'Password: minimum 6 characters') });
 
     // Company is always the admin's own — never trust req.body.company
     const company = req.user.company;
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing)
-      return res.status(409).json({ success: false, error: 'This email is already in use' });
+      return res.status(409).json({ success: false, error: be(req, 'Cet email est déjà utilisé', 'This email is already in use') });
 
     const user = await User.create({
       nom,
@@ -62,7 +63,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const target = await User.findById(req.params.id);
     if (!target)
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.status(404).json({ success: false, error: be(req, 'Utilisateur introuvable', 'User not found') });
 
     const { nom, email, password, company } = req.body;
     if (nom)     target.nom   = nom;
@@ -70,7 +71,7 @@ router.patch('/:id', async (req, res) => {
     if (company && ['solumada', 'optimum'].includes(company)) target.company = company;
     if (password) {
       if (password.length < 6)
-        return res.status(400).json({ success: false, error: 'Password: minimum 6 characters' });
+        return res.status(400).json({ success: false, error: be(req, 'Mot de passe : 6 caractères minimum', 'Password: minimum 6 characters') });
       target.password = password;
     }
 
@@ -86,11 +87,11 @@ router.patch('/:id', async (req, res) => {
 router.patch('/:id/toggle-actif', async (req, res) => {
   try {
     if (req.params.id === req.user.id)
-      return res.status(400).json({ success: false, error: 'Cannot deactivate your own account' });
+      return res.status(400).json({ success: false, error: be(req, 'Impossible de désactiver votre propre compte', 'Cannot deactivate your own account') });
 
     const target = await User.findById(req.params.id);
     if (!target)
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.status(404).json({ success: false, error: be(req, 'Utilisateur introuvable', 'User not found') });
 
     target.actif = !target.actif;
     await target.save();

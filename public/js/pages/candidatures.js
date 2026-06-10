@@ -185,9 +185,9 @@ function renderPage() {
           <div class="row-actions">
             ${c.cv_path     ? `<a href="${fileUrl(c.cv_path)}"     target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="CV">📄</a>` : ''}
             ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn-icon" onclick="event.stopPropagation()" title="Lettre">📝</a>` : ''}
-            ${((_jobOffersMap[c.offre_id]||{}).test_requis&&!['Test convoqué','Test passé'].includes(c.statut))?'<button class="btn-icon" style="color:#cbd5e1;cursor:not-allowed;font-weight:700" disabled title="Test requis avant qualification">✓</button>':`<button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="Qualifier">✓</button>`}
-            <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE',this)" title="Éliminer">✗</button>
-            <button class="btn-icon" onclick="event.stopPropagation();relaunchWorkflow('${c._id}')" title="Relancer l'analyse IA">🔄</button>
+            ${((_jobOffersMap[c.offre_id]||{}).test_requis&&!['Test convoqué','Test passé'].includes(c.statut))?`<button class="btn-icon" style="color:#cbd5e1;cursor:not-allowed;font-weight:700" disabled title="${t('cand.decision.test_required_first')}">✓</button>`:`<button class="btn-icon" style="color:#16a34a;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','QUALIFIE',this)" title="${t('cand.decision.qualify')}">✓</button>`}
+            <button class="btn-icon" style="color:#dc2626;font-weight:700" onclick="event.stopPropagation();quickQualify('${c._id}','NON_SELECTIONNE',this)" title="${t('cand.decision.eliminate')}">✗</button>
+            <button class="btn-icon" onclick="event.stopPropagation();relaunchWorkflow('${c._id}')" title="${t('btn.relaunch_workflow')}">🔄</button>
             <button class="btn-icon" onclick="event.stopPropagation();if(confirm(t('msg.delete_application_confirm')||'Supprimer ?'))deleteApplication('${c._id}')" title="${t('btn.delete')}">🗑️</button>
           </div>
         </td>
@@ -206,9 +206,9 @@ function renderPagination(total, pages) {
   const to   = Math.min(_currentPage * PAGE_SIZE, total);
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;justify-content:center;padding:14px 0;border-top:1px solid var(--border-soft)">
-      <button class="btn btn-secondary btn-sm" onclick="goPage(${_currentPage-1})" ${_currentPage===1?'disabled':''}>← Préc.</button>
-      <span style="font-size:13px;color:var(--text-2)">${from}–${to} sur <strong>${total}</strong> <span style="color:var(--text-3);margin-left:6px">(page ${_currentPage}/${pages})</span></span>
-      <button class="btn btn-secondary btn-sm" onclick="goPage(${_currentPage+1})" ${_currentPage===pages?'disabled':''}>Suiv. →</button>
+      <button class="btn btn-secondary btn-sm" onclick="goPage(${_currentPage-1})" ${_currentPage===1?'disabled':''}>${t('pagination.prev')}</button>
+      <span style="font-size:13px;color:var(--text-2)">${from}–${to} ${LANG==='en'?'of':'sur'} <strong>${total}</strong> <span style="color:var(--text-3);margin-left:6px">(${LANG==='en'?'page':'page'} ${_currentPage}/${pages})</span></span>
+      <button class="btn btn-secondary btn-sm" onclick="goPage(${_currentPage+1})" ${_currentPage===pages?'disabled':''}>${t('pagination.next')}</button>
     </div>`;
 }
 
@@ -222,7 +222,7 @@ function goPage(p) {
 function renderPendingBadge(id) {
   return `<span class="badge badge-gray" id="pending-${id}" style="display:inline-flex;align-items:center;gap:5px">
     <span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;display:inline-block;animation:pulse 1.4s infinite"></span>
-    Analyse…
+    ${t('cand.badge.pending')}
   </span>`;
 }
 
@@ -312,9 +312,9 @@ function showApplicationDetail(id) {
   if (heroBadges) heroBadges.innerHTML = `
     ${channelBadge(c.canal_candidature)}
     ${c.recommandation ? renderBadge(c.recommandation) : ''}
-    ${(c.canal_candidature !== 'plateforme' || c.a_appeler) && !c.rdv_pris && !c.non_interesse ? '<span class="badge badge-amber" style="font-size:10px">📞 À APPELER</span>' : ''}
-    ${c.rdv_pris ? '<span class="badge badge-green" style="font-size:10px">📅 RDV pris</span>' : ''}
-    ${c.non_interesse ? '<span class="badge badge-gray" style="font-size:10px">✗ Non intéressé</span>' : ''}
+    ${(c.canal_candidature !== 'plateforme' || c.a_appeler) && !c.rdv_pris && !c.non_interesse ? `<span class="badge badge-amber" style="font-size:10px">${t('badge.to_call')}</span>` : ''}
+    ${c.rdv_pris ? `<span class="badge badge-green" style="font-size:10px">${t('badge.appointment_booked')}</span>` : ''}
+    ${c.non_interesse ? `<span class="badge badge-gray" style="font-size:10px">${t('badge.not_interested')}</span>` : ''}
   `;
   if (heroScore) {
     if (c.score != null) {
@@ -340,38 +340,38 @@ function showApplicationDetail(id) {
       ${!c.score && !c.recommandation ? `
       <div style="text-align:center;padding:48px 20px">
         <div style="font-size:52px;margin-bottom:14px">🤖</div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">Analyse IA en cours…</div>
-        <div style="font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:20px">Le workflow n8n analyse la candidature.<br>Revenez dans quelques instants.</div>
-        <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">🔄 Relancer l'analyse</button>
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">${t('cand.analysis_in_progress_title')}</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:20px">${t('cand.analysis_in_progress_text').replace('\n', '<br>')}</div>
+        <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">${t('btn.relaunch_workflow')}</button>
       </div>` : `
       ${c.adequation_poste ? `<p style="font-size:13px;color:var(--text-2);line-height:1.85;margin-bottom:20px;padding:16px 18px;background:var(--surface-2);border-radius:var(--r-lg);border-left:3px solid var(--accent)">${c.adequation_poste}</p>` : ''}
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-        ${c.niveau_education ? `<div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">🎓 Éducation</div><div style="font-size:13px;font-weight:600">${c.niveau_education}</div></div>` : ''}
-        ${c.experience_annees!=null ? `<div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">🕐 Expérience</div><div style="font-size:13px;font-weight:600">${c.experience_annees} an${c.experience_annees>1?'s':''}</div></div>` : ''}
+        ${c.niveau_education ? `<div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">🎓 ${t('table.education')}</div><div style="font-size:13px;font-weight:600">${c.niveau_education}</div></div>` : ''}
+        ${c.experience_annees!=null ? `<div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">🕐 ${t('table.experience')}</div><div style="font-size:13px;font-weight:600">${c.experience_annees} ${LANG==='en' ? (c.experience_annees>1?'years':'year') : ('an'+(c.experience_annees>1?'s':''))}</div></div>` : ''}
       </div>
 
       ${c.competences_detectees ? `
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">✅ Compétences détectées</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">${t('cand.section.detected_skills')}</div>
         <div>${c.competences_detectees.split(',').map(s=>`<span class="skill-tag">${s.trim()}</span>`).join('')}</div>
       </div>` : ''}
 
       ${c.competences_manquantes ? `
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">⚠️ Compétences manquantes</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">${t('cand.section.missing_skills')}</div>
         <div>${c.competences_manquantes.split(',').map(s=>`<span class="skill-tag missing">${s.trim()}</span>`).join('')}</div>
       </div>` : ''}
 
       ${(c.points_forts || c.points_faibles) ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-        ${c.points_forts ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-lg);padding:16px"><div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">✅ Points forts</div><p style="font-size:12px;color:var(--text-2);line-height:1.7">${c.points_forts}</p></div>` : ''}
-        ${c.points_faibles ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-lg);padding:16px"><div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">⚠️ Points faibles</div><p style="font-size:12px;color:var(--text-2);line-height:1.7">${c.points_faibles}</p></div>` : ''}
+        ${c.points_forts ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-lg);padding:16px"><div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${t('cand.section.strengths')}</div><p style="font-size:12px;color:var(--text-2);line-height:1.7">${c.points_forts}</p></div>` : ''}
+        ${c.points_faibles ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-lg);padding:16px"><div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${t('cand.section.weaknesses')}</div><p style="font-size:12px;color:var(--text-2);line-height:1.7">${c.points_faibles}</p></div>` : ''}
       </div>` : ''}
 
       ${c.resume_analyse ? `
       <div style="padding:14px 18px;background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 var(--r-lg) var(--r-lg) 0;margin-bottom:16px">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">Résumé de l'analyse</div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px">${t('cand.section.analysis_summary')}</div>
         <p style="font-size:13px;color:var(--text-2);line-height:1.85;font-style:italic">${c.resume_analyse}</p>
       </div>` : ''}
 
@@ -379,7 +379,7 @@ function showApplicationDetail(id) {
       <div style="padding:14px 16px;background:linear-gradient(135deg,rgba(34,197,94,.07) 0%,rgba(34,197,94,.03) 100%);border-radius:var(--r-lg);border:1.5px solid #bbf7d0;margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:16px">🏆</span>
-          <span style="font-size:11px;font-weight:800;color:var(--accent-mid);text-transform:uppercase;letter-spacing:.05em">Sélectionné par évaluation batch</span>
+          <span style="font-size:11px;font-weight:800;color:var(--accent-mid);text-transform:uppercase;letter-spacing:.05em">${t('cand.section.batch_selected')}</span>
         </div>
         <p style="font-size:13px;color:var(--text);line-height:1.75;margin:0">${c.batch_justification}</p>
       </div>` : ''}
@@ -392,39 +392,39 @@ function showApplicationDetail(id) {
       <!-- Decision buttons -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
         ${testBlocked
-          ? `<button style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#f1f5f9;color:#94a3b8;border:2px solid #e2e8f0;border-radius:var(--r-lg);cursor:not-allowed;font-weight:700;font-size:12px" disabled title="Convoquer au test d'abord"><span style="font-size:24px;opacity:.4">✅</span>Qualifier<span style="font-size:10px;font-weight:400">📋 Test requis</span></button>`
-          : `<button onclick="applyDecision('${c._id}','QUALIFIE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#dcfce7;color:#166534;border:2px solid #bbf7d0;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#bbf7d0';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#dcfce7';this.style.transform='none'"><span style="font-size:24px">✅</span>Qualifier</button>`}
-        <button onclick="applyDecision('${c._id}','A_REVOIR',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fef9c3;color:#854d0e;border:2px solid #fde68a;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fde68a';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fef9c3';this.style.transform='none'"><span style="font-size:24px">🔄</span>À revoir</button>
-        <button onclick="applyDecision('${c._id}','NON_SELECTIONNE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fee2e2;color:#991b1b;border:2px solid #fecaca;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fecaca';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fee2e2';this.style.transform='none'"><span style="font-size:24px">❌</span>Éliminer</button>
+          ? `<button style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#f1f5f9;color:#94a3b8;border:2px solid #e2e8f0;border-radius:var(--r-lg);cursor:not-allowed;font-weight:700;font-size:12px" disabled title="${t('cand.decision.test_required_first')}"><span style="font-size:24px;opacity:.4">✅</span>${t('cand.decision.qualify')}<span style="font-size:10px;font-weight:400">${t('cand.decision.test_required')}</span></button>`
+          : `<button onclick="applyDecision('${c._id}','QUALIFIE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#dcfce7;color:#166534;border:2px solid #bbf7d0;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#bbf7d0';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#dcfce7';this.style.transform='none'"><span style="font-size:24px">✅</span>${t('cand.decision.qualify')}</button>`}
+        <button onclick="applyDecision('${c._id}','A_REVOIR',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fef9c3;color:#854d0e;border:2px solid #fde68a;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fde68a';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fef9c3';this.style.transform='none'"><span style="font-size:24px">🔄</span>${t('cand.decision.to_review')}</button>
+        <button onclick="applyDecision('${c._id}','NON_SELECTIONNE',this)" style="display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 8px;background:#fee2e2;color:#991b1b;border:2px solid #fecaca;border-radius:var(--r-lg);cursor:pointer;font-weight:700;font-size:12px;transition:all .15s" onmouseover="this.style.background='#fecaca';this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#fee2e2';this.style.transform='none'"><span style="font-size:24px">❌</span>${t('cand.decision.eliminate')}</button>
       </div>
 
       <!-- Secondary actions -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
-        <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">🔄 Relancer l'analyse IA</button>
-        ${offer.test_requis ? (offer.test_date ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:600" onclick="scheduleTest('${c._id}')">📋 Convoquer au test</button>` : `<button class="btn btn-sm" style="background:#f8fafc;color:#94a3b8;border:1.5px solid #e2e8f0;font-weight:600;cursor:not-allowed" disabled title="Définir la date du test dans l'offre d'abord">📋 Convoquer au test</button>`) : ''}
-        ${offer.lien_rdv ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;border:none;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)" onclick="openRdvCalcom('${c._id}','${c.offre_id}')">📅 Prise de RDV cal.com</button>` : ''}
-        ${!c.non_interesse ? `<button class="btn btn-sm" style="background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0;font-weight:500" onclick="markNotInterested('${c._id}')">✗ Pas intéressé</button>` : ''}
+        <button class="btn btn-secondary btn-sm" id="btn-relancer-wf" onclick="relaunchWorkflowFromModal('${c._id}')">${t('btn.relaunch_workflow')}</button>
+        ${offer.test_requis ? (offer.test_date ? `<button class="btn btn-sm" style="background:#f5f3ff;color:#7c3aed;border:1.5px solid #ddd6fe;font-weight:600" onclick="scheduleTest('${c._id}')">${t('btn.test_summons')}</button>` : `<button class="btn btn-sm" style="background:#f8fafc;color:#94a3b8;border:1.5px solid #e2e8f0;font-weight:600;cursor:not-allowed" disabled title="${LANG==='en'?'Set test date in offer first':'Définir la date du test dans l\'offre d\'abord'}">${t('btn.test_summons')}</button>`) : ''}
+        ${offer.lien_rdv ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;border:none;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)" onclick="openRdvCalcom('${c._id}','${c.offre_id}')">📅 ${LANG==='en'?'Book appointment (Cal.com)':'Prise de RDV cal.com'}</button>` : ''}
+        ${!c.non_interesse ? `<button class="btn btn-sm" style="background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0;font-weight:500" onclick="markNotInterested('${c._id}')">✗ ${t('btn.not_interested')}</button>` : ''}
       </div>
 
       <!-- Status selector -->
       <div style="margin-bottom:20px;padding:16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
-        <label class="form-label" style="margin-bottom:10px;display:block">Statut de suivi</label>
+        <label class="form-label" style="margin-bottom:10px;display:block">${t('form.status')}</label>
         <select class="form-control" id="cand-statut-sel" onchange="updateApplicationStatus('${c._id}',this.value)">
-          ${['Nouveau','En cours','Entretien planifié','Test convoqué','Test passé','Accepté','Refusé','Pas intéressé'].map(s=>`<option ${c.statut===s?'selected':''}>${s}</option>`).join('')}
+          ${['Nouveau','En cours','Entretien planifié','Test convoqué','Test passé','Accepté','Refusé','Pas intéressé'].map(s=>`<option value="${s}" ${c.statut===s?'selected':''}>${statusLabel(s)}</option>`).join('')}
         </select>
       </div>
 
       <!-- Candidat potentiel toggle -->
       <div style="padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px">Vivier</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px">${t('cand.pool.section_label')}</div>
         <button id="btn-potentiel-toggle" onclick="togglePotentiel('${c._id}',this)"
           style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;border-radius:var(--r-lg);cursor:pointer;font-size:13px;font-weight:600;border:2px solid;transition:all .15s;${c.candidat_potentiel ? 'background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe' : 'background:var(--surface);color:var(--text-2);border-color:var(--border)'}">
           <span style="font-size:20px">⭐</span>
           <div style="text-align:left">
-            <div>${c.candidat_potentiel ? 'Candidat potentiel' : 'Marquer comme potentiel'}</div>
-            <div style="font-size:11px;font-weight:400;opacity:.7">${c.candidat_potentiel ? 'Cliquer pour retirer du vivier' : 'À considérer pour de futures offres'}</div>
+            <div>${c.candidat_potentiel ? t('cand.pool.is_potential') : t('cand.pool.mark_as_potential')}</div>
+            <div style="font-size:11px;font-weight:400;opacity:.7">${c.candidat_potentiel ? t('cand.pool.click_to_remove') : t('cand.pool.future_offers')}</div>
           </div>
-          ${c.candidat_potentiel ? '<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">Actif</span>' : ''}
+          ${c.candidat_potentiel ? `<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">${t('cand.pool.active_badge')}</span>` : ''}
         </button>
       </div>
 
@@ -436,41 +436,41 @@ function showApplicationDetail(id) {
 
       <!-- Edit candidate info -->
       <div style="background:var(--surface-2);border-radius:var(--r-lg);padding:18px;margin-bottom:16px;border:1px solid var(--border-soft)">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:14px">Informations du candidat</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:14px">${t('cand.section.candidate_info')}</div>
         <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
           <div>
-            <label class="form-label">Nom complet</label>
-            <input class="form-control" id="cand-edit-nom" value="${c.candidat_nom}" placeholder="Prénom Nom">
+            <label class="form-label">${t('form.full_name')}</label>
+            <input class="form-control" id="cand-edit-nom" value="${c.candidat_nom}" placeholder="${LANG==='en'?'First Last':'Prénom Nom'}">
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div>
-              <label class="form-label">Email</label>
+              <label class="form-label">${t('form.email')}</label>
               <input class="form-control" id="cand-edit-email" value="${c.candidat_email || ''}" placeholder="email@exemple.com" type="email">
             </div>
             <div>
-              <label class="form-label">Téléphone</label>
+              <label class="form-label">${t('form.phone')}</label>
               <input class="form-control" id="cand-edit-tel" value="${c.candidat_telephone || ''}" placeholder="032 XX XXX XX">
             </div>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="saveCandidatInfo('${c._id}',this)">💾 Enregistrer</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCandidatInfo('${c._id}',this)">${t('cand.form.btn_save')}</button>
       </div>
 
       <!-- Documents -->
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">Documents</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">${t('cand.section.documents')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           ${c.cv_path
-            ? `<a href="${fileUrl(c.cv_path)}" target="_blank" class="btn btn-secondary btn-sm">📄 Voir le CV</a>`
+            ? `<a href="${fileUrl(c.cv_path)}" target="_blank" class="btn btn-secondary btn-sm">${t('cand.btn.view_cv')}</a>`
             : `<div style="display:flex;align-items:center;gap:8px;width:100%;flex-wrap:wrap">
                 <label style="flex:1;min-width:160px;display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface-2);border:1.5px dashed var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;color:var(--text-2)" for="cv-upload-${c._id}">
-                  📎 <span id="cv-upload-label-${c._id}">Choisir un CV (PDF, Word…)</span>
+                  📎 <span id="cv-upload-label-${c._id}">${t('cand.form.choose_cv')}</span>
                 </label>
-                <input type="file" id="cv-upload-${c._id}" accept=".pdf,.doc,.docx" style="display:none" onchange="document.getElementById('cv-upload-label-${c._id}').textContent=this.files[0]?.name||'Choisir un CV'">
-                <button class="btn btn-primary btn-sm" onclick="uploadCvForCandidate('${c._id}',this)">⬆️ Uploader</button>
+                <input type="file" id="cv-upload-${c._id}" accept=".pdf,.doc,.docx" style="display:none" onchange="document.getElementById('cv-upload-label-${c._id}').textContent=this.files[0]?.name||t('cand.form.choose_cv')">
+                <button class="btn btn-primary btn-sm" onclick="uploadCvForCandidate('${c._id}',this)">${t('cand.btn.upload')}</button>
                </div>`
           }
-          ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn btn-secondary btn-sm">📝 Lettre de motivation</a>` : ''}
+          ${c.lettre_path ? `<a href="${fileUrl(c.lettre_path)}" target="_blank" class="btn btn-secondary btn-sm">${t('cand.btn.view_cover_letter')}</a>` : ''}
         </div>
       </div>
 
@@ -481,7 +481,7 @@ function showApplicationDetail(id) {
           <div>${channelBadge(c.canal_candidature)}</div>
         </div>
         <div style="background:var(--surface-2);border-radius:var(--r);padding:12px 14px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">Date candidature</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:4px">${t('cand.form.application_date')}</div>
           <div style="font-size:12px;font-weight:600">${formatDatetime(c.date_candidature)}</div>
         </div>
       </div>
@@ -489,24 +489,24 @@ function showApplicationDetail(id) {
       <!-- Email tracking -->
       ${(c.email_invitation_envoye_le || c.relance_1_envoyee_le || c.relance_2_envoyee_le) ? `
       <div style="margin-bottom:16px;padding:14px 16px;background:var(--surface-2);border-radius:var(--r-lg);border:1px solid var(--border-soft)">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">📧 Suivi emails entretien</div>
-        ${c.email_invitation_envoye_le ? `<div style="font-size:12px;margin-bottom:4px">✉️ Invitation — <strong>${formatDatetime(c.email_invitation_envoye_le)}</strong></div>` : ''}
-        ${c.relance_1_envoyee_le ? `<div style="font-size:12px;margin-bottom:4px">🔔 Relance 1 — <strong>${formatDatetime(c.relance_1_envoyee_le)}</strong></div>` : ''}
-        ${c.relance_2_envoyee_le ? `<div style="font-size:12px">🔔 Relance 2 — <strong>${formatDatetime(c.relance_2_envoyee_le)}</strong></div>` : ''}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:8px">${t('cand.section.interview_email_tracking')}</div>
+        ${c.email_invitation_envoye_le ? `<div style="font-size:12px;margin-bottom:4px">${t('cand.email.invitation')} — <strong>${formatDatetime(c.email_invitation_envoye_le)}</strong></div>` : ''}
+        ${c.relance_1_envoyee_le ? `<div style="font-size:12px;margin-bottom:4px">${t('cand.email.follow_up_1')} — <strong>${formatDatetime(c.relance_1_envoyee_le)}</strong></div>` : ''}
+        ${c.relance_2_envoyee_le ? `<div style="font-size:12px">${t('cand.email.follow_up_2')} — <strong>${formatDatetime(c.relance_2_envoyee_le)}</strong></div>` : ''}
       </div>` : ''}
 
       <!-- RDV Manuel confirmed -->
       ${c.rdv_manuel?.date ? `
       <div style="margin-bottom:16px;padding:14px 16px;background:#f0fdf4;border-radius:var(--r-lg);border:1px solid #bbf7d0">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#166534;margin-bottom:6px">📅 RDV Manuel confirmé</div>
-        <div style="font-size:13px;font-weight:600">${c.rdv_manuel.date?.includes('T') ? formatDatetime(c.rdv_manuel.date) : (formatDate(c.rdv_manuel.date) + (c.rdv_manuel.heure ? ' à ' + c.rdv_manuel.heure : ''))}${c.rdv_manuel.lieu ? ' — '+c.rdv_manuel.lieu : ''}</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#166534;margin-bottom:6px">${t('cand.section.manual_rdv')}</div>
+        <div style="font-size:13px;font-weight:600">${c.rdv_manuel.date?.includes('T') ? formatDatetime(c.rdv_manuel.date) : (formatDate(c.rdv_manuel.date) + (c.rdv_manuel.heure ? (LANG==='en'?' at ':' à ') + c.rdv_manuel.heure : ''))}${c.rdv_manuel.lieu ? ' — '+c.rdv_manuel.lieu : ''}</div>
         ${c.rdv_manuel.note ? `<div style="font-size:12px;color:var(--text-2);margin-top:4px">${c.rdv_manuel.note}</div>` : ''}
       </div>` : ''}
 
       <!-- Recruiter note -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">📝 Note recruteur (interne)</div>
-        <textarea id="cand-commentaire-${c._id}" rows="4" class="form-control" style="resize:vertical;font-size:13px" placeholder="Observations internes sur ce candidat…" onblur="saveCommentaire('${c._id}',this.value)">${c.commentaire || ''}</textarea>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px">${t('cand.section.recruiter_notes')}</div>
+        <textarea id="cand-commentaire-${c._id}" rows="4" class="form-control" style="resize:vertical;font-size:13px" placeholder="${t('cand.form.notes_placeholder')}" onblur="saveCommentaire('${c._id}',this.value)">${c.commentaire || ''}</textarea>
       </div>
     </div>
   `;
@@ -603,7 +603,7 @@ async function applyDecision(id, recommandation, btn) {
           .catch(() => {});
       }
     } else {
-      toast(r?.error || 'Erreur', 'error');
+      toast(r?.error || t('toast.error'), 'error');
     }
   });
 }
@@ -649,7 +649,7 @@ function openRdvCalcom(id, offreId) {
   if (adresseEl) adresseEl.value = '';
 
   const confirmBtn = document.getElementById('btn-confirm-rdv-calcom');
-  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '.45'; confirmBtn.textContent = 'Confirmer le rendez-vous'; }
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '.45'; confirmBtn.textContent = t('rdv.btn.confirm'); }
 
   document.getElementById('modal-rdv-calcom').style.display = 'flex';
   loadAvailableDates();
@@ -662,14 +662,14 @@ async function loadAvailableDates() {
   datesEl.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;color:var(--text-3);font-size:13px;padding:10px 0;width:100%">
       <div class="spinner" style="width:16px;height:16px;border-width:2px;flex-shrink:0"></div>
-      Chargement des disponibilités cal.com…
+      ${LANG==='en'?'Loading cal.com availability…':'Chargement des disponibilités cal.com…'}
     </div>`;
 
   try {
     const r = await api.get(`/api/candidatures/calcom/slots?days=90&offre_id=${_rdvCalcomOffreId}`);
 
     if (!r?.success) {
-      datesEl.innerHTML = `<div style="font-size:13px;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;width:100%">⚠️ ${r?.error || 'Erreur cal.com'}</div>`;
+      datesEl.innerHTML = `<div style="font-size:13px;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;width:100%">⚠️ ${r?.error || (LANG==='en'?'Cal.com error':'Erreur cal.com')}</div>`;
       return;
     }
 
@@ -680,14 +680,14 @@ async function loadAvailableDates() {
       datesEl.innerHTML = `
         <div style="text-align:center;padding:24px 0;color:var(--text-3);width:100%">
           <div style="font-size:30px;margin-bottom:8px">📭</div>
-          <div style="font-size:13px;font-weight:700;color:var(--text-2)">Aucune disponibilité dans les 90 prochains jours</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-2)">${LANG==='en'?'No availability in the next 90 days':'Aucune disponibilité dans les 90 prochains jours'}</div>
         </div>`;
       return;
     }
 
     datesEl.innerHTML = dateKeys.map(dateStr => {
       const d = new Date(dateStr + 'T12:00:00');
-      const label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+      const label = d.toLocaleDateString(LANG === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
       const count = _calcomSlotsByDate[dateStr].length;
       return `<button
         class="rdv-date-pill"
@@ -695,12 +695,12 @@ async function loadAvailableDates() {
         onclick="selectCalcomDate('${dateStr}')"
         style="border:2px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:700;font-size:13px;background:var(--surface);color:var(--text);transition:all .18s;white-space:nowrap;outline:none;display:flex;flex-direction:column;align-items:center;gap:2px">
         <span>${label}</span>
-        <span style="font-size:10px;font-weight:500;opacity:.6">${count} créneau${count > 1 ? 'x' : ''}</span>
+        <span style="font-size:10px;font-weight:500;opacity:.6">${LANG==='en'?`${count} slot${count>1?'s':''}`:(`${count} créneau${count > 1 ? 'x' : ''}`)}</span>
       </button>`;
     }).join('');
 
   } catch {
-    datesEl.innerHTML = `<div style="font-size:13px;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;width:100%">Erreur réseau — vérifiez votre connexion</div>`;
+    datesEl.innerHTML = `<div style="font-size:13px;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;width:100%">${LANG==='en'?'Network error — check your connection':'Erreur réseau — vérifiez votre connexion'}</div>`;
   }
 }
 
@@ -796,7 +796,7 @@ async function submitRdvCalcom() {
   if (!_rdvCalcomSelectedSlot || !_rdvCalcomCandidatureId || !_rdvCalcomTypeRdv) return;
 
   const btn = document.getElementById('btn-confirm-rdv-calcom');
-  if (btn) { btn.disabled = true; btn.style.opacity = '.7'; btn.textContent = '⏳ Réservation en cours…'; }
+  if (btn) { btn.disabled = true; btn.style.opacity = '.7'; btn.textContent = LANG==='en'?'⏳ Booking…':'⏳ Réservation en cours…'; }
 
   const lieu = _rdvCalcomTypeRdv === 'visio'
     ? 'Visio'
@@ -820,11 +820,11 @@ async function submitRdvCalcom() {
       showApplicationDetail(_rdvCalcomCandidatureId);
     } else {
       toast(r?.error || t('toast.appointment_error'), 'error');
-      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Confirmer le rendez-vous'; }
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = t('rdv.btn.confirm'); }
     }
   } catch {
     toast(t('toast.network_error'), 'error');
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Confirmer le rendez-vous'; }
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = t('rdv.btn.confirm'); }
   }
 }
 
@@ -856,7 +856,7 @@ async function markAppointmentBooked(id) {
     toast(t('toast.rdv_marked'), 'success');
     showApplicationDetail(id);
   } else {
-    toast(r?.error || 'Erreur', 'error');
+    toast(r?.error || t('toast.error'), 'error');
   }
 }
 
@@ -875,14 +875,14 @@ async function togglePotentiel(id, btn) {
       btn.style.borderColor  = newVal ? '#ddd6fe' : 'var(--border)';
       btn.innerHTML = `<span style="font-size:20px">⭐</span>
         <div style="text-align:left">
-          <div>${newVal ? 'Candidat potentiel' : 'Marquer comme potentiel'}</div>
-          <div style="font-size:11px;font-weight:400;opacity:.7">${newVal ? 'Cliquer pour retirer du vivier' : 'À considérer pour de futures offres'}</div>
+          <div>${newVal ? t('cand.pool.is_potential') : t('cand.pool.mark_as_potential')}</div>
+          <div style="font-size:11px;font-weight:400;opacity:.7">${newVal ? t('cand.pool.click_to_remove') : t('cand.pool.future_offers')}</div>
         </div>
-        ${newVal ? '<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">Actif</span>' : ''}`;
+        ${newVal ? `<span style="margin-left:auto;font-size:11px;padding:3px 8px;background:#ede9fe;border-radius:20px;color:#7c3aed">${t('cand.pool.active_badge')}</span>` : ''}`;
     }
     toast(newVal ? t('toast.added_to_pool') : t('toast.removed_from_pool'), 'success');
   } else {
-    toast(r?.error || 'Erreur', 'error');
+    toast(r?.error || t('toast.error'), 'error');
   }
 }
 
@@ -895,14 +895,14 @@ async function markNotInterested(id) {
     toast(t('toast.not_interested_marked'), 'success');
     showApplicationDetail(id);
   } else {
-    toast(r?.error || 'Erreur', 'error');
+    toast(r?.error || t('toast.error'), 'error');
   }
 }
 
 async function uploadCvForCandidate(id, btn) {
   const input = document.getElementById(`cv-upload-${id}`);
   if (!input?.files?.[0]) { toast(t('toast.select_cv_first'), 'error'); return; }
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Upload…'; }
+  if (btn) { btn.disabled = true; btn.textContent = LANG==='en'?'⏳ Uploading…':'⏳ Upload…'; }
   const fd = new FormData();
   fd.append('cv', input.files[0]);
   try {
@@ -919,11 +919,11 @@ async function uploadCvForCandidate(id, btn) {
       showApplicationDetail(id);
     } else {
       toast(data.error || t('toast.upload_error'), 'error');
-      if (btn) { btn.disabled = false; btn.textContent = '⬆️ Uploader'; }
+      if (btn) { btn.disabled = false; btn.textContent = t('cand.btn.upload'); }
     }
   } catch (e) {
     toast(t('toast.upload_error'), 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '⬆️ Uploader'; }
+    if (btn) { btn.disabled = false; btn.textContent = t('cand.btn.upload'); }
   }
 }
 
@@ -941,16 +941,16 @@ async function relaunchWorkflowFromModal(id) {
   const c = _applications.find(x => x._id === id);
   if (!c?.cv_path) { toast(t('toast.cv_required_for_workflow'), 'error'); return; }
   const btn = document.getElementById('btn-relancer-wf');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Relancement…'; }
+  if (btn) { btn.disabled = true; btn.textContent = LANG==='en'?'⏳ Relaunching…':'⏳ Relancement…'; }
   if (c) { c.score = null; c.recommandation = ''; filterApplications(); }
   const r = await api.post(`/api/candidatures/${id}/relancer-workflow`, {});
   if (r?.success) {
     toast(t('toast.workflow_relaunched'), 'success');
-    if (btn) btn.textContent = '⏳ Analyse en cours…';
+    if (btn) btn.textContent = LANG==='en'?'⏳ Analysis in progress…':'⏳ Analyse en cours…';
     startPollingIfNeeded();
   } else {
     toast(r?.error || t('toast.relaunch_error'), 'error');
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 Relancer l\'analyse IA'; }
+    if (btn) { btn.disabled = false; btn.textContent = t('btn.relaunch_workflow'); }
   }
 }
 
@@ -991,9 +991,9 @@ function applicationModalHTML() {
 
       <!-- Tab bar -->
       <div style="display:flex;border-bottom:2px solid var(--border-soft);background:var(--surface);padding:0 16px;flex-shrink:0;overflow-x:auto">
-        <button id="tab-cand-analyse" onclick="switchCandTab('analyse')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">📊 Analyse IA</button>
-        <button id="tab-cand-decision" onclick="switchCandTab('decision')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">🎯 Décision</button>
-        <button id="tab-cand-infos" onclick="switchCandTab('infos')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">📝 Infos</button>
+        <button id="tab-cand-analyse" onclick="switchCandTab('analyse')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">${t('cand.tab.analysis')}</button>
+        <button id="tab-cand-decision" onclick="switchCandTab('decision')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">${t('cand.tab.decision')}</button>
+        <button id="tab-cand-infos" onclick="switchCandTab('infos')" style="padding:12px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;outline:none;transition:color .15s">${t('cand.tab.infos')}</button>
       </div>
 
       <!-- Scrollable body -->
@@ -1009,7 +1009,7 @@ function applicationModalHTML() {
       <div style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));padding:26px 24px 22px;position:relative;flex-shrink:0">
         <button onclick="closeModal('modal-rdv-calcom')" class="btn-modal-close" style="position:absolute;top:14px;right:14px">✕</button>
         <div style="font-size:26px;margin-bottom:6px">📅</div>
-        <div style="font-size:17px;font-weight:800;color:white;letter-spacing:-.01em">Prise de rendez-vous</div>
+        <div style="font-size:17px;font-weight:800;color:white;letter-spacing:-.01em">${t('rdv.modal.title')}</div>
         <div id="rdv-calcom-subtitle" style="font-size:12.5px;color:rgba(255,255,255,.78);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
       </div>
 
@@ -1020,7 +1020,7 @@ function applicationModalHTML() {
         <div style="margin-bottom:22px">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span style="background:var(--accent);color:white;width:18px;height:18px;border-radius:50%;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">1</span>
-            Dates disponibles
+            ${t('rdv.step.available_dates')}
           </div>
           <div id="rdv-calcom-dates" style="display:flex;flex-wrap:wrap;gap:8px;min-height:44px"></div>
         </div>
@@ -1029,7 +1029,7 @@ function applicationModalHTML() {
         <div id="rdv-calcom-slots-section" style="display:none;margin-bottom:22px">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span style="background:var(--accent);color:white;width:18px;height:18px;border-radius:50%;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">2</span>
-            Créneaux disponibles
+            ${t('rdv.step.available_slots')}
           </div>
           <div id="rdv-calcom-slots" style="display:flex;flex-wrap:wrap;gap:8px;min-height:44px"></div>
         </div>
@@ -1038,24 +1038,24 @@ function applicationModalHTML() {
         <div id="rdv-calcom-type-section" style="display:none;margin-bottom:22px">
           <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span style="background:var(--accent);color:white;width:18px;height:18px;border-radius:50%;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">3</span>
-            Type de rencontre
+            ${t('rdv.step.meeting_type')}
           </div>
           <div style="display:flex;gap:10px;margin-bottom:14px">
             <button class="rdv-type-pill" data-type="visio" onclick="selectRdvType('visio')"
               style="flex:1;border:2px solid var(--border);border-radius:10px;padding:12px 10px;cursor:pointer;font-size:13px;font-weight:600;background:var(--surface);color:var(--text);transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px;outline:none">
               <span style="font-size:22px">📹</span>
-              <span>Visio</span>
-              <span style="font-size:10px;opacity:.55;font-weight:500">Lien généré par cal.com</span>
+              <span>${t('rdv.type.video')}</span>
+              <span style="font-size:10px;opacity:.55;font-weight:500">${t('rdv.type.video_hint')}</span>
             </button>
             <button class="rdv-type-pill" data-type="presentiel" onclick="selectRdvType('presentiel')"
               style="flex:1;border:2px solid var(--border);border-radius:10px;padding:12px 10px;cursor:pointer;font-size:13px;font-weight:600;background:var(--surface);color:var(--text);transition:all .18s;display:flex;flex-direction:column;align-items:center;gap:4px;outline:none">
               <span style="font-size:22px">📍</span>
-              <span>Présentiel</span>
-              <span style="font-size:10px;opacity:.55;font-weight:500">Saisir une adresse</span>
+              <span>${t('rdv.type.in_person')}</span>
+              <span style="font-size:10px;opacity:.55;font-weight:500">${t('rdv.type.in_person_hint')}</span>
             </button>
           </div>
           <div id="rdv-calcom-adresse-section" style="display:none">
-            <input id="rdv-calcom-adresse" type="text" placeholder="Adresse complète du lieu…"
+            <input id="rdv-calcom-adresse" type="text" placeholder="${t('rdv.placeholder.address')}"
               oninput="updateConfirmBtn()"
               style="width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:var(--r);font-size:13px;font-family:var(--font);background:var(--surface-2);color:var(--text);outline:none;transition:.15s;box-sizing:border-box"
               onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
@@ -1066,10 +1066,10 @@ function applicationModalHTML() {
 
       <!-- Footer -->
       <div style="padding:16px 24px;border-top:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
-        <button class="btn btn-secondary" onclick="closeModal('modal-rdv-calcom')">Annuler</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-rdv-calcom')">${t('btn.cancel')}</button>
         <button id="btn-confirm-rdv-calcom" disabled onclick="submitRdvCalcom()"
           style="background:linear-gradient(135deg,var(--grad-start),var(--grad-end));color:white;border:none;padding:10px 22px;border-radius:var(--r);font-weight:700;font-size:14px;cursor:pointer;opacity:.45;transition:.2s;min-width:170px">
-          Confirmer le rendez-vous
+          ${t('rdv.btn.confirm')}
         </button>
       </div>
     </div>
@@ -1083,8 +1083,8 @@ function applicationModalHTML() {
       <div style="background:linear-gradient(135deg,var(--surface-2),var(--surface));padding:20px 24px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:14px;flex-shrink:0">
         <div style="width:42px;height:42px;background:linear-gradient(135deg,var(--grad-start),var(--grad-end));border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 4px 14px var(--accent-glow)">👤</div>
         <div style="flex:1">
-          <div style="font-size:15px;font-weight:800;color:var(--text)">Nouvelle candidature</div>
-          <div style="font-size:12px;color:var(--text-3);margin-top:1px">Saisie manuelle</div>
+          <div style="font-size:15px;font-weight:800;color:var(--text)">${t('cand.modal.title')}</div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:1px">${t('cand.modal.subtitle')}</div>
         </div>
         <button class="btn-icon" onclick="closeModal('modal-nouveau-cand')">✕</button>
       </div>
@@ -1093,21 +1093,21 @@ function applicationModalHTML() {
         <form id="form-nouveau-cand">
           <div class="form-grid">
             <div class="form-group" style="grid-column:1/-1">
-              <label class="form-label">Poste <span class="req">*</span></label>
+              <label class="form-label">${t('form.position')} <span class="req">*</span></label>
               <select class="form-control" id="nc-offre_id" required>
-                <option value="">Sélectionner une offre…</option>
+                <option value="">${t('cand.form.select_offer')}</option>
               </select>
             </div>
             <div class="form-group" style="grid-column:1/-1">
-              <label class="form-label">Nom du candidat <span class="req">*</span></label>
-              <input class="form-control" id="nc-nom" placeholder="Prénom Nom" required>
+              <label class="form-label">${t('cand.form.candidate_name')} <span class="req">*</span></label>
+              <input class="form-control" id="nc-nom" placeholder="${LANG==='en'?'First Last':'Prénom Nom'}" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Email</label>
+              <label class="form-label">${t('form.email')}</label>
               <input class="form-control" id="nc-email" type="email" placeholder="candidat@email.com">
             </div>
             <div class="form-group">
-              <label class="form-label">Téléphone</label>
+              <label class="form-label">${t('form.phone')}</label>
               <input class="form-control" id="nc-telephone" placeholder="032 XX XXX XX">
             </div>
             <div class="form-group" style="grid-column:1/-1">
@@ -1120,21 +1120,21 @@ function applicationModalHTML() {
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">CV (optionnel)</label>
+              <label class="form-label">${t('cand.form.cv_optional')}</label>
               <input class="form-control" id="nc-cv" type="file" accept=".pdf,.doc,.docx" style="padding:6px">
             </div>
             <div class="form-group">
-              <label class="form-label">Lettre de motivation (optionnel)</label>
+              <label class="form-label">${t('cand.form.letter_optional')}</label>
               <input class="form-control" id="nc-lettre" type="file" accept=".pdf,.doc,.docx" style="padding:6px">
             </div>
           </div>
-          <p style="font-size:12px;color:var(--text-3);margin-top:8px">Email ou téléphone requis. Sans email, le candidat sera marqué "À appeler".</p>
+          <p style="font-size:12px;color:var(--text-3);margin-top:8px">${t('cand.form.contact_info_hint')}</p>
         </form>
       </div>
 
       <div style="padding:14px 24px;border-top:1px solid var(--border-soft);display:flex;justify-content:flex-end;gap:10px;background:var(--surface-2);flex-shrink:0">
-        <button class="btn btn-secondary" onclick="closeModal('modal-nouveau-cand')">Annuler</button>
-        <button class="btn btn-primary" id="btn-submit-nc" onclick="submitNewApplication()">💾 Enregistrer</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-nouveau-cand')">${t('btn.cancel')}</button>
+        <button class="btn btn-primary" id="btn-submit-nc" onclick="submitNewApplication()">${t('cand.form.btn_save')}</button>
       </div>
     </div>
   </div>`;
@@ -1144,7 +1144,7 @@ function openNewApplication(preselectedOfferId = null) {
   const sel = document.getElementById('nc-offre_id');
   if (sel) {
     const jobOffers = Object.values(_jobOffersMap);
-    sel.innerHTML = `<option value="">Sélectionner une offre…</option>` +
+    sel.innerHTML = `<option value="">${t('cand.form.select_offer')}</option>` +
       jobOffers.map(o => `<option value="${o.offre_id}">${o.titre_poste} ${o.statut !== 'Active' ? '('+o.statut+')' : ''}</option>`).join('');
     if (preselectedOfferId) sel.value = preselectedOfferId;
   }
