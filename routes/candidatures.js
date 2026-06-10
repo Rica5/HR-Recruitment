@@ -155,7 +155,7 @@ router.get("/", async (req, res) => {
     const limit = Math.min(500, parseInt(req.query.limit) || 50);
     const skip = (page - 1) * limit;
 
-    const filter = { company: req.user.company };
+    const filter = {};
     if (offre_id) filter.offre_id = offre_id;
     if (recommandation) filter.recommandation = recommandation;
     if (a_appeler === "true") filter.a_appeler = true;

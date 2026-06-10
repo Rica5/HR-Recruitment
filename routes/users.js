@@ -26,8 +26,9 @@ router.post('/', async (req, res) => {
     if (password.length < 6)
       return res.status(400).json({ success: false, error: be(req, 'Mot de passe : 6 caractères minimum', 'Password: minimum 6 characters') });
 
-    // Company is always the admin's own — never trust req.body.company
-    const company = req.user.company;
+    const company = (['solumada', 'optimum'].includes(req.body.company))
+      ? req.body.company
+      : req.user.company;
 
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing)
