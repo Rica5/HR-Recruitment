@@ -14,15 +14,19 @@ function calHeaders() {
   };
 }
 
-let _cachedUsername = null;
-let _usernameExpiry = 0;
-async function getUsername() {
-  if (_cachedUsername && Date.now() < _usernameExpiry) return _cachedUsername;
-  const r = await axios.get(`${CAL_BASE}/me`, { headers: calHeaders() });
-  _cachedUsername = r.data?.data?.username || '';
-  _usernameExpiry = Date.now() + 60 * 60 * 1000; // 1h TTL
-  return _cachedUsername;
+let _cachedMe     = null;
+let _meExpiry     = 0;
+async function getMe() {
+  if (_cachedMe && Date.now() < _meExpiry) return _cachedMe;
+  const r  = await axios.get(`${CAL_BASE}/me`, { headers: calHeaders() });
+  _cachedMe = {
+    username: r.data?.data?.username || '',
+    timeZone: r.data?.data?.timeZone || 'UTC',
+  };
+  _meExpiry = Date.now() + 60 * 60 * 1000; // 1h TTL
+  return _cachedMe;
 }
+async function getUsername() { return (await getMe()).username; }
 
 function normalizeEventTypes(raw) {
   if (Array.isArray(raw)) return raw;
@@ -96,6 +100,7 @@ router.get('/event-types', async (req, res) => {
       lengthInMinutes: et.lengthInMinutes,
       description:     et.description || '',
       scheduleId:      et.scheduleId || null,
+      locations:       et.locations  || [],
       bookingUrl:      `https://cal.com/${username}/${et.slug}`,
     }));
     res.json({ success: true, eventTypes });
@@ -106,14 +111,15 @@ router.get('/event-types', async (req, res) => {
 
 // POST /api/calcom/event-types
 router.post('/event-types', async (req, res) => {
-  const { title, lengthInMinutes, description, scheduleId } = req.body;
+  const { title, lengthInMinutes, description, scheduleId, locations } = req.body;
   if (!title || !lengthInMinutes)
     return res.status(400).json({ success: false, error: be(req, 'title et lengthInMinutes sont requis', 'title and lengthInMinutes are required') });
   try {
     const slug    = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const payload = { title, slug, lengthInMinutes: Number(lengthInMinutes) };
-    if (description) payload.description = description;
-    if (scheduleId)  payload.scheduleId  = Number(scheduleId);
+    if (description)                               payload.description = description;
+    if (scheduleId)                                payload.scheduleId  = Number(scheduleId);
+    if (Array.isArray(locations) && locations.length) payload.locations = locations;
 
     const [etRes, username] = await Promise.all([
       axios.post(`${CAL_BASE}/event-types`, payload, { headers: calHeaders() }),
@@ -122,7 +128,7 @@ router.post('/event-types', async (req, res) => {
     const et = etRes.data?.data;
     res.json({
       success: true,
-      eventType: { ...et, bookingUrl: `https://cal.com/${username}/${et.slug}` },
+      eventType: { ...et, locations: et.locations || [], bookingUrl: `https://cal.com/${username}/${et.slug}` },
     });
   } catch (err) {
     res.status(err.response?.status || 500).json({
@@ -137,6 +143,33 @@ router.delete('/event-types/:id', async (req, res) => {
   try {
     await axios.delete(`${CAL_BASE}/event-types/${req.params.id}`, { headers: calHeaders() });
     res.json({ success: true });
+  } catch (err) {
+    res.status(err.response?.status || 500).json({
+      success: false,
+      error: err.response?.data?.message || err.message,
+    });
+  }
+});
+
+// PATCH /api/calcom/event-types/:id
+router.patch('/event-types/:id', async (req, res) => {
+  try {
+    const { title, lengthInMinutes, description, locations } = req.body;
+    const payload = {};
+    if (title)                                        payload.title           = title;
+    if (lengthInMinutes)                              payload.lengthInMinutes = Number(lengthInMinutes);
+    if (description !== undefined)                    payload.description     = description;
+    if (Array.isArray(locations) && locations.length) payload.locations       = locations;
+
+    const [etRes, username] = await Promise.all([
+      axios.patch(`${CAL_BASE}/event-types/${req.params.id}`, payload, { headers: calHeaders() }),
+      getUsername(),
+    ]);
+    const et = etRes.data?.data;
+    res.json({
+      success: true,
+      eventType: { ...et, locations: et.locations || [], bookingUrl: `https://cal.com/${username}/${et.slug}` },
+    });
   } catch (err) {
     res.status(err.response?.status || 500).json({
       success: false,
@@ -319,6 +352,7 @@ router.get('/bookings', async (req, res) => {
     }
 
     const userCompany = req.user.company;
+    const { timeZone: organizerTimeZone } = await getMe().catch(() => ({ timeZone: 'UTC' }));
 
     const enriched = bookings.map(b => {
       const metaCandId = b.metadata?.candidature_id;
@@ -352,7 +386,7 @@ router.get('/bookings', async (req, res) => {
       };
     }).filter(Boolean);
 
-    res.json({ success: true, bookings: enriched });
+    res.json({ success: true, bookings: enriched, organizerTimeZone });
   } catch (err) {
     res.status(err.response?.status || 500).json({
       success: false,

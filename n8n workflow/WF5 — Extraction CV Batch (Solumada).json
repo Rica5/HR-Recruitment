@@ -1,0 +1,227 @@
+{
+  "name": "WF5 — Extraction CV Batch (Solumada)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "batch-cv-extraction",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9eecc8db-5d12-4735-9990-020db90dcc1a",
+      "name": "01 — Webhook Batch CV",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -288
+      ],
+      "webhookId": "solumada-wf5-batch-cv-extraction"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true }",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "76f79726-e7a2-45a2-88ac-4c13c25966cc",
+      "name": "02 — Réponse 202 immédiate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        128,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst candidature_id  = body.candidature_id  || '';\nconst cv_base64       = body.cv_base64       || '';\nconst cv_mimetype     = body.cv_mimetype     || 'application/pdf';\nconst callback_url    = body.callback_url    || '';\nconst callback_secret = body.callback_secret || '';\n\nif (!candidature_id) throw new Error('candidature_id manquant dans le payload');\nif (!cv_base64)      throw new Error('cv_base64 manquant dans le payload');\nif (!callback_url)   throw new Error('callback_url manquant dans le payload');\n\nconst prompt = `Tu es un assistant RH. Extrais les informations suivantes du CV fourni.\n\nRéponds UNIQUEMENT en JSON valide, sans markdown, sans backticks, sans texte avant ou après :\n{\n  \"candidat_nom\": \"Prénom NOM complet\",\n  \"candidat_email\": \"email@exemple.com\",\n  \"candidat_telephone\": \"+XXX XX XX XX XX\"\n}\n\nRègles :\n- candidat_nom : prénom + nom complet correctement mis en forme (ex: \"Jean DUPONT\"). Obligatoire.\n- candidat_email : adresse email valide si présente, sinon null\n- candidat_telephone : numéro de téléphone si présent (format international si possible), sinon null\n- Si plusieurs emails ou téléphones, prendre le premier trouvé\n- Ne jamais inventer d'information — mettre null si absent`;\n\nreturn [{ json: {\n  candidature_id,\n  callback_url,\n  callback_secret,\n  requestBody: {\n    model: 'claude-sonnet-4-6',\n    max_tokens: 512,\n    messages: [\n      {\n        role: 'user',\n        content: [\n          {\n            type: 'document',\n            source: {\n              type: 'base64',\n              media_type: cv_mimetype,\n              data: cv_base64\n            }\n          },\n          {\n            type: 'text',\n            text: prompt\n          }\n        ]\n      }\n    ]\n  }\n}}];"
+      },
+      "id": "25c081f3-aa16-42cb-9cf9-0d624f20b9ac",
+      "name": "03 — Préparer prompt extraction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "368095a7-a289-4d17-b1d6-466fc738c099",
+      "name": "04 — Appel Claude API (Anthropic)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        368,
+        -288
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ykeQbTxUUvlcEX7d",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const claudeResponse = $input.first().json;\nconst prevData = $('03 — Préparer prompt extraction').first().json;\n\nconst raw = claudeResponse?.content?.[0]?.text || '';\nif (!raw) throw new Error('Réponse Claude vide — content[0].text absent');\n\n// Retirer les balises markdown si présentes\nconst fenceMatch = raw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nconst jsonStr = fenceMatch ? fenceMatch[1].trim() : raw.trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  throw new Error('Impossible de parser la réponse Claude : ' + e.message + ' — Extrait : ' + jsonStr.slice(0, 200));\n}\n\nconst nom   = (parsed.candidat_nom   || '').trim() || 'Candidat sans nom';\nconst email = (parsed.candidat_email || null);\nconst tel   = (parsed.candidat_telephone || null);\n\nconsole.log(`✅ Extraction WF5 pour ${prevData.candidature_id} : nom=${nom}, email=${email || 'null'}, tel=${tel || 'null'}`);\n\nreturn [{ json: {\n  candidature_id:    prevData.candidature_id,\n  callback_url:      prevData.callback_url,\n  callback_secret:   prevData.callback_secret,\n  candidat_nom:      nom,\n  candidat_email:    email,\n  candidat_telephone: tel\n}}];"
+      },
+      "id": "4c82aebe-e27e-46fa-b945-af77b0457d6f",
+      "name": "05 — Parser extraction Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callback_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Callback-Secret",
+              "value": "={{ $json.callback_secret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ candidature_id: $json.candidature_id, candidat_nom: $json.candidat_nom, candidat_email: $json.candidat_email, candidat_telephone: $json.candidat_telephone }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "1388457d-d4b4-497a-ba98-ba3e0734f50a",
+      "name": "06 — Callback Express (extraction)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        848,
+        -288
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 — Webhook Batch CV": {
+      "main": [
+        [
+          {
+            "node": "02 — Réponse 202 immédiate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "03 — Préparer prompt extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 — Préparer prompt extraction": {
+      "main": [
+        [
+          {
+            "node": "04 — Appel Claude API (Anthropic)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 — Appel Claude API (Anthropic)": {
+      "main": [
+        [
+          {
+            "node": "05 — Parser extraction Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 — Parser extraction Claude": {
+      "main": [
+        [
+          {
+            "node": "06 — Callback Express (extraction)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7a7e58ed-c7d8-4bf0-9ffe-903d0213641c",
+  "meta": {
+    "instanceId": "afc83c8eed816bd60e45cedd7670d3e536b7e09132dc39868b3fdc725f0a61b3"
+  },
+  "id": "7nsAlxx8SRJU3I5R",
+  "tags": [
+    {
+      "updatedAt": "2026-05-28T11:31:54.098Z",
+      "createdAt": "2026-05-28T11:31:54.098Z",
+      "id": "VQvhXTubFBO6j7hl",
+      "name": "cv"
+    },
+    {
+      "updatedAt": "2026-05-28T09:47:06.093Z",
+      "createdAt": "2026-05-28T09:47:06.093Z",
+      "id": "fVnsvcFpydNwI40R",
+      "name": "solumada"
+    },
+    {
+      "updatedAt": "2026-05-28T09:47:06.065Z",
+      "createdAt": "2026-05-28T09:47:06.065Z",
+      "id": "loJld8czZxhEKyeN",
+      "name": "batch"
+    },
+    {
+      "updatedAt": "2026-05-28T11:31:54.134Z",
+      "createdAt": "2026-05-28T11:31:54.134Z",
+      "id": "woENA6D7QqM2KouB",
+      "name": "extraction"
+    }
+  ]
+}

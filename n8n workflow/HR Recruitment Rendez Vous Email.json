@@ -7,13 +7,13 @@
         "path": "candidature-mailing",
         "options": {}
       },
-      "id": "8e28d573-baf0-486a-b136-74e3043596b1",
+      "id": "ad8e0699-4906-4c31-a4b0-126722781a39",
       "name": "01 - Candidate Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1616,
-        1456
+        24368,
+        6496
       ],
       "webhookId": "candidature-reception-solumada"
     },
@@ -21,13 +21,13 @@
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').item.json.body || $json.body || {};\nfunction withGuest(url, email) {\n  if (!url || url === '#' || !email) return url || '#';\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + 'guests=' + encodeURIComponent(email);\n}\nconst company = body.company || 'solumada';\nconst isEn = company === 'optimum';\nconst brand = isEn ? { name: 'Optimum Solutions', color: '#62A5D2', colorDark: '#2b6ca3', logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', logoBg: '', logoHeight: 46 } : { name: 'Solumada', color: '#22c55e', colorDark: '#15803d', logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', logoBg: '#ffffff', logoHeight: 36 };\nconst fromName = brand.name + ' — Recrutement';\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) { subtitle=subtitle||''; ctaLabel=ctaLabel||''; ctaUrl=ctaUrl||''; const year=new Date().getFullYear(); const logoBlock=brand.logoBg?`<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`:`<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`; const cta=(ctaLabel&&ctaUrl)?`<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>`:''; const footerNote=isEn?'Recruitment · Please do not reply directly to this email.':'Service Recrutement · Merci de ne pas répondre directement à cet email.'; const copyright=isEn?'All rights reserved':'Tous droits réservés'; return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`; }\nconst d = body;\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Following our review of your application for the position of <strong>${d.titre_poste}</strong>, we would like to invite you to an interview.</p><p style=\"margin:0 0 6px\">Please book the time slot that suits you best by clicking the button below.</p><p style=\"margin:14px 0 0;color:#64748b;font-size:13px\">⏳ Please book your slot within <strong>48 hours</strong>.</p>`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 14px\">Suite à l'examen de votre candidature pour le poste de <strong>${d.titre_poste}</strong>, nous souhaitons vous rencontrer dans le cadre d'un entretien.</p><p style=\"margin:0 0 6px\">Merci de réserver le créneau qui vous convient le mieux en cliquant sur le bouton ci-dessous.</p><p style=\"margin:14px 0 0;color:#64748b;font-size:13px\">⏳ Merci de réserver votre créneau dans les <strong>48 heures</strong>.</p>`;\nconst from = `\"${fromName}\" <dtb@solumada.mg>`;\nreturn [{ json: { from, to: d.candidat_email, subject: isEn?`📅 Interview invitation — ${d.titre_poste}`:`📅 Invitation à un entretien — ${d.titre_poste}`, html: emailLayout({ preheader: isEn?`Interview invitation for ${d.titre_poste}`:`Invitation à un entretien pour le poste de ${d.titre_poste}`, title: isEn?'Interview Invitation':'Invitation à un entretien', subtitle: d.titre_poste, bodyHtml, ctaLabel: isEn?'📅 Schedule my interview':'📅 Planifier mon entretien', ctaUrl: withGuest(d.lien_rdv||'#', d.email_recruteur) }), replyTo: d.email_recruteur || '' }}];"
       },
-      "id": "rdv-build-invite-001",
+      "id": "1b1da5f0-cc00-43ae-9b48-5a3e08201b37",
       "name": "09b_b - Build Interview Invitation Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1376,
-        1456
+        24608,
+        6496
       ]
     },
     {
@@ -41,33 +41,34 @@
           "replyTo": "={{ $json.replyTo }}"
         }
       },
-      "id": "1b51d4f0-159a-44be-89ab-3d8e218e54eb",
+      "id": "10c39c26-2281-4491-bc83-df69d5b68de5",
       "name": "09b - Interview Invitation",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
       "position": [
-        -1136,
-        1456
+        24848,
+        6496
       ],
+      "webhookId": "c2236a70-3f74-4330-8963-fccaad0757d4",
       "credentials": {
         "smtp": {
-          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
-          "name": "Gmail SMTP — Solumada"
+          "id": "8kRbAhTJAClSsWlU",
+          "name": "SMTP account 3"
         }
       }
     },
     {
       "parameters": {
-        "amount": 48,
-        "unit": "hours"
+        "amount": 1,
+        "unit": "minutes"
       },
-      "id": "cc78b1bf-ed4c-4e49-aa7d-0a0313fe7766",
+      "id": "a8ec7a7c-1b30-4cf7-a1e4-b7eb2a503d6c",
       "name": "10 - Wait 48h",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        -896,
-        1456
+        25088,
+        6496
       ],
       "webhookId": "wait-48h-rdv"
     },
@@ -91,13 +92,13 @@
         },
         "options": {}
       },
-      "id": "a7f9063c-8e98-47ce-b6e8-cc562ea1662a",
+      "id": "7ab36a8d-147f-437e-902d-bea726224ce6",
       "name": "11 - Check Cal.com",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -656,
-        1456
+        25328,
+        6496
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -116,13 +117,13 @@
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').first().json.body;\nconst email = body.candidat_email.toLowerCase();\nconst lienRdv = body.lien_rdv || '';\nconst slugParts = lienRdv.replace(/\\/$/, '').split('/').filter(Boolean);\nconst expectedSlug = slugParts.length >= 2 ? slugParts[slugParts.length - 1] : '';\nconst bookings = $input.first().json.data.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email) &&\n  (!expectedSlug || (b.eventType?.slug || b.eventTypeSlug || '') === expectedSlug)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
       },
-      "id": "cb3663fe-d0d4-43bb-bbdd-9802999734cf",
+      "id": "e4644331-5c1e-42d9-838e-3229282d591b",
       "name": "12 - Booking Found?",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -416,
-        1456
+        25568,
+        6496
       ]
     },
     {
@@ -149,26 +150,26 @@
         },
         "options": {}
       },
-      "id": "5c6fe16f-7396-418d-80db-ed98c285c51f",
+      "id": "d14844a8-f9f9-4d93-83b3-39c792086e2a",
       "name": "13 - No Booking?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -176,
-        1456
+        25808,
+        6496
       ]
     },
     {
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').item.json.body || {};\nfunction withGuest(url, email) {\n  if (!url || url === '#' || !email) return url || '#';\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + 'guests=' + encodeURIComponent(email);\n}\nconst company = body.company || 'solumada';\nconst isEn = company === 'optimum';\nconst brand = isEn ? { name: 'Optimum Solutions', color: '#62A5D2', colorDark: '#2b6ca3', logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', logoBg: '', logoHeight: 46 } : { name: 'Solumada', color: '#22c55e', colorDark: '#15803d', logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', logoBg: '#ffffff', logoHeight: 36 };\nconst fromName = brand.name + ' — Recrutement';\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) { subtitle=subtitle||''; ctaLabel=ctaLabel||''; ctaUrl=ctaUrl||''; const year=new Date().getFullYear(); const logoBlock=brand.logoBg?`<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`:`<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`; const cta=(ctaLabel&&ctaUrl)?`<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>`:''; const footerNote=isEn?'Recruitment · Please do not reply directly to this email.':'Service Recrutement · Merci de ne pas répondre directement à cet email.'; const copyright=isEn?'All rights reserved':'Tous droits réservés'; return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`; }\nconst d = body;\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">We had invited you to schedule an interview for the position of <strong>${d.titre_poste}</strong>, but we have not yet received your booking.</p>`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">Nous vous avions invité(e) à planifier votre entretien pour le poste de <strong>${d.titre_poste}</strong>, mais nous n'avons pas encore reçu votre réservation.</p>`;\nconst from = `\"${fromName}\" <dtb@solumada.mg>`;\nreturn [{ json: { from, to: d.candidat_email, subject: isEn?`⏰ Reminder (1/2) — Schedule your interview for ${d.titre_poste}`:`⏰ Rappel (1/2) — Planifiez votre entretien pour ${d.titre_poste}`, html: emailLayout({ preheader: isEn?`Reminder: schedule your interview for ${d.titre_poste}`:`Rappel : planifiez votre entretien pour ${d.titre_poste}`, title: isEn?'Interview to Schedule ⏰':'Entretien à planifier ⏰', subtitle: isEn?'Reminder 1/2':'Rappel 1/2', bodyHtml, ctaLabel: isEn?'📅 Book my slot':'📅 Réserver mon créneau', ctaUrl: withGuest(d.lien_rdv||'#', d.email_recruteur) }), replyTo: d.email_recruteur || '' }}];"
       },
-      "id": "rdv-build-relance1-001",
+      "id": "b6b92c91-a749-45f0-9f87-b589b336823d",
       "name": "14a - Build Reminder 1 Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        64,
-        1456
+        26048,
+        6496
       ]
     },
     {
@@ -182,33 +183,34 @@
           "replyTo": "={{ $json.replyTo }}"
         }
       },
-      "id": "f1fcc0f1-eb44-4593-9294-06f4cf7222f6",
+      "id": "6b0dfb65-c0cb-48c7-8158-9760f68333c4",
       "name": "14 - Reminder 1",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
       "position": [
-        304,
-        1456
+        26288,
+        6496
       ],
+      "webhookId": "9f1803f1-b1a6-4814-b210-70cb1b6d91af",
       "credentials": {
         "smtp": {
-          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
-          "name": "Gmail SMTP — Solumada"
+          "id": "8kRbAhTJAClSsWlU",
+          "name": "SMTP account 3"
         }
       }
     },
     {
       "parameters": {
-        "amount": 24,
-        "unit": "hours"
+        "amount": 1,
+        "unit": "minutes"
       },
-      "id": "a064c821-950d-4e01-88fc-980f74d9b6a2",
+      "id": "274c4bba-22da-4545-8ca6-4558887048b8",
       "name": "15 - Wait 24h",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        544,
-        1456
+        26528,
+        6496
       ],
       "webhookId": "wait-24h-relance2"
     },
@@ -232,13 +234,13 @@
         },
         "options": {}
       },
-      "id": "149a2d94-d850-41d6-b462-e11593e0e2e2",
+      "id": "f9922b3c-fa0c-4100-829b-88484d6b4f19",
       "name": "16 - Check Cal.com 2",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        784,
-        1456
+        26768,
+        6496
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -257,13 +259,13 @@
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').first().json.body;\nconst email = body.candidat_email.toLowerCase();\nconst lienRdv = body.lien_rdv || '';\nconst slugParts = lienRdv.replace(/\\/$/, '').split('/').filter(Boolean);\nconst expectedSlug = slugParts.length >= 2 ? slugParts[slugParts.length - 1] : '';\nconst bookings = $input.first().json.data.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email) &&\n  (!expectedSlug || (b.eventType?.slug || b.eventTypeSlug || '') === expectedSlug)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
       },
-      "id": "e2919a20-0e1b-464c-b2d8-0d3dbb9ae4b3",
+      "id": "f5989f7c-9ea6-4633-935e-908175868496",
       "name": "17 - Booking Found 2?",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1024,
-        1456
+        27008,
+        6496
       ]
     },
     {
@@ -290,26 +292,26 @@
         },
         "options": {}
       },
-      "id": "629694a1-e8c0-4d81-9f90-ff06f33f1724",
+      "id": "8b872d88-3897-4cb3-8af5-decb56dbbe40",
       "name": "18 - No Booking 2?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1264,
-        1456
+        27248,
+        6496
       ]
     },
     {
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').item.json.body || {};\nfunction withGuest(url, email) {\n  if (!url || url === '#' || !email) return url || '#';\n  const sep = url.includes('?') ? '&' : '?';\n  return url + sep + 'guests=' + encodeURIComponent(email);\n}\nconst company = body.company || 'solumada';\nconst isEn = company === 'optimum';\nconst brand = isEn ? { name: 'Optimum Solutions', color: '#62A5D2', colorDark: '#2b6ca3', logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', logoBg: '', logoHeight: 46 } : { name: 'Solumada', color: '#22c55e', colorDark: '#15803d', logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', logoBg: '#ffffff', logoHeight: 36 };\nconst fromName = brand.name + ' — Recrutement';\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) { subtitle=subtitle||''; ctaLabel=ctaLabel||''; ctaUrl=ctaUrl||''; const year=new Date().getFullYear(); const logoBlock=brand.logoBg?`<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`:`<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`; const cta=(ctaLabel&&ctaUrl)?`<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>`:''; const footerNote=isEn?'Recruitment · Please do not reply directly to this email.':'Service Recrutement · Merci de ne pas répondre directement à cet email.'; const copyright=isEn?'All rights reserved':'Tous droits réservés'; return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`; }\nconst d = body;\nconst warning = isEn\n  ? `<table role=\"presentation\" width=\"100%\" style=\"margin:18px 0 0\"><tr><td style=\"background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px;color:#c2410c;font-size:13px\"><strong>⚠️ Final reminder:</strong> if we do not hear from you within 48h, your application will be archived.</td></tr></table>`\n  : `<table role=\"presentation\" width=\"100%\" style=\"margin:18px 0 0\"><tr><td style=\"background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 16px;color:#c2410c;font-size:13px\"><strong>⚠️ Dernier rappel :</strong> sans réponse de votre part sous 48h, votre candidature sera archivée.</td></tr></table>`;\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">Hello <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">We had invited you to schedule an interview for the position of <strong>${d.titre_poste}</strong>, but we have not yet received your booking.</p>${warning}`\n  : `<p style=\"margin:0 0 14px\">Bonjour <strong>${d.candidat_nom}</strong>,</p><p style=\"margin:0 0 6px\">Nous vous avions invité(e) à planifier votre entretien pour le poste de <strong>${d.titre_poste}</strong>, mais nous n'avons pas encore reçu votre réservation.</p>${warning}`;\nconst from = `\"${fromName}\" <dtb@solumada.mg>`;\nreturn [{ json: { from, to: d.candidat_email, subject: isEn?`⏰ Reminder (2/2) — Schedule your interview for ${d.titre_poste}`:`⏰ Rappel (2/2) — Planifiez votre entretien pour ${d.titre_poste}`, html: emailLayout({ preheader: isEn?`Reminder: schedule your interview for ${d.titre_poste}`:`Rappel : planifiez votre entretien pour ${d.titre_poste}`, title: isEn?'Interview to Schedule ⏰':'Entretien à planifier ⏰', subtitle: isEn?'Reminder 2/2':'Rappel 2/2', bodyHtml, ctaLabel: isEn?'📅 Book my slot':'📅 Réserver mon créneau', ctaUrl: withGuest(d.lien_rdv||'#', d.email_recruteur) }), replyTo: d.email_recruteur || '' }}];"
       },
-      "id": "rdv-build-relance2-001",
+      "id": "1e1573da-89f6-412b-8342-4c8132ded7bf",
       "name": "19a - Build Reminder 2 Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1504,
-        1456
+        27488,
+        6496
       ]
     },
     {
@@ -323,18 +325,19 @@
           "replyTo": "={{ $json.replyTo }}"
         }
       },
-      "id": "9c5f0824-e038-41b4-9f8e-6a01fc436b0b",
+      "id": "cf34b859-c8a3-43df-9b5e-f50d48e0c36e",
       "name": "19 - Final Reminder 2",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
       "position": [
-        1744,
-        1456
+        27728,
+        6496
       ],
+      "webhookId": "8408b44d-e81e-4fa1-877d-4998214df0be",
       "credentials": {
         "smtp": {
-          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
-          "name": "Gmail SMTP — Solumada"
+          "id": "8kRbAhTJAClSsWlU",
+          "name": "SMTP account 3"
         }
       }
     },
@@ -342,26 +345,26 @@
       "parameters": {
         "jsCode": "const wh     = $('01 - Candidate Webhook').first().json.body;\nconst email  = wh.candidat_email.toLowerCase();\nconst url    = wh.base_url + '/api/public/candidature/' + wh.candidature_id + '/rdv-confirme';\nconst secret = wh.callback_secret;\nconst lienRdv = wh.lien_rdv || '';\nconst slugParts = lienRdv.replace(/\\/$/, '').split('/').filter(Boolean);\nconst expectedSlug = slugParts.length >= 2 ? slugParts[slugParts.length - 1] : '';\n\nlet bookings = [];\ntry {\n  const d16 = $('16 - Check Cal.com 2').item.json;\n  bookings = d16?.data?.bookings || d16?.bookings || [];\n} catch(e) {}\nif (!bookings.length) {\n  try {\n    const d11 = $('11 - Check Cal.com').item.json;\n    bookings = d11?.data?.bookings || d11?.bookings || [];\n  } catch(e) {}\n}\n\nconst booking = bookings.find(b =>\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email) &&\n  (!expectedSlug || (b.eventType?.slug || b.eventTypeSlug || '') === expectedSlug)\n);\n\nlet date = null, heure = '', lieu = '';\nif (booking) {\n  const start = new Date(booking.startTime || booking.start);\n  date  = start.toISOString();\n  heure = start.toISOString().slice(11, 16);\n  lieu  = booking.location || '';\n}\n\nreturn [{ json: { url, secret, date, heure, lieu } }];"
       },
-      "id": "c6d12699-5baa-448f-8b08-592cafef0bbd",
+      "id": "d7e9b937-0019-4a40-8d97-2e707f4d9425",
       "name": "13b - Interview Scheduled Status",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        544,
-        1888
+        26528,
+        6928
       ]
     },
     {
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').item.json.body || {};\nconst company = body.company || 'solumada';\nconst isEn = company === 'optimum';\nconst brand = isEn ? { name: 'Optimum Solutions', color: '#62A5D2', colorDark: '#2b6ca3', logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', logoBg: '', logoHeight: 46 } : { name: 'Solumada', color: '#22c55e', colorDark: '#15803d', logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', logoBg: '#ffffff', logoHeight: 36 };\nconst fromName = brand.name + ' — Recrutement';\nfunction emailLayout({ preheader, title, subtitle, bodyHtml, ctaLabel, ctaUrl }) { subtitle=subtitle||''; ctaLabel=ctaLabel||''; ctaUrl=ctaUrl||''; const year=new Date().getFullYear(); const logoBlock=brand.logoBg?`<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"background:${brand.logoBg};border-radius:14px;padding:13px 20px;box-shadow:0 6px 18px rgba(0,0,0,.12)\"><img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:180px;border:0;outline:none\"></td></tr></table>`:`<img src=\"${brand.logo}\" alt=\"${brand.name}\" height=\"${brand.logoHeight}\" style=\"display:block;height:${brand.logoHeight}px;max-height:${brand.logoHeight}px;max-width:210px;border:0;outline:none\">`; const cta=(ctaLabel&&ctaUrl)?`<tr><td align=\"center\" style=\"padding:6px 32px 4px\"><a href=\"${ctaUrl}\" style=\"display:inline-block;background:${brand.color};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:15px 38px;border-radius:10px\">${ctaLabel}</a></td></tr>`:''; const footerNote=isEn?'Recruitment · Please do not reply directly to this email.':'Service Recrutement · Merci de ne pas répondre directement à cet email.'; const copyright=isEn?'All rights reserved':'Tous droits réservés'; return `<!DOCTYPE html><html lang=\"${isEn?'en':'fr'}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#eef2f6;-webkit-font-smoothing:antialiased\"><span style=\"display:none!important;font-size:0;line-height:0;max-height:0;opacity:0;overflow:hidden;mso-hide:all\">${preheader}</span><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#eef2f6;padding:30px 12px\"><tr><td align=\"center\"><table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 44px rgba(15,23,42,.12);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif\"><tr><td style=\"background:linear-gradient(135deg,${brand.colorDark} 0%,${brand.color} 100%);padding:34px 24px 30px\" align=\"center\">${logoBlock}<h1 style=\"margin:20px 0 0;color:#ffffff;font-size:23px;font-weight:800;letter-spacing:-.02em\">${title}</h1>${subtitle?`<p style=\"margin:9px 0 0;color:rgba(255,255,255,.88);font-size:14px;font-weight:500\">${subtitle}</p>`:''}</td></tr><tr><td style=\"padding:34px 32px 10px;color:#334155;font-size:15px;line-height:1.65\">${bodyHtml}</td></tr>${cta}<tr><td style=\"padding:30px 32px 32px\"><table role=\"presentation\" width=\"100%\"><tr><td style=\"border-top:1px solid #eef2f6;padding-top:20px\"><p style=\"margin:0;color:#64748b;font-size:13px;font-weight:700\">${brand.name}</p><p style=\"margin:4px 0 0;color:#94a3b8;font-size:12px;line-height:1.6\">${footerNote}</p></td></tr></table></td></tr></table><p style=\"margin:18px 0 0;color:#cbd5e1;font-size:11px\">© ${year} ${brand.name} — ${copyright}</p></td></tr></table></body></html>`; }\nfunction detailTable(rows) { const trs=rows.filter(Boolean).map(([label,value])=>`<tr><td style=\"padding:12px 16px;background:#f8fafc;border-bottom:1px solid #eef2f6;font-weight:600;color:#475569;font-size:13px;width:38%\">${label}</td><td style=\"padding:12px 16px;border-bottom:1px solid #eef2f6;color:#0f172a;font-size:14px;font-weight:500\">${value}</td></tr>`).join(''); return `<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:separate;border-spacing:0;border:1px solid #eef2f6;border-radius:12px;overflow:hidden;margin:20px 0\">${trs}</table>`; }\nconst d = body;\nconst table = detailTable([[isEn?'Candidate':'Candidat',d.candidat_nom],['Email',d.candidat_email||'—'],[isEn?'Phone':'Téléphone',d.candidat_telephone||'—'],[isEn?'Position':'Poste',d.titre_poste]]);\nconst note = isEn ? `<p style=\"margin:16px 0 0;color:#64748b;font-size:13px\">You may contact the candidate directly or archive their application.</p>` : `<p style=\"margin:16px 0 0;color:#64748b;font-size:13px\">Vous pouvez prendre contact directement avec le candidat ou archiver sa candidature.</p>`;\nconst bodyHtml = isEn\n  ? `<p style=\"margin:0 0 14px\">The candidate <strong>${d.candidat_nom}</strong> has not booked an interview for the <strong>${d.titre_poste}</strong> position after 2 reminders.</p>${table}${note}`\n  : `<p style=\"margin:0 0 14px\">Le candidat <strong>${d.candidat_nom}</strong> n'a pas pris de rendez-vous pour le poste de <strong>${d.titre_poste}</strong> après 2 relances.</p>${table}${note}`;\nconst from = `\"${fromName}\" <dtb@solumada.mg>`;\nreturn [{ json: { from, to: d.email_recruteur, subject: isEn?`⚠️ No booking — ${d.candidat_nom} / ${d.titre_poste}`:`⚠️ Aucun RDV — ${d.candidat_nom} / ${d.titre_poste}`, html: emailLayout({ preheader: isEn?`${d.candidat_nom} did not book after 2 reminders`:`${d.candidat_nom} n'a pas pris de RDV après 2 relances`, title: isEn?'No Booking ⚠️':'Absence de réservation ⚠️', subtitle: d.candidat_nom, bodyHtml }) }}];"
       },
-      "id": "rdv-build-alert-recruiter-001",
+      "id": "41050c57-4898-4549-a68f-9cb3f2575399",
       "name": "20a - Build Recruiter Alert Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2944,
-        1456
+        28928,
+        6496
       ]
     },
     {
@@ -373,18 +376,19 @@
         "html": "={{ $json.html }}",
         "options": {}
       },
-      "id": "rdv-alert-recruiter-gmail-001",
+      "id": "140f412d-8f1b-4ef6-9462-635e1e56c5a7",
       "name": "20 - Recruiter No-Booking Alert",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
       "position": [
-        3184,
-        1456
+        29168,
+        6496
       ],
+      "webhookId": "7ad6bff1-512c-4d42-b4ab-390346cb2c4d",
       "credentials": {
         "smtp": {
-          "id": "REMPLACER_PAR_ID_CREDENTIAL_SMTP",
-          "name": "Gmail SMTP — Solumada"
+          "id": "8kRbAhTJAClSsWlU",
+          "name": "SMTP account 3"
         }
       }
     },
@@ -410,27 +414,27 @@
         "jsonBody": "={{ JSON.stringify({ date: $json.date, heure: $json.heure, lieu: $json.lieu }) }}",
         "options": {}
       },
-      "id": "332cc52b-2e29-4e97-aa0d-f5f59fff25e7",
+      "id": "3978b225-afe6-418f-aae0-834aba2eabfc",
       "name": "13c - Send Confirmed Booking",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        784,
-        1888
+        26768,
+        6928
       ]
     },
     {
       "parameters": {
-        "amount": 24,
-        "unit": "hours"
+        "amount": 1,
+        "unit": "minutes"
       },
-      "id": "rdv-wait-final",
+      "id": "51bb96db-a3e0-4a7b-ad42-4e40a78c86a2",
       "name": "19b - Wait 24h (final check)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1984,
-        1456
+        27968,
+        6496
       ],
       "webhookId": "wait-24h-final-check-rdv"
     },
@@ -454,13 +458,13 @@
         },
         "options": {}
       },
-      "id": "rdv-cal3",
+      "id": "6a10a335-8984-47a6-b2e7-d8973514fdd6",
       "name": "19c - Check Cal.com 3",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2224,
-        1456
+        28208,
+        6496
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -479,13 +483,13 @@
       "parameters": {
         "jsCode": "const body = $('01 - Candidate Webhook').first().json.body;\nconst email = body.candidat_email.toLowerCase();\nconst lienRdv = body.lien_rdv || '';\nconst slugParts = lienRdv.replace(/\\/$/, '').split('/').filter(Boolean);\nconst expectedSlug = slugParts.length >= 2 ? slugParts[slugParts.length - 1] : '';\nconst bookings = $input.first().json.data.bookings || [];\nconst rdv = bookings.some(b =>\n  (b.status === 'ACCEPTED' || b.status === 'PENDING') &&\n  (b.attendees || []).some(a => a.email?.toLowerCase() === email) &&\n  (!expectedSlug || (b.eventType?.slug || b.eventTypeSlug || '') === expectedSlug)\n);\nreturn [{ json: { rdv_trouve: rdv } }];"
       },
-      "id": "rdv-found3",
+      "id": "e7a984bb-5c84-49b5-8f74-be5bd521ac0f",
       "name": "19d - Booking Found 3?",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2464,
-        1456
+        28448,
+        6496
       ]
     },
     {
@@ -512,13 +516,13 @@
         },
         "options": {}
       },
-      "id": "rdv-nobooking3",
+      "id": "9ef8a8d0-0665-41dd-aac4-e6f569672d8e",
       "name": "19e - No Booking 3?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2704,
-        1456
+        28688,
+        6496
       ]
     },
     {
@@ -543,13 +547,13 @@
         "jsonBody": "{}",
         "options": {}
       },
-      "id": "rdv-no-rdv-callback",
+      "id": "661814c8-5b6a-4e36-a19f-c66c26a76c0b",
       "name": "21 - No-RDV Status Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3424,
-        1456
+        29408,
+        6496
       ],
       "alwaysOutputData": true
     }
@@ -877,8 +881,9 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "be0b04f0-6f6d-4bab-8a49-9f547b1c0c37",
+  "versionId": "717f6450-ebd4-4ace-b412-bef244451de9",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "afc83c8eed816bd60e45cedd7670d3e536b7e09132dc39868b3fdc725f0a61b3"
   },
   "id": "dZAJoxswTTVuKWlF",

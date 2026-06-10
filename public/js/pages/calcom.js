@@ -55,6 +55,21 @@ async function renderCalcom() {
               </select>
             </div>
           </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Lieu</label>
+              <select class="form-control" id="cal-et-location" onchange="calToggleAddressCreate()">
+                <option value="cal-video">🎥 Cal Video (défaut)</option>
+                <option value="google-meet">🟢 Google Meet</option>
+                <option value="attendee-inperson">📍 En personne (adresse du participant)</option>
+                <option value="organizer-inperson">📍 En personne (adresse de l'organisateur)</option>
+              </select>
+            </div>
+            <div class="form-group" id="cal-et-address-wrap" style="display:none">
+              <label class="form-label">Adresse</label>
+              <input class="form-control" id="cal-et-address" placeholder="12 rue des recruteurs, Paris">
+            </div>
+          </div>
           <div class="form-group" style="margin-bottom:14px">
             <label class="form-label">
               ${t('calcom.et_offers_label')}
@@ -173,6 +188,7 @@ function renderEventTypeList(eventTypes) {
         <button class="btn btn-sm btn-secondary" onclick="copyCalcomUrl('${et.bookingUrl}')" title="${t('calcom.copy_url')}">
           📋 ${t('calcom.copy')}
         </button>
+        <button class="btn btn-sm btn-ghost" onclick="openEditEventType(${et.id})" title="${t('calcom.edit')}">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deleteEventType(${et.id})" title="${t('calcom.delete')}">🗑</button>
       </div>
     </div>`
@@ -238,6 +254,134 @@ async function deleteSchedule(id) {
   }
 }
 
+// ─── Location helpers ────────────────────────────────────────────────────────
+
+function calBuildLocations(locationVal, addressVal) {
+  const map = {
+    'cal-video':          [{ type: 'integrations:daily' }],
+    'google-meet':        [{ type: 'integrations:google:meet' }],
+    'attendee-inperson':  [{ type: 'attendeeInPerson' }],
+    'organizer-inperson': [{ type: 'inPerson', address: addressVal || '' }],
+  };
+  return map[locationVal] ?? map['cal-video'];
+}
+
+function calLocationsToVal(locations) {
+  if (!Array.isArray(locations) || !locations.length) return 'cal-video';
+  const type = locations[0].type || '';
+  if (type === 'integrations:google:meet') return 'google-meet';
+  if (type === 'attendeeInPerson')         return 'attendee-inperson';
+  if (type === 'inPerson')                 return 'organizer-inperson';
+  return 'cal-video';
+}
+
+function calToggleAddressCreate() {
+  const v = document.getElementById('cal-et-location')?.value;
+  const w = document.getElementById('cal-et-address-wrap');
+  if (w) w.style.display = v === 'organizer-inperson' ? 'block' : 'none';
+}
+
+// ─── Edit event type modal ────────────────────────────────────────────────────
+
+function openEditEventType(id) {
+  const et = (window._calcomEventTypes || []).find(e => e.id === id);
+  if (!et) return;
+
+  const currentLocVal  = calLocationsToVal(et.locations);
+  const currentAddress = et.locations?.[0]?.address || '';
+  const showAddr       = currentLocVal === 'organizer-inperson';
+
+  document.getElementById('modal-edit-et')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="modal-edit-et" style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px"
+         onclick="if(event.target===this)closeEditEventType()">
+      <div class="card" style="width:min(520px,97vw);max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+        <div class="card-header">
+          <span class="card-title">✏️ Modifier l'event type</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="saveEditEventType(${id},this)">${t('calcom.create_btn')}</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeEditEventType()">${t('calcom.cancel_btn')}</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">${t('calcom.et_title_label')} *</label>
+              <input class="form-control" id="edit-et-title" value="${et.title.replace(/"/g, '&quot;')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${t('calcom.et_duration_label')} *</label>
+              <select class="form-control" id="edit-et-duration">
+                ${[15, 30, 45, 60, 90].map(v => `<option value="${v}"${et.lengthInMinutes === v ? ' selected' : ''}>${v} min</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <input class="form-control" id="edit-et-desc" value="${(et.description || '').replace(/"/g, '&quot;')}" placeholder="${t('calcom.et_desc_placeholder')}">
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Lieu</label>
+              <select class="form-control" id="edit-et-location" onchange="calToggleAddressEdit()">
+                <option value="cal-video"         ${currentLocVal === 'cal-video'          ? 'selected' : ''}>🎥 Cal Video (défaut)</option>
+                <option value="google-meet"        ${currentLocVal === 'google-meet'        ? 'selected' : ''}>🟢 Google Meet</option>
+                <option value="attendee-inperson"  ${currentLocVal === 'attendee-inperson'  ? 'selected' : ''}>📍 En personne (adresse du participant)</option>
+                <option value="organizer-inperson" ${currentLocVal === 'organizer-inperson' ? 'selected' : ''}>📍 En personne (adresse de l'organisateur)</option>
+              </select>
+            </div>
+            <div class="form-group" id="edit-et-address-wrap" style="display:${showAddr ? 'block' : 'none'}">
+              <label class="form-label">Adresse</label>
+              <input class="form-control" id="edit-et-address" value="${currentAddress.replace(/"/g, '&quot;')}" placeholder="12 rue des recruteurs, Paris">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+}
+
+function calToggleAddressEdit() {
+  const v = document.getElementById('edit-et-location')?.value;
+  const w = document.getElementById('edit-et-address-wrap');
+  if (w) w.style.display = v === 'organizer-inperson' ? 'block' : 'none';
+}
+
+function closeEditEventType() {
+  document.getElementById('modal-edit-et')?.remove();
+}
+
+async function saveEditEventType(id, btn) {
+  const title           = document.getElementById('edit-et-title')?.value?.trim();
+  const lengthInMinutes = Number(document.getElementById('edit-et-duration')?.value);
+  const description     = document.getElementById('edit-et-desc')?.value?.trim();
+  const locationVal     = document.getElementById('edit-et-location')?.value || 'cal-video';
+  const addressVal      = document.getElementById('edit-et-address')?.value?.trim() || '';
+  const locations       = calBuildLocations(locationVal, addressVal);
+
+  if (!title) { toast(t('calcom.et_title_required'), 'error'); return; }
+
+  return withLoading(btn, async () => {
+    const r = await api.patch(`/api/calcom/event-types/${id}`, {
+      title,
+      lengthInMinutes,
+      locations,
+      description,
+    });
+    if (r?.success) {
+      toast(t('calcom.et_updated') || 'Event type mis à jour', 'success');
+      window._calcomEventTypes = (window._calcomEventTypes || []).map(et =>
+        et.id === id ? { ...et, ...r.eventType } : et
+      );
+      renderEventTypeList(window._calcomEventTypes);
+      closeEditEventType();
+    } else {
+      toast(r?.error || t('calcom.error'), 'error');
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function createEventType(btn) {
   const title           = document.getElementById('cal-et-title')?.value?.trim();
   const lengthInMinutes = document.getElementById('cal-et-duration')?.value;
@@ -253,10 +397,15 @@ async function createEventType(btn) {
     return;
   }
 
+  const locationVal = document.getElementById('cal-et-location')?.value || 'cal-video';
+  const addressVal  = document.getElementById('cal-et-address')?.value?.trim() || '';
+  const locations   = calBuildLocations(locationVal, addressVal);
+
   return withLoading(btn, async () => {
     const r = await api.post('/api/calcom/event-types', {
       title,
       lengthInMinutes: Number(lengthInMinutes),
+      locations,
       ...(description && { description }),
       ...(scheduleId  && { scheduleId: Number(scheduleId) }),
     });
@@ -270,8 +419,11 @@ async function createEventType(btn) {
       } else {
         toast(t('calcom.et_created'), 'success');
       }
-      document.getElementById('cal-et-title').value = '';
-      document.getElementById('cal-et-desc').value  = '';
+      document.getElementById('cal-et-title').value             = '';
+      document.getElementById('cal-et-desc').value              = '';
+      document.getElementById('cal-et-location').value          = 'cal-video';
+      document.getElementById('cal-et-address').value           = '';
+      document.getElementById('cal-et-address-wrap').style.display = 'none';
       if (offresSelect) Array.from(offresSelect.options).forEach(o => o.selected = false);
       window._calcomEventTypes = [...(window._calcomEventTypes || []), r.eventType];
       renderEventTypeList(window._calcomEventTypes);

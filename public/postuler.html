@@ -369,19 +369,19 @@
     <img id="company-logo" src="" alt="Recrutement RH">
   </div>
   <div class="pt-job-name" id="pt-job-name"></div>
-  <button class="pt-cta" onclick="document.getElementById('ps-form-anchor').scrollIntoView({behavior:'smooth'})">Postuler →</button>
+  <button class="pt-cta" id="pt-cta" onclick="document.getElementById('ps-form-anchor').scrollIntoView({behavior:'smooth'})">Postuler →</button>
 </header>
 
 <!-- ══ LOADER ══ -->
 <div id="view-loader" class="ps-loader">
   <div class="spinner" style="width:36px;height:36px"></div>
-  <div class="ps-loader-text">Chargement de l'offre…</div>
+  <div class="ps-loader-text" id="loader-text">Chargement de l'offre…</div>
 </div>
 
 <!-- ══ ERROR ══ -->
 <div id="view-error" style="display:none" class="ps-error">
   <div class="ps-error-icon">😕</div>
-  <div class="ps-error-title">Offre indisponible</div>
+  <div class="ps-error-title" id="error-title">Offre indisponible</div>
   <div class="ps-error-sub" id="error-msg">Cette offre est introuvable ou n'est plus active.</div>
 </div>
 
@@ -411,7 +411,7 @@
       <div class="ps-detail-card">
         <div class="ps-card-head">
           <div class="ps-card-head-icon">💼</div>
-          Informations sur le poste
+          <span id="card-head-info">Informations sur le poste</span>
         </div>
         <div class="ps-card-body">
           <div class="ps-info-grid" id="detail-grid"></div>
@@ -422,7 +422,7 @@
       <div class="ps-detail-card" id="bloc-description" style="display:none">
         <div class="ps-card-head">
           <div class="ps-card-head-icon">📋</div>
-          Missions principales
+          <span id="card-head-missions">Missions principales</span>
         </div>
         <div class="ps-card-body">
           <p class="ps-prose" id="texte-description"></p>
@@ -433,7 +433,7 @@
       <div class="ps-detail-card" id="bloc-profil" style="display:none">
         <div class="ps-card-head">
           <div class="ps-card-head-icon">🎯</div>
-          Profil souhaité
+          <span id="card-head-profil">Profil souhaité</span>
         </div>
         <div class="ps-card-body">
           <p class="ps-prose" id="texte-profil"></p>
@@ -444,7 +444,7 @@
       <div class="ps-detail-card" id="bloc-competences" style="display:none">
         <div class="ps-card-head">
           <div class="ps-card-head-icon">⭐</div>
-          Compétences & diplômes requis
+          <span id="card-head-competences">Compétences & diplômes requis</span>
         </div>
         <div class="ps-card-body">
           <div class="ps-skills" id="skills-list"></div>
@@ -457,7 +457,7 @@
     <div class="ps-form-col" id="ps-form-anchor">
       <div class="ps-form-card" id="section-form">
         <div class="ps-form-head">
-          <div class="ps-form-head-label">Candidature</div>
+          <div class="ps-form-head-label" id="form-head-label">Candidature</div>
           <div class="ps-form-head-title" id="form-poste-title">Postuler pour ce poste</div>
         </div>
         <div class="ps-form-body">
@@ -465,7 +465,7 @@
           <div id="p-alert" class="ps-alert"></div>
 
           <div class="ps-field">
-            <label class="ps-label">Nom complet <span class="req">*</span></label>
+            <label class="ps-label" id="label-nom">Nom complet <span class="req">*</span></label>
             <div class="ps-input-wrap">
               <span class="ps-input-icon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></span>
               <input class="ps-input" type="text" id="f-nom" placeholder="Votre nom et prénom" autocomplete="name">
@@ -473,7 +473,7 @@
           </div>
 
           <div class="ps-field">
-            <label class="ps-label">Adresse email <span class="req">*</span></label>
+            <label class="ps-label" id="label-email">Adresse email <span class="req">*</span></label>
             <div class="ps-input-wrap">
               <span class="ps-input-icon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg></span>
               <input class="ps-input" type="email" id="f-email" placeholder="votre@email.com" autocomplete="email">
@@ -481,7 +481,7 @@
           </div>
 
           <div class="ps-field">
-            <label class="ps-label">Téléphone <span style="font-weight:400;color:#94a3b8">(optionnel)</span></label>
+            <label class="ps-label" id="label-tel">Téléphone <span style="font-weight:400;color:#94a3b8">(optionnel)</span></label>
             <div class="ps-input-wrap">
               <span class="ps-input-icon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8 19.79 19.79 0 01.22 1.22a2 2 0 012-2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 6.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></span>
               <input class="ps-input" type="tel" id="f-tel" placeholder="+261 XX XX XXX XX" autocomplete="tel">
@@ -490,13 +490,13 @@
 
           <!-- CV Upload -->
           <div class="ps-upload-wrap">
-            <label class="ps-label">CV <span class="req">*</span> <span style="font-weight:400;color:#94a3b8">— PDF ou Word, max 10 Mo</span></label>
+            <label class="ps-label" id="label-cv">CV <span class="req">*</span> <span style="font-weight:400;color:#94a3b8">— PDF ou Word, max 10 Mo</span></label>
             <div class="ps-upload-zone" id="zone-cv"
                  onclick="document.getElementById('input-cv').click()"
                  ondragover="dzOver(event,'zone-cv')" ondragleave="dzLeave('zone-cv')" ondrop="dzDrop(event,'zone-cv','input-cv')">
               <span class="ps-upload-icon" id="icon-cv">📄</span>
-              <div class="ps-upload-main">Glissez votre CV ici</div>
-              <div class="ps-upload-hint">ou cliquez pour sélectionner · PDF, DOC, DOCX</div>
+              <div class="ps-upload-main" id="upload-cv-main">Glissez votre CV ici</div>
+              <div class="ps-upload-hint" id="upload-cv-hint">ou cliquez pour sélectionner · PDF, DOC, DOCX</div>
               <div class="ps-upload-name" id="name-cv"></div>
             </div>
             <input class="ps-upload-input" type="file" id="input-cv" accept=".pdf,.doc,.docx" onchange="fileChange('input-cv','zone-cv','icon-cv','name-cv','📄')">
@@ -504,13 +504,13 @@
 
           <!-- Lettre Upload -->
           <div class="ps-upload-wrap">
-            <label class="ps-label">Lettre de motivation <span style="font-weight:400;color:#94a3b8">— optionnelle</span></label>
+            <label class="ps-label" id="label-lettre">Lettre de motivation <span style="font-weight:400;color:#94a3b8">— optionnelle</span></label>
             <div class="ps-upload-zone" id="zone-lettre"
                  onclick="document.getElementById('input-lettre').click()"
                  ondragover="dzOver(event,'zone-lettre')" ondragleave="dzLeave('zone-lettre')" ondrop="dzDrop(event,'zone-lettre','input-lettre')">
               <span class="ps-upload-icon" id="icon-lettre">📝</span>
-              <div class="ps-upload-main">Glissez votre lettre ici</div>
-              <div class="ps-upload-hint">ou cliquez pour sélectionner · PDF, DOC, DOCX</div>
+              <div class="ps-upload-main" id="upload-lettre-main">Glissez votre lettre ici</div>
+              <div class="ps-upload-hint" id="upload-lettre-hint">ou cliquez pour sélectionner · PDF, DOC, DOCX</div>
               <div class="ps-upload-name" id="name-lettre"></div>
             </div>
             <input class="ps-upload-input" type="file" id="input-lettre" accept=".pdf,.doc,.docx" onchange="fileChange('input-lettre','zone-lettre','icon-lettre','name-lettre','📝')">
@@ -521,7 +521,7 @@
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           </button>
 
-          <p class="ps-privacy">🔒 Vos données sont traitées de manière confidentielle et uniquement à des fins de recrutement.</p>
+          <p class="ps-privacy" id="ps-privacy">🔒 Vos données sont traitées de manière confidentielle et uniquement à des fins de recrutement.</p>
         </div>
       </div>
 
@@ -531,18 +531,18 @@
   <!-- Success pleine page -->
   <div class="ps-success" id="view-success">
     <div class="ps-success-ring">🎉</div>
-    <div class="ps-success-title">Candidature envoyée !</div>
+    <div class="ps-success-title" id="success-title">Candidature envoyée !</div>
     <div class="ps-success-msg" id="success-msg"></div>
     <div class="ps-success-badge">
       <div class="ps-success-dot"></div>
-      Votre dossier est entre de bonnes mains — nous reviendrons vers vous prochainement
+      <span id="success-badge-text">Votre dossier est entre de bonnes mains — nous reviendrons vers vous prochainement</span>
     </div>
   </div>
 
   <!-- divider kept for JS compat -->
   <div class="p-divider" style="display:none"></div>
 
-  <footer class="ps-footer">
+  <footer class="ps-footer" id="ps-footer">
     Plateforme Recrutement RH · Toutes vos données sont traitées de manière confidentielle.
   </footer>
 </div>
@@ -552,6 +552,145 @@ const COMPANY_CONFIG = {
   solumada: { logo: 'https://www.solumada.mg/wp-content/uploads/2024/05/New-one.png', name: 'Solumada', theme: 'solumada' },
   optimum:  { logo: 'https://optimumsolutions.eu/wp-content/uploads/2023/04/text-annotations-1.png', name: 'Optimum Solutions', theme: 'optimum' },
 };
+
+const T = {
+  fr: {
+    title_prefix:        'Postuler — ',
+    cta:                 'Postuler →',
+    loader:              'Chargement de l\'offre…',
+    error_title:         'Offre indisponible',
+    error_default:       'Cette offre est introuvable ou n\'est plus active.',
+    card_info:           'Informations sur le poste',
+    card_missions:       'Missions principales',
+    card_profil:         'Profil souhaité',
+    card_competences:    'Compétences & diplômes requis',
+    form_label:          'Candidature',
+    label_nom:           'Nom complet',
+    placeholder_nom:     'Votre nom et prénom',
+    label_email:         'Adresse email',
+    placeholder_email:   'votre@email.com',
+    label_tel:           'Téléphone',
+    tel_optional:        '(optionnel)',
+    label_cv:            'CV',
+    cv_hint_size:        '— PDF ou Word, max 10 Mo',
+    upload_cv_main:      'Glissez votre CV ici',
+    upload_hint:         'ou cliquez pour sélectionner · PDF, DOC, DOCX',
+    label_lettre:        'Lettre de motivation',
+    lettre_optional:     '— optionnelle',
+    upload_lettre_main:  'Glissez votre lettre ici',
+    submit:              'Envoyer ma candidature',
+    sending:             'Envoi en cours…',
+    privacy:             '🔒 Vos données sont traitées de manière confidentielle et uniquement à des fins de recrutement.',
+    success_title:       'Candidature envoyée !',
+    success_badge:       'Votre dossier est entre de bonnes mains — nous reviendrons vers vous prochainement',
+    footer:              'Plateforme Recrutement RH · Toutes vos données sont traitées de manière confidentielle.',
+    contrat:             '💼 Contrat',
+    lieu:                '📍 Lieu',
+    experience:          '🕐 Expérience',
+    langues:             '🌍 Langues',
+    salaire:             '💰 Salaire',
+    publie_le:           '📅 Publiée le',
+    date_limite:         '⏰ Date limite',
+    closed_title:        'Candidatures closes',
+    closed_sub:          (date) => `La date limite était le <strong>${date}</strong>.<br>Cette offre n'accepte plus de nouvelles candidatures.`,
+    closed_hero:         '⛔ Candidatures closes',
+    days_left:           (d) => `⏰ ${d} jour${d > 1 ? 's' : ''} restant${d > 1 ? 's' : ''} pour postuler`,
+    urgency:             (d, date) => `<span style="font-size:18px">⏰</span> Il ne reste que <strong style="color:#dc2626;margin:0 4px">${d} jour${d > 1 ? 's' : ''}</strong> pour postuler — date limite le ${date}.`,
+    alert_nom:           'Le nom complet est requis.',
+    alert_email:         'Adresse email invalide.',
+    alert_cv:            'Veuillez joindre votre CV.',
+    alert_error:         'Une erreur est survenue, veuillez réessayer.',
+    alert_network:       'Erreur réseau. Vérifiez votre connexion et réessayez.',
+    success_default:     (nom, titre) => `Merci ${nom} ! Votre candidature pour le poste de <strong>${titre}</strong> a bien été reçue. Notre équipe étudiera votre dossier et vous contactera prochainement.`,
+    no_offer_id:         'Aucun identifiant d\'offre dans le lien.',
+    locale:              'fr-FR',
+  },
+  en: {
+    title_prefix:        'Apply — ',
+    cta:                 'Apply →',
+    loader:              'Loading offer…',
+    error_title:         'Offer unavailable',
+    error_default:       'This offer cannot be found or is no longer active.',
+    card_info:           'Job information',
+    card_missions:       'Main responsibilities',
+    card_profil:         'Desired profile',
+    card_competences:    'Required skills & qualifications',
+    form_label:          'Application',
+    label_nom:           'Full name',
+    placeholder_nom:     'Your full name',
+    label_email:         'Email address',
+    placeholder_email:   'your@email.com',
+    label_tel:           'Phone',
+    tel_optional:        '(optional)',
+    label_cv:            'CV',
+    cv_hint_size:        '— PDF or Word, max 10 MB',
+    upload_cv_main:      'Drag your CV here',
+    upload_hint:         'or click to select · PDF, DOC, DOCX',
+    label_lettre:        'Cover letter',
+    lettre_optional:     '— optional',
+    upload_lettre_main:  'Drag your cover letter here',
+    submit:              'Submit my application',
+    sending:             'Sending…',
+    privacy:             '🔒 Your data is processed confidentially and solely for recruitment purposes.',
+    success_title:       'Application submitted!',
+    success_badge:       'Your application is in good hands — we will get back to you shortly',
+    footer:              'HR Recruitment Platform · All your data is processed confidentially.',
+    contrat:             '💼 Contract',
+    lieu:                '📍 Location',
+    experience:          '🕐 Experience',
+    langues:             '🌍 Languages',
+    salaire:             '💰 Salary',
+    publie_le:           '📅 Published on',
+    date_limite:         '⏰ Deadline',
+    closed_title:        'Applications closed',
+    closed_sub:          (date) => `The deadline was <strong>${date}</strong>.<br>This offer no longer accepts new applications.`,
+    closed_hero:         '⛔ Applications closed',
+    days_left:           (d) => `⏰ ${d} day${d > 1 ? 's' : ''} left to apply`,
+    urgency:             (d, date) => `<span style="font-size:18px">⏰</span> Only <strong style="color:#dc2626;margin:0 4px">${d} day${d > 1 ? 's' : ''}</strong> left to apply — deadline on ${date}.`,
+    alert_nom:           'Full name is required.',
+    alert_email:         'Invalid email address.',
+    alert_cv:            'Please attach your CV.',
+    alert_error:         'An error occurred, please try again.',
+    alert_network:       'Network error. Check your connection and try again.',
+    success_default:     (nom, titre) => `Thank you ${nom}! Your application for the position of <strong>${titre}</strong> has been received. Our team will review your application and contact you shortly.`,
+    no_offer_id:         'No offer identifier in the link.',
+    locale:              'en-GB',
+  }
+};
+
+let lang = T.fr;
+
+function setLang(isEn) {
+  lang = isEn ? T.en : T.fr;
+  document.documentElement.lang = isEn ? 'en' : 'fr';
+}
+
+function applyTranslations() {
+  document.getElementById('pt-cta').textContent              = lang.cta;
+  document.getElementById('loader-text').textContent         = lang.loader;
+  document.getElementById('error-title').textContent         = lang.error_title;
+  document.getElementById('card-head-info').textContent      = lang.card_info;
+  document.getElementById('card-head-missions').textContent  = lang.card_missions;
+  document.getElementById('card-head-profil').textContent    = lang.card_profil;
+  document.getElementById('card-head-competences').textContent = lang.card_competences;
+  document.getElementById('form-head-label').textContent     = lang.form_label;
+  document.getElementById('label-nom').innerHTML             = `${lang.label_nom} <span class="req">*</span>`;
+  document.getElementById('f-nom').placeholder               = lang.placeholder_nom;
+  document.getElementById('label-email').innerHTML           = `${lang.label_email} <span class="req">*</span>`;
+  document.getElementById('f-email').placeholder             = lang.placeholder_email;
+  document.getElementById('label-tel').innerHTML             = `${lang.label_tel} <span style="font-weight:400;color:#94a3b8">${lang.tel_optional}</span>`;
+  document.getElementById('label-cv').innerHTML              = `${lang.label_cv} <span class="req">*</span> <span style="font-weight:400;color:#94a3b8">${lang.cv_hint_size}</span>`;
+  document.getElementById('upload-cv-main').textContent      = lang.upload_cv_main;
+  document.getElementById('upload-cv-hint').textContent      = lang.upload_hint;
+  document.getElementById('label-lettre').innerHTML          = `${lang.label_lettre} <span style="font-weight:400;color:#94a3b8">${lang.lettre_optional}</span>`;
+  document.getElementById('upload-lettre-main').textContent  = lang.upload_lettre_main;
+  document.getElementById('upload-lettre-hint').textContent  = lang.upload_hint;
+  document.getElementById('btn-submit').innerHTML            = `${lang.submit} <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>`;
+  document.getElementById('ps-privacy').textContent         = lang.privacy;
+  document.getElementById('success-title').textContent      = lang.success_title;
+  document.getElementById('success-badge-text').textContent = lang.success_badge;
+  document.getElementById('ps-footer').textContent          = lang.footer;
+}
 
 function applyCompanyBranding(company) {
   const cfg = COMPANY_CONFIG[company] || COMPANY_CONFIG.solumada;
@@ -602,18 +741,18 @@ function show(viewId) {
 }
 
 function fmtDate(d) {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return new Date(d).toLocaleDateString(lang.locale, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 function buildDetailGrid(o) {
   const items = [
-    ['💼 Contrat', o.type_contrat],
-    ['📍 Lieu', o.localisation],
-    o.annees_experience ? ['🕐 Expérience', o.annees_experience] : null,
-    o.langues_requises  ? ['🌍 Langues', o.langues_requises] : null,
-    o.salaire           ? ['💰 Salaire', o.salaire] : null,
-    ['📅 Publiée le', fmtDate(o.date_creation)],
-    o.date_butoire      ? ['⏰ Date limite', fmtDate(o.date_butoire)] : null,
+    [lang.contrat,    o.type_contrat],
+    [lang.lieu,       o.localisation],
+    o.annees_experience ? [lang.experience, o.annees_experience] : null,
+    o.langues_requises  ? [lang.langues,    o.langues_requises]  : null,
+    o.salaire           ? [lang.salaire,    o.salaire]           : null,
+    [lang.publie_le,  fmtDate(o.date_creation)],
+    o.date_butoire      ? [lang.date_limite, fmtDate(o.date_butoire)] : null,
   ].filter(Boolean);
   return items.map(([label, value]) => `
     <div class="ps-info-item">
@@ -634,18 +773,20 @@ function buildHeroTags(o) {
 
 async function init() {
   if (!offreId) {
-    document.getElementById('error-msg').textContent = 'Aucun identifiant d\'offre dans le lien.';
+    document.getElementById('error-msg').textContent = lang.no_offer_id;
     show('view-error'); return;
   }
   try {
     const res  = await fetch(`/api/public/offre/${offreId}`);
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Offre introuvable');
+    if (!data.success) throw new Error(data.error || lang.error_default);
     offre = data.offre;
 
+    setLang(offre.company === 'optimum');
     applyCompanyBranding(offre.company);
+    applyTranslations();
 
-    document.title = `Postuler — ${offre.titre_poste}`;
+    document.title = `${lang.title_prefix}${offre.titre_poste}`;
     document.getElementById('hero-titre').textContent   = offre.titre_poste;
     document.getElementById('pt-job-name').textContent  = offre.titre_poste;
     document.getElementById('hero-tags').innerHTML      = buildHeroTags(offre);
@@ -679,19 +820,19 @@ async function init() {
         document.getElementById('section-form').innerHTML = `
           <div class="ps-closed">
             <div class="ps-closed-icon">⛔</div>
-            <div class="ps-closed-title">Candidatures closes</div>
-            <div class="ps-closed-sub">La date limite était le <strong>${fmtDate(butoire)}</strong>.<br>Cette offre n'accepte plus de nouvelles candidatures.</div>
+            <div class="ps-closed-title">${lang.closed_title}</div>
+            <div class="ps-closed-sub">${lang.closed_sub(fmtDate(butoire))}</div>
           </div>`;
-        document.getElementById('hero-deadline').innerHTML = `<span class="ph-deadline">⛔ Candidatures closes</span>`;
+        document.getElementById('hero-deadline').innerHTML = `<span class="ph-deadline">${lang.closed_hero}</span>`;
       } else {
         if (diffJ <= 7) {
           document.getElementById('hero-deadline').innerHTML =
-            `<span class="ph-deadline${diffJ <= 3 ? ' ph-deadline-urgent' : ''}">⏰ ${diffJ} jour${diffJ > 1 ? 's' : ''} restant${diffJ > 1 ? 's' : ''} pour postuler</span>`;
+            `<span class="ph-deadline${diffJ <= 3 ? ' ph-deadline-urgent' : ''}">${lang.days_left(diffJ)}</span>`;
         }
         if (diffJ <= 3) {
           const urgenceBar = document.createElement('div');
           urgenceBar.className = 'ps-urgency';
-          urgenceBar.innerHTML = `<span style="font-size:18px">⏰</span> Il ne reste que <strong style="color:#dc2626;margin:0 4px">${diffJ} jour${diffJ > 1 ? 's' : ''}</strong> pour postuler — date limite le ${fmtDate(butoire)}.`;
+          urgenceBar.innerHTML = lang.urgency(diffJ, fmtDate(butoire));
           document.getElementById('section-form').querySelector('.ps-form-body').prepend(urgenceBar);
         }
       }
@@ -710,13 +851,13 @@ async function submitCandidature() {
   const tel   = document.getElementById('f-tel').value.trim();
   const cv    = document.getElementById('input-cv').files[0];
 
-  if (!nom)                                                    { showAlert('Le nom complet est requis.'); return; }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))    { showAlert('Adresse email invalide.'); return; }
-  if (!cv)                                                     { showAlert('Veuillez joindre votre CV.'); return; }
+  if (!nom)                                                    { showAlert(lang.alert_nom); return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))    { showAlert(lang.alert_email); return; }
+  if (!cv)                                                     { showAlert(lang.alert_cv); return; }
 
   const btn = document.getElementById('btn-submit');
   btn.disabled = true;
-  btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-top-color:#fff;border-width:2px"></div> Envoi en cours…`;
+  btn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-top-color:#fff;border-width:2px"></div> ${lang.sending}`;
 
   const fd = new FormData();
   fd.append('offre_id', offreId);
@@ -727,25 +868,27 @@ async function submitCandidature() {
   const lettre = document.getElementById('input-lettre').files[0];
   if (lettre) fd.append('lettre', lettre);
 
+  const submitHtml = `${lang.submit} <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>`;
+
   try {
     const res  = await fetch('/api/public/candidature', { method: 'POST', body: fd });
     const data = await res.json();
     if (data.success) {
       document.querySelector('.ps-wrap').style.display = 'none';
-      const formule = data.formule_remerciement || `Merci ${nom} ! Votre candidature pour le poste de <strong>${offre.titre_poste}</strong> a bien été reçue. Notre équipe étudiera votre dossier et vous contactera prochainement.`;
+      const formule = data.formule_remerciement || lang.success_default(nom, offre.titre_poste);
       document.getElementById('success-msg').innerHTML = formule;
       const s = document.getElementById('view-success');
       s.style.display = 'flex';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      showAlert(data.error || 'Une erreur est survenue, veuillez réessayer.');
+      showAlert(data.error || lang.alert_error);
       btn.disabled = false;
-      btn.innerHTML = 'Envoyer ma candidature <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+      btn.innerHTML = submitHtml;
     }
   } catch {
-    showAlert('Erreur réseau. Vérifiez votre connexion et réessayez.');
+    showAlert(lang.alert_network);
     btn.disabled = false;
-    btn.innerHTML = 'Envoyer ma candidature <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+    btn.innerHTML = submitHtml;
   }
 }
 

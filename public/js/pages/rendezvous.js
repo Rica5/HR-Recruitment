@@ -3,6 +3,7 @@ let _rdvFilter           = 'all';
 let _rdvFilterMine       = false;
 let _rdvPendingCancel    = null; // { uid, candidatureId }
 let _rdvPendingReschedule = null; // { uid, candidatureId, offreId, slotsData, selectedSlot }
+let _rdvOrgTz            = null; // organizer timezone from Cal.com (e.g. 'Europe/Paris')
 
 async function renderRDV() {
   const el = document.getElementById('page-content');
@@ -10,6 +11,7 @@ async function renderRDV() {
 
   const today  = rdvStartOfToday();
   const calRes = await api.get('/api/calcom/bookings?status=upcoming&take=200').catch(() => null);
+  _rdvOrgTz = calRes?.organizerTimeZone || null;
 
   _rdvList = (calRes?.bookings || [])
     .filter(b => b.status === 'accepted' && b.start && new Date(b.start) >= today)
@@ -90,17 +92,17 @@ function rdvUrgencyBadge(sortKey) {
   return '';
 }
 
-// Cal.com stores start in UTC — convert to local company timezone for display
-function rdvToLocal(isoUtc, company) {
-  const d      = new Date(isoUtc);
-  const offset = (company || Auth.user()?.company || 'solumada') === 'optimum' ? 2 : 3;
-  return new Date(d.getTime() + offset * 3600000);
+function rdvTzOpts() {
+  return _rdvOrgTz ? { timeZone: _rdvOrgTz } : {};
 }
 
 function rdvDisplayDateTime(item) {
-  const local   = rdvToLocal(item.calcom_start, item.candidature_company);
-  const dateStr = `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`;
-  const heure   = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+  const d    = new Date(item.calcom_start);
+  const opts = rdvTzOpts();
+  // YYYY-MM-DD via fr-CA locale
+  const dateStr = new Intl.DateTimeFormat('fr-CA', { ...opts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  // HH:MM in 24h
+  const heure   = new Intl.DateTimeFormat('en-GB', { ...opts, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
   return { date: dateStr, heure };
 }
 
@@ -224,11 +226,13 @@ async function openRdvRescheduleModal(uid, candidatureId, offreId) {
 function _rdvRenderDates(datesObj) {
   const container = document.getElementById('rdv-rs-dates');
   if (!container) return;
-  const company = Auth.user()?.company || 'solumada';
+  const opts        = rdvTzOpts();
+  const locale      = LANG === 'en' ? 'en-GB' : 'fr-FR';
+  const dateFmt     = new Intl.DateTimeFormat(locale, { ...opts, weekday: 'short', day: 'numeric', month: 'short' });
   const sortedDates = Object.keys(datesObj).sort();
   container.innerHTML = sortedDates.map(dateKey => {
-    const local = rdvToLocal(`${dateKey}T12:00:00Z`, company); // midday to avoid date shift
-    const label = local.toLocaleDateString(LANG === 'en' ? 'en-GB' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }); // locale intentionally kept from LANG
+    // Use midday UTC to avoid any date boundary shift
+    const label = dateFmt.format(new Date(`${dateKey}T12:00:00Z`));
     return `<button onclick="rdvSelectDate('${dateKey}')" id="rdv-date-${dateKey}" style="padding:7px 12px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer;transition:.15s">${label}</button>`;
   }).join('');
 }
@@ -253,14 +257,14 @@ function rdvSelectDate(dateKey) {
   }
 
   const slots   = _rdvPendingReschedule.slotsData[dateKey] || [];
-  const company = Auth.user()?.company || 'solumada';
+  const opts    = rdvTzOpts();
+  const timeFmt = new Intl.DateTimeFormat('en-GB', { ...opts, hour: '2-digit', minute: '2-digit', hour12: false });
   const slotsEl = document.getElementById('rdv-rs-slots');
   const section = document.getElementById('rdv-rs-slots-section');
   if (!slotsEl || !section) return;
 
   slotsEl.innerHTML = slots.map(s => {
-    const local = rdvToLocal(s.time, company);
-    const heure = `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+    const heure = timeFmt.format(new Date(s.time));
     return `<button onclick="rdvSelectSlot('${s.time}',this)" style="padding:7px 14px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--surface-2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;transition:.15s">${heure}</button>`;
   }).join('');
   section.style.display = 'block';
