@@ -1,18 +1,14 @@
+const axios = require('axios');
+
 const EMAIL_API_URL = 'https://mailer.solumada.mg/send';
 
 async function sendViaApi(to, name, subject, html) {
-  const form = new FormData();
-  form.append('to', to);
-  form.append('from', name);
-  form.append('subject', subject);
-  form.append('html', html);
-
-  const res = await fetch(EMAIL_API_URL, { method: 'POST', body: form });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Email API error ${res.status}: ${body}`);
-  }
-  return res.json();
+  const params = new URLSearchParams({ to, from: name, subject, html });
+  const { data } = await axios.post(EMAIL_API_URL, params.toString(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    timeout: 15000,
+  });
+  return data;
 }
 
 // ── Per-company branding (colors aligned with the app themes) ──

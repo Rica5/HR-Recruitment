@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
       password,
       loginUrl: `${process.env.BASE_URL}/login`,
       company: user.company,
-    }).catch(err => console.error('[EMAIL] Credentials send failed:', err.message));
+    }).catch(err => console.error('[EMAIL] Credentials send failed:', err.response?.data || err.message));
     res.status(201).json({ success: true, user: user.toSafe() });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
