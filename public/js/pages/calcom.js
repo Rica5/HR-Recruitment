@@ -190,7 +190,9 @@ function renderScheduleList(schedules) {
     </div>`;
     return;
   }
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNames = LANG === 'en'
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   el.innerHTML = schedules.map(s => {
     const recurSummary = (s.availability || []).map(a => {
       const days = (a.days || []).map(d => dayNames[d]).join(', ');
@@ -312,15 +314,10 @@ function openCreateSchedule() {
     { tz: 'Indian/Mauritius',    label: LANG === 'en' ? 'Mauritius (UTC+4)' : 'Île Maurice (UTC+4)' },
   ].map(({ tz, label }) => `<option value="${tz}">${label}</option>`).join('');
 
-  const dayPillHtml = [
-    { label: 'Mon', val: 1 },
-    { label: 'Tue', val: 2 },
-    { label: 'Wed', val: 3 },
-    { label: 'Thu', val: 4 },
-    { label: 'Fri', val: 5 },
-    { label: 'Sat', val: 6 },
-    { label: 'Sun', val: 0 },
-  ].map(({ label, val }) =>
+  const dayPillHtml = (LANG === 'en'
+    ? [{ label: 'Mon', val: 1 }, { label: 'Tue', val: 2 }, { label: 'Wed', val: 3 }, { label: 'Thu', val: 4 }, { label: 'Fri', val: 5 }, { label: 'Sat', val: 6 }, { label: 'Sun', val: 0 }]
+    : [{ label: 'Lun', val: 1 }, { label: 'Mar', val: 2 }, { label: 'Mer', val: 3 }, { label: 'Jeu', val: 4 }, { label: 'Ven', val: 5 }, { label: 'Sam', val: 6 }, { label: 'Dim', val: 0 }]
+  ).map(({ label, val }) =>
     `<button type="button" class="day-pill${defaultDays.includes(val) ? ' active' : ''}" data-day="${val}" onclick="this.classList.toggle('active')">${label}</button>`
   ).join('');
 
@@ -356,7 +353,7 @@ function openCreateSchedule() {
               <input class="form-control" id="edit-sched-name" placeholder="${t('calcom.sched_name_placeholder')}">
             </div>
             <div class="form-group">
-              <label class="form-label">Timezone *</label>
+              <label class="form-label">${t('calcom.timezone_label')} *</label>
               <select class="form-control" id="edit-sched-tz">${tzOptions}</select>
             </div>
           </div>
@@ -516,15 +513,10 @@ function openEditSchedule(scheduleId) {
     { tz: 'Indian/Mauritius',    label: LANG === 'en' ? 'Mauritius (UTC+4)' : 'Île Maurice (UTC+4)' },
   ].map(({ tz, label }) => `<option value="${tz}"${s.timeZone === tz ? ' selected' : ''}>${label}</option>`).join('');
 
-  const dayPillHtml = [
-    { label: 'Mon', val: 1 },
-    { label: 'Tue', val: 2 },
-    { label: 'Wed', val: 3 },
-    { label: 'Thu', val: 4 },
-    { label: 'Fri', val: 5 },
-    { label: 'Sat', val: 6 },
-    { label: 'Sun', val: 0 },
-  ].map(({ label, val }) =>
+  const dayPillHtml = (LANG === 'en'
+    ? [{ label: 'Mon', val: 1 }, { label: 'Tue', val: 2 }, { label: 'Wed', val: 3 }, { label: 'Thu', val: 4 }, { label: 'Fri', val: 5 }, { label: 'Sat', val: 6 }, { label: 'Sun', val: 0 }]
+    : [{ label: 'Lun', val: 1 }, { label: 'Mar', val: 2 }, { label: 'Mer', val: 3 }, { label: 'Jeu', val: 4 }, { label: 'Ven', val: 5 }, { label: 'Sam', val: 6 }, { label: 'Dim', val: 0 }]
+  ).map(({ label, val }) =>
     `<button type="button" class="day-pill${activeDays.includes(val) ? ' active' : ''}" data-day="${val}" onclick="this.classList.toggle('active')">${label}</button>`
   ).join('');
 
@@ -562,7 +554,7 @@ function openEditSchedule(scheduleId) {
               <input class="form-control" id="edit-sched-name" value="${s.name}">
             </div>
             <div class="form-group">
-              <label class="form-label">Timezone</label>
+              <label class="form-label">${t('calcom.timezone_label')}</label>
               <select class="form-control" id="edit-sched-tz">${tzOptions}</select>
             </div>
           </div>

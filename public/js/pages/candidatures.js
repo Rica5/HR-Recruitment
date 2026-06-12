@@ -262,7 +262,7 @@ function stopPolling() {
 // ── Actions ──
 async function deleteApplication(id) {
   const r = await api.delete(`/api/candidatures/${id}`);
-  if (r?.success) { toast(t('toast.deleted'), 'success'); renderApplications(); }
+  if (r?.success) { toast(t('toast.deleted'), 'success'); renderApplications(); loadCounts(); }
   else toast(r?.error || t('toast.error'), 'error');
 }
 
@@ -1197,6 +1197,7 @@ async function submitNewApplication() {
       toast(t('toast.application_saved'), 'success');
       closeModal('modal-nouveau-cand');
       renderApplications();
+      loadCounts();
     } else {
       toast(r.error || t('toast.error'), 'error');
     }

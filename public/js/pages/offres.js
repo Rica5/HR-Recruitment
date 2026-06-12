@@ -210,7 +210,7 @@ async function deleteOffer(id, btn) {
   if (!confirm(t('offer.delete_confirm'))) return;
   return withLoading(btn, async () => {
     const r = await api.delete(`/api/offres/${id}`);
-    if (r?.success) { toast(t('toast.offer_deleted'), 'success'); renderOffers(); }
+    if (r?.success) { toast(t('toast.offer_deleted'), 'success'); renderOffers(); loadCounts(); }
     else toast(r?.error || t('toast.error'), 'error');
   });
 }
@@ -646,6 +646,7 @@ async function submitOffer(btn) {
       toast(id ? t('toast.offer_updated') : t('toast.offer_created'), 'success');
       closeModal('modal-create-offre');
       renderOffers();
+      if (!id) loadCounts();
     } else {
       toast(r?.error || t('toast.error'), 'error');
     }
