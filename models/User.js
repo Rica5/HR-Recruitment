@@ -1,35 +1,39 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-const userSchema = new mongoose.Schema({
-  nom:       { type: String, required: true },
-  email:     { type: String, required: true, unique: true, lowercase: true },
-  password:  { type: String, required: true, minlength: 6 },
-  role:      { type: String, default: 'admin', enum: ['admin'] },
-  company:   { type: String, required: true, enum: ['solumada', 'optimum'] },
-  theme:     { type: String, default: 'solumada', enum: ['solumada', 'optimum'] },
-  avatar:    { type: String, default: '' },
-  lastLogin: { type: Date },
-  actif:     { type: Boolean, default: true },
-  resetToken:       { type: String },
-  resetTokenExpiry: { type: Date },
-}, { timestamps: true });
+const userSchema = new mongoose.Schema(
+  {
+    nom: { type: String, required: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, required: true, minlength: 6 },
+    role: { type: String, default: "admin", enum: ["admin"] },
+    company: { type: String, required: true, enum: ["solumada", "optimum"] },
+    theme: { type: String, default: "solumada", enum: ["solumada", "optimum"] },
+    avatar: { type: String, default: "" },
+    lastLogin: { type: Date },
+    actif: { type: Boolean, default: true },
+    resetToken: { type: String },
+    resetTokenExpiry: { type: Date },
+  },
+  { timestamps: true },
+);
 
-userSchema.pre('save', async function(next) {
-  if (this.isModified('company')) this.theme = this.company;
-  if (!this.isModified('password')) return next();
+userSchema.pre("save", async function (next) {
+  if (this.isModified("company")) this.theme = this.company;
+  if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
+// HERE
 
-userSchema.methods.checkPassword = function(pwd) {
+userSchema.methods.checkPassword = function (pwd) {
   return bcrypt.compare(pwd, this.password);
 };
 
-userSchema.methods.toSafe = function() {
+userSchema.methods.toSafe = function () {
   const obj = this.toObject();
   delete obj.password;
   return obj;
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);
