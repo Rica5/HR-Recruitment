@@ -507,12 +507,13 @@ tr:hover .row-actions { opacity: 1; }
   cursor: pointer;
   display: flex; align-items: center; gap: 20px;
   box-shadow: var(--shadow-sm);
-  position: relative; overflow: hidden;
+  position: relative;
 }
 /* Accent left */
 .offre-card::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
   background: linear-gradient(180deg, var(--grad-start), var(--grad-end));
+  border-radius: var(--r-xl) 0 0 var(--r-xl);
   opacity: 0; transition: opacity var(--transition);
 }
 .offre-card:hover {

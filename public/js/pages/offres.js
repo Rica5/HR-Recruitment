@@ -1,6 +1,7 @@
 let _jobOffers = [], _offerApplications = {};
 let _selectedCandidateIds = new Set();
 let _currentOfferDetailId = null;
+let _createOffreState = { saved: true, editId: '__none__' };
 
 async function renderOffers() {
   const el = document.getElementById('page-content');
@@ -106,10 +107,10 @@ ${offers.map(o => {
       <div style="position:relative">
         <button class="btn-icon" title="${LANG==='en'?'More options':'Plus d\'options'}" onclick="event.stopPropagation();toggleOfferMenu('${o.offre_id}')">•••</button>
         <div id="offer-menu-${o.offre_id}" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-lg);min-width:170px;z-index:50;overflow:hidden">
-          ${hasBatch ? `<button onclick="event.stopPropagation();closeOfferMenu();openBatchEvalModal('${o.offre_id}')" class="offer-menu-item">🏆 ${t('btn.evaluate_candidates')}</button>` : ''}
+          ${hasBatch ? `<button onclick="event.stopPropagation();closeOfferMenu();openBatchEvalModal('${o.offre_id}')" class="offer-menu-item">${t('btn.evaluate_candidates')}</button>` : ''}
           <button onclick="event.stopPropagation();closeOfferMenu();cloneOffer('${o.offre_id}')" class="offer-menu-item">⧉ ${t('btn.clone_offer')}</button>
-          <button onclick="event.stopPropagation();closeOfferMenu();exportOfferPDF('${o.offre_id}')" class="offer-menu-item">📄 ${t('btn.export_pdf')}</button>
-          <button onclick="event.stopPropagation();closeOfferMenu();deleteOffer('${o.offre_id}',this)" class="offer-menu-item offer-menu-danger">🗑️ ${t('btn.delete')}</button>
+          <button onclick="event.stopPropagation();closeOfferMenu();exportOfferPDF('${o.offre_id}')" class="offer-menu-item">${t('btn.export_pdf')}</button>
+          <button onclick="event.stopPropagation();closeOfferMenu();deleteOffer('${o.offre_id}',this)" class="offer-menu-item offer-menu-danger">${t('btn.delete')}</button>
         </div>
       </div>
     </div>
@@ -560,39 +561,46 @@ function editOffer(id) {
 }
 
 function openCreateOffer(offre = null) {
+  const editId = offre?._id || '__new__';
+
   document.getElementById('form-offre-title').textContent = offre ? t('offer.form.edit_title') : t('offer.form.new_title');
-  document.getElementById('form-offre-id').value = offre?.offre_id || '';
 
-  const textFields = ['titre_poste','missions_principales','profil_souhaite','competences_requises','annees_experience',
-    'langues_requises','exigences_ia','type_contrat','localisation','salaire','email_recruteur',
-    'statut','lien_rdv','test_heure','test_lieu','formule_remerciement'];
-  textFields.forEach(f => {
-    const el = document.getElementById('fo-'+f);
-    if (el) el.value = offre?.[f] ?? (f === 'statut' ? 'En pause' : '');
-  });
+  if (_createOffreState.saved || _createOffreState.editId !== editId) {
+    document.getElementById('form-offre-id').value = offre?.offre_id || '';
 
-  // Compatibility: if lien_rdv empty but lien_calendar is set, pre-fill
-  if (offre && !offre.lien_rdv && offre.lien_calendar) {
-    const el = document.getElementById('fo-lien_rdv');
-    if (el) el.value = offre.lien_calendar;
+    const textFields = ['titre_poste','missions_principales','profil_souhaite','competences_requises','annees_experience',
+      'langues_requises','exigences_ia','type_contrat','localisation','salaire','email_recruteur',
+      'statut','lien_rdv','test_heure','test_lieu','formule_remerciement'];
+    textFields.forEach(f => {
+      const el = document.getElementById('fo-'+f);
+      if (el) el.value = offre?.[f] ?? (f === 'statut' ? 'En pause' : '');
+    });
+
+    // Compatibility: if lien_rdv empty but lien_calendar is set, pre-fill
+    if (offre && !offre.lien_rdv && offre.lien_calendar) {
+      const el = document.getElementById('fo-lien_rdv');
+      if (el) el.value = offre.lien_calendar;
+    }
+
+    // Sync statut select with calendar link state
+    syncStatutWithCalendar();
+
+    // Dates
+    [['date_butoire','fo-date_butoire'],['date_parution_prevue','fo-date_parution_prevue'],
+     ['date_limite_selection','fo-date_limite_selection'],['test_date','fo-test_date']].forEach(([field, elId]) => {
+      const el = document.getElementById(elId);
+      if (el) el.value = offre?.[field] ? new Date(offre[field]).toISOString().slice(0, 10) : '';
+    });
+
+    let scenario = 'A';
+    if (offre) {
+      if (offre.test_requis) scenario = 'C';
+      else if (offre.automatisation_active === false) scenario = 'B';
+    }
+    setScenario(scenario);
+
+    _createOffreState = { saved: false, editId };
   }
-
-  // Sync statut select with calendar link state
-  syncStatutWithCalendar();
-
-  // Dates
-  [['date_butoire','fo-date_butoire'],['date_parution_prevue','fo-date_parution_prevue'],
-   ['date_limite_selection','fo-date_limite_selection'],['test_date','fo-test_date']].forEach(([field, elId]) => {
-    const el = document.getElementById(elId);
-    if (el) el.value = offre?.[field] ? new Date(offre[field]).toISOString().slice(0, 10) : '';
-  });
-
-  let scenario = 'A';
-  if (offre) {
-    if (offre.test_requis) scenario = 'C';
-    else if (offre.automatisation_active === false) scenario = 'B';
-  }
-  setScenario(scenario);
 
   document.getElementById('modal-create-offre').style.display = 'flex';
 }
@@ -644,6 +652,7 @@ async function submitOffer(btn) {
 
     if (r?.success) {
       toast(id ? t('toast.offer_updated') : t('toast.offer_created'), 'success');
+      _createOffreState.saved = true;
       closeModal('modal-create-offre');
       renderOffers();
       if (!id) loadCounts();
@@ -678,7 +687,7 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function offerModalHTML() {
   return `
   <!-- ── Job offer DETAIL modal ── -->
-  <div id="modal-offre" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeModal('modal-offre')">
+  <div id="modal-offre" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
     <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.28);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
 
       <!-- Gradient hero header -->
@@ -707,16 +716,16 @@ function offerModalHTML() {
       <!-- Footer actions -->
       <div style="padding:14px 24px;border-top:1px solid var(--border-soft);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:var(--surface-2)">
         <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" id="btn-offre-edit">✏️ ${t('btn.edit')}</button>
-          <button class="btn btn-secondary btn-sm" id="btn-offre-pdf">📄 ${t('btn.export_pdf')}</button>
+          <button class="btn btn-secondary btn-sm" id="btn-offre-edit">${t('btn.edit')}</button>
+          <button class="btn btn-secondary btn-sm" id="btn-offre-pdf">${t('btn.export_pdf')}</button>
         </div>
-        <button class="btn btn-primary btn-sm" id="btn-offre-newcand">+ ${t('btn.new_application')}</button>
+        <button class="btn btn-primary btn-sm" id="btn-offre-newcand">${t('btn.new_application')}</button>
       </div>
     </div>
   </div>
 
   <!-- ── Create/edit job offer modal ── -->
-  <div id="modal-create-offre" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeModal('modal-create-offre')">
+  <div id="modal-create-offre" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
     <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:720px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.28);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
 
       <!-- Header -->
@@ -1047,7 +1056,7 @@ function buildPdfHtml(o, logoUrl, companyName, accent, accentDk, accentBg, accen
 // ── Batch candidate evaluation ──────────────────────────────────────────────
 
 function batchEvalModalHTML() {
-  return `<div id="modal-batch-eval" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:110;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)document.getElementById('modal-batch-eval').style.display='none'">
+  return `<div id="modal-batch-eval" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:110;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
   <div style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:460px;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);overflow:hidden">
     <div style="background:linear-gradient(135deg,var(--grad-start) 0%,var(--grad-end) 100%);padding:22px 24px;display:flex;align-items:center;gap:14px">
       <div style="width:42px;height:42px;background:rgba(255,255,255,.2);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:20px">🏆</div>

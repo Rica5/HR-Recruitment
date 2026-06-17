@@ -4,6 +4,7 @@ let _currentPage  = 1;
 let _filteredList = [];
 const PAGE_SIZE   = 30;
 let _pendingNewApplicationOfferId = null;
+let _newCandState = { saved: true };
 let _filterQ = '', _filterReco = '', _filterOffre = '', _filterCanal = '', _filterScore = ''; // pre-selection from the Offers page
 
 // Cal.com RDV scheduling state
@@ -971,7 +972,7 @@ function applicationStatusBadge(s) {
 function applicationModalHTML() {
   return `
   <!-- ── Candidature DETAIL modal ── -->
-  <div id="modal-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeModal('modal-cand')">
+  <div id="modal-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
     <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.28);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
 
       <!-- Gradient hero header -->
@@ -1002,7 +1003,7 @@ function applicationModalHTML() {
   </div>
 
   <!-- Prise de rendez-vous cal.com -->
-  <div id="modal-rdv-calcom" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)" onclick="if(event.target===this)closeModal('modal-rdv-calcom')">
+  <div id="modal-rdv-calcom" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:200;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)">
     <div style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 28px 64px rgba(0,0,0,.22);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
 
       <!-- Gradient hero header -->
@@ -1076,7 +1077,7 @@ function applicationModalHTML() {
   </div>
 
   <!-- ── Nouvelle candidature modal ── -->
-  <div id="modal-nouveau-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)" onclick="if(event.target===this)closeModal('modal-nouveau-cand')">
+  <div id="modal-nouveau-cand" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)">
     <div class="modal-card" style="background:var(--surface);border-radius:var(--r-2xl);width:100%;max-width:560px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.28);overflow:hidden;animation:scaleIn .22s cubic-bezier(.22,1,.36,1) both">
 
       <!-- Header -->
@@ -1148,9 +1149,12 @@ function openNewApplication(preselectedOfferId = null) {
       jobOffers.map(o => `<option value="${o.offre_id}">${o.titre_poste} ${o.statut !== 'Active' ? '('+o.statut+')' : ''}</option>`).join('');
     if (preselectedOfferId) sel.value = preselectedOfferId;
   }
-  const form = document.getElementById('form-nouveau-cand');
-  if (form) form.reset();
-  if (preselectedOfferId && sel) sel.value = preselectedOfferId; // reset() clears value, restore it
+  if (_newCandState.saved) {
+    const form = document.getElementById('form-nouveau-cand');
+    if (form) form.reset();
+    _newCandState.saved = false;
+  }
+  if (preselectedOfferId && sel) sel.value = preselectedOfferId;
   document.getElementById('modal-nouveau-cand').style.display = 'flex';
 }
 
@@ -1195,6 +1199,7 @@ async function submitNewApplication() {
     const r = await res.json();
     if (r.success) {
       toast(t('toast.application_saved'), 'success');
+      _newCandState.saved = true;
       closeModal('modal-nouveau-cand');
       renderApplications();
       loadCounts();
