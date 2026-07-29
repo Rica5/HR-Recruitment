@@ -1,0 +1,222 @@
+{
+  "name": "WF4 — Évaluation Batch Candidats (Solumada)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "batch-evaluation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "01958db4-da70-4040-bc87-1ce16c999739",
+      "name": "01 — Webhook Batch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -224
+      ],
+      "webhookId": "solumada-wf4-batch-evaluation"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true }",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "dc36f191-cce6-4547-9067-c7a9d5ab8376",
+      "name": "02 — Réponse 202 immédiate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        752,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst offre_id             = body.offre_id             || '';\nconst titre_poste          = body.titre_poste          || '';\nconst description_poste    = body.description_poste    || '';\nconst competences_requises = body.competences_requises || '';\nconst exigences_ia         = body.exigences_ia         || '';\nconst nb_top               = parseInt(body.nb_top, 10) || 20;\nconst candidatures         = body.candidatures         || [];\nconst callback_url         = body.callback_url         || '';\nconst callback_secret      = body.callback_secret      || '';\nconst company              = body.company              || 'solumada';\nconst isEn                 = company === 'optimum';\n\nif (!offre_id)            throw new Error('offre_id manquant dans le payload');\nif (!candidatures.length) throw new Error('Aucun candidat reçu dans le payload');\n\nconst candidatesList = candidatures.map((c, i) =>\n  `${isEn ? 'Candidate' : 'Candidat'} #${i + 1}\\n` +\n  `ID: ${c.id}\\n` +\n  `${isEn ? 'Name' : 'Nom'}: ${c.nom}\\n` +\n  `${isEn ? 'Individual AI score' : 'Score individuel IA'}: ${c.score != null ? c.score + '/10' : 'N/A'}\\n` +\n  `${isEn ? 'Job fit' : 'Adéquation poste'}: ${c.adequation_poste || 'N/A'}\\n` +\n  `${isEn ? 'Detected skills' : 'Compétences détectées'}: ${c.competences_detectees || 'N/A'}\\n` +\n  `${isEn ? 'Missing skills' : 'Compétences manquantes'}: ${c.competences_manquantes || 'N/A'}\\n` +\n  `${isEn ? 'Analysis summary' : 'Résumé analyse'}: ${c.resume_analyse || 'N/A'}\\n` +\n  `${isEn ? 'Strengths' : 'Points forts'}: ${c.points_forts || 'N/A'}\\n` +\n  `${isEn ? 'Weaknesses' : 'Points faibles'}: ${c.points_faibles || 'N/A'}\\n` +\n  `${isEn ? 'Experience' : 'Expérience'}: ${c.experience_annees != null ? c.experience_annees + (isEn ? ' years' : ' ans') : 'N/A'}`\n).join('\\n---\\n');\n\nconst exigencesSection = exigences_ia\n  ? `\\n=== ${isEn ? 'PRIORITY REQUIREMENTS (eliminatory criteria if specified)' : 'EXIGENCES PRIORITAIRES (critères éliminatoires si précisés)'} ===\\n${exigences_ia}\\n`\n  : '';\n\nconst prompt = isEn\n? `You are a senior HR expert. Your role is to rank and select the best candidates for a position.\\n\\n` +\n  `=== POSITION ===\\n` +\n  `Title: ${titre_poste}\\n` +\n  `Missions: ${description_poste}\\n` +\n  `Required skills: ${competences_requises}\\n` +\n  exigencesSection +\n  `\\n=== CANDIDATES TO EVALUATE (${candidatures.length} total) ===\\n` +\n  candidatesList +\n  `\\n\\n=== INSTRUCTIONS ===\\n` +\n  `1. Comparatively analyse ALL candidates considering their fit with the missions, skills and experience.\\n` +\n  `2. Select the TOP ${nb_top} most suitable candidates for the position.\\n` +\n  `3. For each selected candidate, write a 2 to 3 sentence justification in English explaining:\\n` +\n  `   - Why this candidate is selected (their differentiating points)\\n` +\n  `   - How their profile matches the job requirements\\n` +\n  `   - Their main advantage compared to other candidates\\n` +\n  `4. For ALL candidates (not just the top ${nb_top}), provide a revised score_final out of 10 based on your comparison.\\n\\n` +\n  `Respond ONLY with valid JSON, no markdown, no backticks, no text before or after:\\n` +\n  `{\\n` +\n  `  \"top_candidats\": [\\n` +\n  `    {\\n` +\n  `      \"id\": \"<EXACT_ID_provided_above>\",\\n` +\n  `      \"rang\": 1,\\n` +\n  `      \"score_final\": 8.5,\\n` +\n  `      \"justification\": \"This candidate stands out because... Their profile perfectly matches... Their main advantage is...\"\\n` +\n  `    }\\n` +\n  `  ],\\n` +\n  `  \"tous_candidats\": [\\n` +\n  `    { \"id\": \"<EXACT_ID>\", \"score_final\": 7.2 }\\n` +\n  `  ],\\n` +\n  `  \"resume_evaluation\": \"Global evaluation summary in 2-3 sentences.\"\\n` +\n  `}\\n` +\n  `IMPORTANT:\\n` +\n  `- id values must be EXACTLY those provided above, unchanged\\n` +\n  `- top_candidats must contain exactly ${Math.min(nb_top, candidatures.length)} entries (or fewer if total < ${nb_top}), sorted by ascending rank\\n` +\n  `- tous_candidats must contain ALL ${candidatures.length} candidates with their score_final\\n` +\n  `- The justification must be in English, 2 to 3 sentences minimum`\n\n: `Tu es un expert RH senior. Ton rôle est de classer et sélectionner les meilleurs candidats pour un poste.\\n\\n` +\n  `=== POSTE ===\\n` +\n  `Titre: ${titre_poste}\\n` +\n  `Missions: ${description_poste}\\n` +\n  `Compétences requises: ${competences_requises}\\n` +\n  exigencesSection +\n  `\\n=== CANDIDATS À ÉVALUER (${candidatures.length} au total) ===\\n` +\n  candidatesList +\n  `\\n\\n=== INSTRUCTIONS ===\\n` +\n  `1. Analyse comparativement TOUS les candidats en tenant compte de leur adéquation avec les missions, leurs compétences et leur expérience.\\n` +\n  `2. Sélectionne les TOP ${nb_top} candidats les plus adaptés au poste.\\n` +\n  `3. Pour chaque candidat sélectionné, rédige une justification de 2 à 3 phrases en français expliquant :\\n` +\n  `   - Pourquoi ce candidat est retenu (ses points différenciants)\\n` +\n  `   - En quoi son profil correspond aux exigences du poste\\n` +\n  `   - Son principal atout par rapport aux autres candidats\\n` +\n  `4. Pour TOUS les candidats (pas seulement le top ${nb_top}), fournis un score_final revu sur 10 basé sur ta comparaison.\\n\\n` +\n  `Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks, sans texte avant ou après :\\n` +\n  `{\\n` +\n  `  \"top_candidats\": [\\n` +\n  `    {\\n` +\n  `      \"id\": \"<ID_EXACT_fourni_ci-dessus>\",\\n` +\n  `      \"rang\": 1,\\n` +\n  `      \"score_final\": 8.5,\\n` +\n  `      \"justification\": \"Ce candidat se distingue par... Son profil correspond parfaitement à... Son principal atout est...\"\\n` +\n  `    }\\n` +\n  `  ],\\n` +\n  `  \"tous_candidats\": [\\n` +\n  `    { \"id\": \"<ID_EXACT>\", \"score_final\": 7.2 }\\n` +\n  `  ],\\n` +\n  `  \"resume_evaluation\": \"Résumé global de l'évaluation en 2-3 phrases.\"\\n` +\n  `}\\n` +\n  `IMPORTANT :\\n` +\n  `- Les valeurs de id doivent être EXACTEMENT celles fournies ci-dessus, sans modification\\n` +\n  `- top_candidats doit contenir exactement ${Math.min(nb_top, candidatures.length)} entrées (ou moins si total < ${nb_top}), triées par rang croissant\\n` +\n  `- tous_candidats doit contenir TOUS les ${candidatures.length} candidats avec leur score_final\\n` +\n  `- La justification doit être en français, 2 à 3 phrases minimum`;\n\nreturn [{ json: {\n  offre_id,\n  nb_top,\n  callback_url,\n  callback_secret,\n  candidatures_count: candidatures.length,\n  requestBody: {\n    model: 'claude-sonnet-4-6',\n    max_tokens: 8192,\n    messages: [\n      {\n        role: 'user',\n        content: [{ type: 'text', text: prompt }]\n      }\n    ]\n  }\n}}];\n"
+      },
+      "id": "6ec3f2fb-7d7f-4b4e-a8ed-808fa04cd38e",
+      "name": "03 — Préparer prompt Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "dbf58313-7282-4f5d-ab89-a920d32e540a",
+      "name": "04 — Appel Claude API (Anthropic)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        992,
+        -224
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ykeQbTxUUvlcEX7d",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const claudeResponse = $input.first().json;\nconst prevData = $('03 — Préparer prompt Claude').first().json;\n\nconst raw = claudeResponse?.content?.[0]?.text || '';\nif (!raw) throw new Error('Réponse Claude vide — content[0].text absent');\n\n// Retirer les balises markdown si présentes\nconst fenceMatch = raw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nconst jsonStr = fenceMatch ? fenceMatch[1].trim() : raw.trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  throw new Error('Impossible de parser la réponse Claude : ' + e.message + ' — Extrait : ' + jsonStr.slice(0, 400));\n}\n\nif (!Array.isArray(parsed.top_candidats) || parsed.top_candidats.length === 0) {\n  throw new Error('Claude batch : top_candidats manquant ou vide dans la réponse');\n}\n\nconsole.log(`✅ Claude a sélectionné ${parsed.top_candidats.length} candidats sur ${prevData.candidatures_count} pour l'offre ${prevData.offre_id}`);\n\nreturn [{ json: {\n  callback_url:      prevData.callback_url,\n  callback_secret:   prevData.callback_secret,\n  top_candidats:     parsed.top_candidats,\n  tous_candidats:    parsed.tous_candidats || [],\n  resume_evaluation: parsed.resume_evaluation || ''\n}}];"
+      },
+      "id": "95587c66-b7f5-42c6-b288-5f348b0cd94d",
+      "name": "05 — Parser réponse Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callback_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Callback-Secret",
+              "value": "={{ $json.callback_secret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ top_candidats: $json.top_candidats, tous_candidats: $json.tous_candidats, resume_evaluation: $json.resume_evaluation }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "4d45f84a-2400-47b5-840d-8f3fba0f8190",
+      "name": "06 — Callback Express (résultats)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1472,
+        -224
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 — Webhook Batch": {
+      "main": [
+        [
+          {
+            "node": "02 — Réponse 202 immédiate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "03 — Préparer prompt Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 — Préparer prompt Claude": {
+      "main": [
+        [
+          {
+            "node": "04 — Appel Claude API (Anthropic)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 — Appel Claude API (Anthropic)": {
+      "main": [
+        [
+          {
+            "node": "05 — Parser réponse Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 — Parser réponse Claude": {
+      "main": [
+        [
+          {
+            "node": "06 — Callback Express (résultats)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a6a85975-e794-41c5-98f7-4fbe23a2c609",
+  "meta": {
+    "instanceId": "afc83c8eed816bd60e45cedd7670d3e536b7e09132dc39868b3fdc725f0a61b3"
+  },
+  "nodeGroups": [],
+  "id": "bWmrJQKKsjX8nZQW",
+  "tags": [
+    {
+      "updatedAt": "2026-05-28T09:47:06.093Z",
+      "createdAt": "2026-05-28T09:47:06.093Z",
+      "id": "fVnsvcFpydNwI40R",
+      "name": "solumada"
+    },
+    {
+      "updatedAt": "2026-05-28T09:47:06.065Z",
+      "createdAt": "2026-05-28T09:47:06.065Z",
+      "id": "loJld8czZxhEKyeN",
+      "name": "batch"
+    },
+    {
+      "updatedAt": "2026-05-28T09:47:06.121Z",
+      "createdAt": "2026-05-28T09:47:06.121Z",
+      "id": "sIP22fd3DDeMZnh3",
+      "name": "evaluation"
+    }
+  ]
+}

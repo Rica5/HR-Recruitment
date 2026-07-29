@@ -1,0 +1,29 @@
+# Dépendances
+node_modules/
+
+# Variables d'environnement — NE JAMAIS COMMITER
+.env
+
+# Fichiers uploadés (CVs, lettres) — stocker en externe en production
+uploads/
+
+# Logs
+*.log
+logs/
+
+# PM2
+.pm2/
+
+# Couverture de tests
+coverage/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
