@@ -93,7 +93,7 @@ function rdvUrgencyBadge(sortKey) {
 // Cal.com stores start in UTC — convert to local company timezone for display
 function rdvToLocal(isoUtc, company) {
   const d      = new Date(isoUtc);
-  const offset = (company || Auth.user()?.company || 'solumada') === 'optimum' ? 2 : 3;
+  const offset = (company || Auth.user()?.company || 'solumada') === 'optimum' ? 4 : 3;
   return new Date(d.getTime() + offset * 3600000);
 }
 

@@ -235,7 +235,7 @@ function rdvAdjustForTimezone(date, heure, company) {
     const iso    = `${date}T${heure}:00.000Z`;
     const d      = new Date(iso);
     if (isNaN(d.getTime())) return { date, heure };
-    const offset = ((company || Auth.user()?.company || 'solumada') === 'optimum') ? 2 : 3;
+    const offset = ((company || Auth.user()?.company || 'solumada') === 'optimum') ? 4 : 3;
     const local  = new Date(d.getTime() + offset * 3600000);
     return {
       date:  `${local.getUTCFullYear()}-${String(local.getUTCMonth() + 1).padStart(2, '0')}-${String(local.getUTCDate()).padStart(2, '0')}`,

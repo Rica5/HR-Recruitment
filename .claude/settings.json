@@ -5,7 +5,12 @@
       "Bash(node -e \"require\\('./\\\\\"Analyse IA Candidature Complet.json\\\\\"'\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/IT SOLUMADA/Desktop/Solumada Recrutement app/Analyse IA Candidature Complet.json','utf8'\\)\\); console.log\\('JSON valide'\\)\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\IT SOLUMADA\\\\Desktop\\\\Solumada Recrutement app\" -Recurse -Filter \"Offre.js\" -ErrorAction SilentlyContinue)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(git commit *)",
+      "Bash(grep -E \"^\\\\.env$|node_modules|^uploads/\")",
+      "Bash(doctl account *)",
+      "Bash(mongodump --version)",
+      "Bash(mongorestore --version)"
     ]
   }
 }
