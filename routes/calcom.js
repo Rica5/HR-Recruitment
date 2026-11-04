@@ -14,6 +14,14 @@ function calHeaders() {
   };
 }
 
+function sendCalError(res, err) {
+  const upstream = err.response?.status;
+  // Cal.com auth failures must not reach the frontend as 401 — it would treat them as an expired JWT and log the user out
+  const status = upstream === 401 || upstream === 403 ? 502 : (upstream || 500);
+  const data = err.response?.data;
+  res.status(status).json({ success: false, error: data?.error?.message || data?.message || err.message });
+}
+
 let _cachedUsername = null;
 let _usernameExpiry = 0;
 async function getUsername() {
@@ -131,7 +139,7 @@ router.get('/event-types', async (req, res) => {
     }));
     res.json({ success: true, eventTypes });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendCalError(res, err);
   }
 });
 
@@ -159,10 +167,7 @@ router.post('/event-types', async (req, res) => {
       eventType: { ...et, bookingUrl: `https://cal.com/${username}/${et.slug}`, ...locationSummary(et.locations) },
     });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -187,10 +192,7 @@ router.patch('/event-types/:id', async (req, res) => {
       eventType: { ...et, bookingUrl: `https://cal.com/${username}/${et.slug}`, ...locationSummary(et.locations) },
     });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -200,10 +202,7 @@ router.delete('/event-types/:id', async (req, res) => {
     await axios.delete(`${CAL_BASE}/event-types/${req.params.id}`, { headers: calHeaders() });
     res.json({ success: true });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -214,7 +213,7 @@ router.get('/schedules', async (req, res) => {
     const schedules = (r.data?.data || []).map(normalizeSchedule);
     res.json({ success: true, schedules });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendCalError(res, err);
   }
 });
 
@@ -254,10 +253,7 @@ router.post('/schedules', async (req, res) => {
 
     res.json({ success: true, schedule: normalizeSchedule(schedule) });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -267,10 +263,7 @@ router.delete('/schedules/:id', async (req, res) => {
     await axios.delete(`${CAL_BASE}/schedules/${req.params.id}`, { headers: calHeaders() });
     res.json({ success: true });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -293,10 +286,7 @@ router.patch('/schedules/:id', async (req, res) => {
     );
     res.json({ success: true, schedule: normalizeSchedule(r.data?.data) });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -318,10 +308,7 @@ router.post('/bookings/:uid/cancel', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -345,10 +332,7 @@ router.post('/bookings/:uid/reschedule', async (req, res) => {
 
     res.json({ success: true, booking: r.data?.data || null });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
@@ -416,10 +400,7 @@ router.get('/bookings', async (req, res) => {
 
     res.json({ success: true, bookings: enriched });
   } catch (err) {
-    res.status(err.response?.status || 500).json({
-      success: false,
-      error: err.response?.data?.message || err.message,
-    });
+    sendCalError(res, err);
   }
 });
 
