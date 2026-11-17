@@ -1582,6 +1582,72 @@ describe('Candidatures — GET /batch-status', () => {
   });
 });
 
+describe('Candidatures — filtres serveur, entonnoir, RDV à venir', () => {
+  let token, offre;
+
+  beforeEach(async () => {
+    ({ token } = await getToken({ email: 'rh@test.com', company: 'solumada' }));
+    offre = await createOffer('solumada');
+  });
+
+  const get = (url) => request(app).get(url).set('Authorization', `Bearer ${token}`);
+
+  test('GET / — score_band high/mid/low exclut les candidatures non notées', async () => {
+    await createCandidature(offre.offre_id, 'solumada', { score: 8 });
+    await createCandidature(offre.offre_id, 'solumada', { score: 7 });
+    await createCandidature(offre.offre_id, 'solumada', { score: 5 });
+    await createCandidature(offre.offre_id, 'solumada', { score: 2 });
+    await createCandidature(offre.offre_id, 'solumada', { score: null });
+    expect((await get('/api/candidatures?score_band=high')).body.total).toBe(2);
+    expect((await get('/api/candidatures?score_band=mid')).body.total).toBe(1);
+    expect((await get('/api/candidatures?score_band=low')).body.total).toBe(1);
+  });
+
+  test('GET / — a_appeler exclut RDV pris et non intéressés ; canal et potentiel filtrent', async () => {
+    await createCandidature(offre.offre_id, 'solumada', { a_appeler: true, canal_candidature: 'telephone' });
+    await createCandidature(offre.offre_id, 'solumada', { a_appeler: true, rdv_pris: true });
+    await createCandidature(offre.offre_id, 'solumada', { a_appeler: true, non_interesse: true });
+    await createCandidature(offre.offre_id, 'solumada', { candidat_potentiel: true });
+    expect((await get('/api/candidatures?a_appeler=true')).body.total).toBe(1);
+    expect((await get('/api/candidatures?canal=telephone')).body.total).toBe(1);
+    expect((await get('/api/candidatures?potentiel=true')).body.total).toBe(1);
+  });
+
+  test('GET /api/offres — compteurs par offre au-delà des 50 premières candidatures', async () => {
+    const other = await createOffer('solumada');
+    await Candidature.insertMany(Array.from({ length: 55 }, (_, i) => ({
+      offre_id: other.offre_id, titre_poste: 'X', candidat_nom: `Top ${i}`, candidat_email: `top${i}@t.com`, company: 'solumada', score: 9,
+    })));
+    await createCandidature(offre.offre_id, 'solumada', { score: 2, recommandation: 'NON_SELECTIONNE' });
+    await createCandidature(offre.offre_id, 'solumada', { score: 8, recommandation: 'QUALIFIE' });
+    await createCandidature(offre.offre_id, 'solumada', { score: null });
+    const res = await get('/api/offres');
+    const stats = res.body.offres.find(o => o.offre_id === offre.offre_id).candidatures_stats;
+    expect(stats).toEqual({ total: 3, qualifies: 1, a_revoir: 0, non_selectionnes: 1, analyses: 2 });
+  });
+
+  test('GET /stats/funnel — compte les deux sociétés (cross-company voulu)', async () => {
+    await createCandidature(offre.offre_id, 'solumada', { recommandation: 'QUALIFIE', rdv_pris: true });
+    await createCandidature(offre.offre_id, 'solumada', { statut: 'Accepté' });
+    await createCandidature(offre.offre_id, 'optimum', { recommandation: 'QUALIFIE' });
+    const res = await get('/api/candidatures/stats/funnel');
+    expect(res.status).toBe(200);
+    expect(res.body.funnel).toEqual({ received: 3, qualified: 2, interview: 1, accepted: 1 });
+  });
+
+  test('GET /rdv/upcoming — RDV futurs du recruteur connecté, triés par date', async () => {
+    const rdv = (date, email_recruteur = 'autre@test.com, RH@test.com') =>
+      createCandidature(offre.offre_id, 'solumada', { rdv_pris: true, email_recruteur, rdv_manuel: { date, heure: '10:00' } });
+    await rdv('2099-05-02');
+    await rdv('2099-05-01');
+    await rdv('2000-01-01');
+    await rdv('2099-05-03', 'quelquun@test.com');
+    const res = await get(`/api/candidatures/rdv/upcoming?from=${new Date().toISOString()}`);
+    expect(res.status).toBe(200);
+    expect(res.body.candidatures.map(c => c.rdv_manuel.date.slice(0, 10))).toEqual(['2099-05-01', '2099-05-02']);
+  });
+});
+
 // ═════════════════════════════════════════════
 // 20. PUBLIC — POST /api/public/candidature
 // ═════════════════════════════════════════════
