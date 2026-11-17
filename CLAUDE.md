@@ -278,7 +278,8 @@ POST   /api/auth/reset-password   { token, password }       → { success }
 ### Offres (`/api/offres`) — JWT requis
 
 ```
-GET    /api/offres                    ?statut=&q=            → { offres[] }
+GET    /api/offres                    ?statut=&q=            → { offres[] }  chaque offre porte candidatures_stats
+                                       { total, qualifies, a_revoir, non_selectionnes, analyses } (agrégés en base)
 GET    /api/offres/stats/summary      → { stats: { totalOffers, activeOffers, totalApplications, qualified, toReview, rejected } }
 GET    /api/offres/stats/madagascar   → { stats: { offres:{...}, candidatures:{...}, canaux:[...] } }  (stats conformité process RH)
 POST   /api/offres                    { ...offre }           → { offre, lien_candidature }
@@ -295,8 +296,13 @@ POST   /api/offres/:id/evaluer-candidats  { nb_top }          → { success, nb_
 ### Candidatures (`/api/candidatures`) — JWT requis
 
 ```
-GET    /api/candidatures                    ?page=1&limit=50&offre_id=&recommandation=&a_appeler=&q=&score_min=&score_max=
-                                            → { candidatures[], total, page, pages }
+GET    /api/candidatures                    ?page=1&limit=50&offre_id=&recommandation=&canal=&score_band=high|mid|low
+                                            &a_appeler=true&potentiel=true&q=&score_min=&score_max=
+                                            → { candidatures[], total, page, pages }  (limit max 500, tri score DESC)
+                                            a_appeler=true exclut aussi rdv_pris et non_interesse
+GET    /api/candidatures/stats/funnel       → { funnel: { received, qualified, interview, accepted } }
+                                            (cross-company volontaire, comme l'entonnoir du tableau de bord)
+GET    /api/candidatures/rdv/upcoming       ?from=ISO&limit=10 → { candidatures[] }  RDV futurs dont l'utilisateur est recruteur
 GET    /api/candidatures/calcom/slots       ?offre_id=XXX[&date=YYYY-MM-DD|&days=N]
                                             → { dates: { "2025-05-12":[{time}], … } } (ou { slots:[] } si &date)
                                             Résout username+slug depuis offre.lien_rdv, interroge l'API Cal.com v2

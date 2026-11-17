@@ -150,7 +150,7 @@ router.post(
 // GET /api/candidatures
 router.get("/", async (req, res) => {
   try {
-    const { offre_id, recommandation, a_appeler, q, score_min, score_max } = req.query;
+    const { offre_id, recommandation, a_appeler, potentiel, canal, score_band, q, score_min, score_max } = req.query;
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(500, parseInt(req.query.limit) || 50);
     const skip = (page - 1) * limit;
@@ -158,12 +158,20 @@ router.get("/", async (req, res) => {
     const filter = {};
     if (offre_id) filter.offre_id = offre_id;
     if (recommandation) filter.recommandation = recommandation;
-    if (a_appeler === "true") filter.a_appeler = true;
-    if (score_min != null && score_min !== '' || score_max != null && score_max !== '') {
-      filter.score = {};
-      if (score_min != null && score_min !== '') filter.score.$gte = Number(score_min);
-      if (score_max != null && score_max !== '') filter.score.$lte = Number(score_max);
+    if (canal) filter.canal_candidature = canal;
+    if (a_appeler === "true") {
+      filter.a_appeler = true;
+      filter.rdv_pris = { $ne: true };
+      filter.non_interesse = { $ne: true };
     }
+    if (potentiel === "true") filter.candidat_potentiel = true;
+    const scoreFilter = {};
+    if (score_min != null && score_min !== '') scoreFilter.$gte = Number(score_min);
+    if (score_max != null && score_max !== '') scoreFilter.$lte = Number(score_max);
+    if (score_band === 'high') scoreFilter.$gte = 7;
+    else if (score_band === 'mid') { scoreFilter.$gte = 4; scoreFilter.$lt = 7; }
+    else if (score_band === 'low') scoreFilter.$lt = 4;
+    if (Object.keys(scoreFilter).length) filter.score = scoreFilter;
     if (q) {
       const rx = escapeRegex(q);
       filter.$or = [
@@ -296,6 +304,40 @@ router.get("/calcom/slots", async (req, res) => {
       ? `Event type not found on cal.com — check lien_rdv (username="${username}", slug="${eventTypeSlug}")`
       : be(req, `Erreur cal.com : ${msg}`, `cal.com error: ${msg}`);
     res.status(502).json({ success: false, error: detail });
+  }
+});
+
+// Cross-company on purpose: the dashboard funnel counts both companies' candidatures.
+router.get("/stats/funnel", async (req, res) => {
+  try {
+    const [received, qualified, interview, accepted] = await Promise.all([
+      Candidature.countDocuments({}),
+      Candidature.countDocuments({ recommandation: "QUALIFIE" }),
+      Candidature.countDocuments({ $or: [{ statut: "Entretien planifié" }, { rdv_pris: true }] }),
+      Candidature.countDocuments({ statut: "Accepté" }),
+    ]);
+    res.json({ success: true, funnel: { received, qualified, interview, accepted } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Upcoming interviews where the logged-in user is one of the recruiters. `from` = start of the viewer's day (ISO).
+router.get("/rdv/upcoming", async (req, res) => {
+  try {
+    let from = new Date(req.query.from);
+    if (isNaN(from)) from = new Date(new Date().setHours(0, 0, 0, 0));
+    const me = String(req.user.email || "").trim().toLowerCase();
+    const candidates = await Candidature.find({ rdv_pris: true, "rdv_manuel.date": { $gte: from } })
+      .select("candidat_nom titre_poste recommandation company email_recruteur rdv_manuel")
+      .lean();
+    const upcoming = candidates
+      .filter(c => parseEmailList(c.email_recruteur).some(e => e.toLowerCase() === me))
+      .sort((a, b) => new Date(a.rdv_manuel.date) - new Date(b.rdv_manuel.date))
+      .slice(0, Math.min(50, parseInt(req.query.limit) || 10));
+    res.json({ success: true, candidatures: upcoming });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

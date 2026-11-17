@@ -2,34 +2,26 @@ async function renderDashboard() {
   const el = document.getElementById('page-content');
   el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:200px"><div class="spinner" style="width:28px;height:28px"></div></div>`;
 
-  const [statsRes, offresRes, candsRes, madagascarRes] = await Promise.all([
+  const todayDb = new Date(); todayDb.setHours(0, 0, 0, 0);
+  const [statsRes, offresRes, candsRes, madagascarRes, funnelRes, rdvRes] = await Promise.all([
     api.get('/api/offres/stats/summary'),
     api.get('/api/offres'),
-    api.get('/api/candidatures?limit=500'),
+    api.get('/api/candidatures?limit=6'),
     api.get('/api/offres/stats/madagascar'),
+    api.get('/api/candidatures/stats/funnel'),
+    api.get(`/api/candidatures/rdv/upcoming?from=${encodeURIComponent(todayDb.toISOString())}`),
   ]);
 
   const stats       = statsRes?.stats  || {};
   const offres      = offresRes?.offres || [];
   const cands       = candsRes?.candidatures || [];
   const mdg         = madagascarRes?.stats   || {};
+  const funnel      = funnelRes?.funnel || {};
+  const upcomingRdvs = rdvRes?.candidatures || [];
   const activeOffers = offres.filter(o => o.statut === 'Active');
+  const countsOf     = (o) => o.candidatures_stats || {};
 
-  // Map candidatures by offer
-  const candsByOffre = {};
-  cands.forEach(c => {
-    if (!candsByOffre[c.offre_id]) candsByOffre[c.offre_id] = [];
-    candsByOffre[c.offre_id].push(c);
-  });
-
-  const maxCands = Math.max(...offres.map(o => (candsByOffre[o.offre_id]||[]).length), 1);
-
-  const todayDb  = new Date(); todayDb.setHours(0, 0, 0, 0);
-  const myEmail  = Auth.user()?.email;
-  const upcomingRdvs = cands
-    .filter(c => c.rdv_pris && c.rdv_manuel?.date && new Date(c.rdv_manuel.date) >= todayDb && emailListIncludes(c.email_recruteur, myEmail))
-    .sort((a, b) => new Date(a.rdv_manuel.date) - new Date(b.rdv_manuel.date))
-    .slice(0, 10);
+  const maxCands = Math.max(...offres.map(o => countsOf(o).total || 0), 1);
 
   const candsLbl  = t('dashboard.candidates_lbl');
   const seeAll    = t('dashboard.see_all');
@@ -57,8 +49,8 @@ async function renderDashboard() {
         ${activeOffers.length === 0
           ? `<div class="empty-state" style="padding:24px"><div class="empty-icon">📭</div><p>${noOffers}</p></div>`
           : activeOffers.slice(0, 6).map(o => {
-              const oc  = candsByOffre[o.offre_id] || [];
-              const pct = Math.round(oc.length / maxCands * 100);
+              const total = countsOf(o).total || 0;
+              const pct = Math.round(total / maxCands * 100);
               return `<div class="db-offer-row" onclick="goToOffer('${o.offre_id}')">
                 <div class="db-offer-dot"></div>
                 <div style="flex:1;min-width:0">
@@ -67,7 +59,7 @@ async function renderDashboard() {
                   <div class="db-offer-bar-wrap"><div class="db-offer-bar" style="width:${pct}%"></div></div>
                 </div>
                 <div class="db-offer-count">
-                  <div class="db-offer-num">${oc.length}</div>
+                  <div class="db-offer-num">${total}</div>
                   <div class="db-offer-lbl">${candsLbl}</div>
                 </div>
                 <svg style="width:14px;height:14px;color:var(--text-3);flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
@@ -121,11 +113,13 @@ async function renderDashboard() {
           ${offres.length === 0
             ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-3)">${noOfferRow}</td></tr>`
             : offres.map(o => {
-                const oc   = candsByOffre[o.offre_id] || [];
-                const qual = oc.filter(c => c.recommandation === 'QUALIFIE').length;
-                const rev  = oc.filter(c => c.recommandation === 'A_REVOIR').length;
-                const rej  = oc.filter(c => c.recommandation === 'NON_SELECTIONNE').length;
-                const pct  = maxCands > 0 ? Math.round(oc.length / maxCands * 100) : 0;
+                const s    = countsOf(o);
+                const total = s.total || 0;
+                const qual = s.qualifies || 0;
+                const rev  = s.a_revoir || 0;
+                const rej  = s.non_selectionnes || 0;
+                const pct  = maxCands > 0 ? Math.round(total / maxCands * 100) : 0;
+                const share = (n) => total ? Math.round(n / total * 100) : 0;
                 return `<tr onclick="goToOffer('${o.offre_id}')">
                   <td style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.titre_poste}</td>
                   <td><span class="badge badge-gray">${o.type_contrat}</span></td>
@@ -133,12 +127,12 @@ async function renderDashboard() {
                   <td>
                     <div class="db-bar-cell">
                       <div class="db-mini-bar"><div class="db-mini-fill" style="width:${pct}%;background:linear-gradient(to right,var(--grad-start),var(--grad-end))"></div></div>
-                      <span style="font-weight:700;min-width:20px">${oc.length}</span>
+                      <span style="font-weight:700;min-width:20px">${total}</span>
                     </div>
                   </td>
-                  <td><div class="db-bar-cell"><div class="db-mini-bar"><div class="db-mini-fill" style="width:${oc.length?Math.round(qual/oc.length*100):0}%;background:#22c55e"></div></div><span style="color:#16a34a;font-weight:700">${qual}</span></div></td>
-                  <td><div class="db-bar-cell"><div class="db-mini-bar"><div class="db-mini-fill" style="width:${oc.length?Math.round(rev/oc.length*100):0}%;background:#f59e0b"></div></div><span style="color:#d97706;font-weight:700">${rev}</span></div></td>
-                  <td><div class="db-bar-cell"><div class="db-mini-bar"><div class="db-mini-fill" style="width:${oc.length?Math.round(rej/oc.length*100):0}%;background:#ef4444"></div></div><span style="color:#dc2626;font-weight:700">${rej}</span></div></td>
+                  <td><div class="db-bar-cell"><div class="db-mini-bar"><div class="db-mini-fill" style="width:${share(qual)}%;background:#22c55e"></div></div><span style="color:#16a34a;font-weight:700">${qual}</span></div></td>
+                  <td><div class="db-bar-cell"><div class="db-mini-bar"><div class="db-mini-fill" style="width:${share(rev)}%;background:#f59e0b"></div></div><span style="color:#d97706;font-weight:700">${rev}</span></div></td>
+                  <td><div class="db-bar-cell"><div class="db-mini-bar"><div class="db-mini-fill" style="width:${share(rej)}%;background:#ef4444"></div></div><span style="color:#dc2626;font-weight:700">${rej}</span></div></td>
                 </tr>`;
               }).join('')}
         </tbody>
@@ -191,10 +185,10 @@ async function renderDashboard() {
     </div>
     <div style="padding:18px 20px">
       ${(() => {
-        const received  = cands.length;
-        const qualified = cands.filter(c => c.recommandation === 'QUALIFIE').length;
-        const interview = cands.filter(c => c.statut === 'Entretien planifié' || c.rdv_pris).length;
-        const accepted  = cands.filter(c => c.statut === 'Accepté').length;
+        const received  = funnel.received  || 0;
+        const qualified = funnel.qualified || 0;
+        const interview = funnel.interview || 0;
+        const accepted  = funnel.accepted  || 0;
         const pct = (n) => received > 0 ? Math.round(n / received * 100) : 0;
         const rows = [
           [t('funnel.received'),  received,  100,          '#3b82f6'],

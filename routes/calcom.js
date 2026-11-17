@@ -149,7 +149,11 @@ router.post('/event-types', async (req, res) => {
   if (!title || !lengthInMinutes)
     return res.status(400).json({ success: false, error: be(req, 'title et lengthInMinutes sont requis', 'title and lengthInMinutes are required') });
   try {
-    const slug    = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const baseSlug = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const existingRes = await axios.get(`${CAL_BASE}/event-types`, { headers: calHeaders() });
+    const taken = new Set(normalizeEventTypes(existingRes.data?.data).map(et => et.slug));
+    let slug = baseSlug;
+    for (let n = 2; taken.has(slug); n++) slug = `${baseSlug}-${n}`;
     const payload = { title, slug, lengthInMinutes: Number(lengthInMinutes) };
     if (description) payload.description = description;
     if (scheduleId)  payload.scheduleId  = Number(scheduleId);

@@ -122,6 +122,29 @@ router.get('/', async (req, res) => {
     if (statut) filter.statut = statut;
     if (q) { const rx = escapeRegex(q); filter.$or = [{ titre_poste: { $regex: rx, $options: 'i' } }, { localisation: { $regex: rx, $options: 'i' } }]; }
     const jobOffers = await Offre.find(filter).sort({ date_creation: -1 }).lean();
+    const countOf = (reco) => ({ $sum: { $cond: [{ $eq: ['$recommandation', reco] }, 1, 0] } });
+    const counts = await Candidature.aggregate([
+      { $match: { offre_id: { $in: jobOffers.map(o => o.offre_id) } } },
+      { $group: {
+        _id: '$offre_id',
+        total: { $sum: 1 },
+        qualifies: countOf('QUALIFIE'),
+        a_revoir: countOf('A_REVOIR'),
+        non_selectionnes: countOf('NON_SELECTIONNE'),
+        analyses: { $sum: { $cond: [{ $eq: [{ $ifNull: ['$score', null] }, null] }, 0, 1] } },
+      } },
+    ]);
+    const countsById = new Map(counts.map(c => [c._id, c]));
+    for (const o of jobOffers) {
+      const c = countsById.get(o.offre_id);
+      o.candidatures_stats = {
+        total: c?.total || 0,
+        qualifies: c?.qualifies || 0,
+        a_revoir: c?.a_revoir || 0,
+        non_selectionnes: c?.non_selectionnes || 0,
+        analyses: c?.analyses || 0,
+      };
+    }
     res.json({ success: true, offres: jobOffers });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

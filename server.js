@@ -71,7 +71,10 @@ app.use(cors(allowedOrigins ? { origin: allowedOrigins, credentials: true } : {}
 // ── Global middlewares ──
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
+// no-cache = the browser revalidates every load (cheap 304 via ETag), so a deploy is picked up without Ctrl+F5
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res) => res.setHeader("Cache-Control", "no-cache"),
+}));
 
 // ── Health check (no auth — pour monitoring / load balancer) ──
 app.get("/health", (_req, res) => {
@@ -123,11 +126,12 @@ app.use("/api/audit",        verifyToken, auditRouter);
 app.use("/api/users",        verifyToken, usersRouter);
 
 // ── Public pages ──
-app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
-app.get("/postuler", (req, res) => res.sendFile(path.join(__dirname, "public", "postuler.html")));
+const noCache = { headers: { "Cache-Control": "no-cache" } };
+app.get("/login",    (req, res) => res.sendFile(path.join(__dirname, "public", "login.html"), noCache));
+app.get("/postuler", (req, res) => res.sendFile(path.join(__dirname, "public", "postuler.html"), noCache));
 
 // ── SPA catch-all ──
-app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "app.html")));
+app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "app.html"), noCache));
 
 // ── Centralized error handler ──
 app.use((err, req, res, next) => {

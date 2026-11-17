@@ -5,11 +5,9 @@ let _currentOfferDetailId = null;
 async function renderOffers() {
   const el = document.getElementById('page-content');
   el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:200px"><div class="spinner" style="width:28px;height:28px"></div></div>`;
-  const [offersResponse, applicationsResponse] = await Promise.all([api.get('/api/offres'), api.get('/api/candidatures')]);
+  const offersResponse = await api.get('/api/offres');
   _jobOffers = offersResponse?.offres || [];
-  const applications = applicationsResponse?.candidatures || [];
   _offerApplications = {};
-  applications.forEach(c => { if (!_offerApplications[c.offre_id]) _offerApplications[c.offre_id] = []; _offerApplications[c.offre_id].push(c); });
   drawOffersList(_jobOffers);
 }
 
@@ -63,13 +61,13 @@ function renderOfferCards(offers) {
   }
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
 ${offers.map(o => {
-    const apps     = _offerApplications[o.offre_id] || [];
-    const qual     = apps.filter(c => c.recommandation === 'QUALIFIE').length;
+    const counts   = o.candidatures_stats || {};
+    const qual     = counts.qualifies || 0;
     const approved = o.approbation_inspection?.approuvee;
     const isOpt    = o.company === 'optimum';
     const cc       = isOpt ? '#62A5D2' : '#22c55e';
     const cn       = isOpt ? 'Optimum' : 'Solumada';
-    const hasBatch = apps.some(c => c.score != null);
+    const hasBatch = (counts.analyses || 0) > 0;
     const inspBadge = o.company !== 'optimum'
       ? (approved
           ? `<span class="badge badge-green" style="font-size:10px">✓ Insp.</span>`
@@ -97,7 +95,7 @@ ${offers.map(o => {
   </div>
   <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-2);border-radius:0 0 var(--r-xl) var(--r-xl)">
     <div style="display:flex;gap:16px">
-      <div class="offre-count" style="min-width:auto"><div class="offre-count-val">${apps.length}</div><div class="offre-count-lbl">${t('table.candidate')}</div></div>
+      <div class="offre-count" style="min-width:auto"><div class="offre-count-val">${counts.total || 0}</div><div class="offre-count-lbl">${t('table.candidate')}</div></div>
       <div class="offre-count" style="min-width:auto"><div class="offre-count-val" style="color:var(--accent-mid)">${qual}</div><div class="offre-count-lbl">${t('reco.qualified')}</div></div>
     </div>
     <div style="display:flex;gap:4px;align-items:center">
@@ -215,11 +213,17 @@ async function deleteOffer(id, btn) {
   });
 }
 
-function showOfferDetail(id) {
+async function loadOfferApplications(id) {
+  const r = await api.get(`/api/offres/${id}/candidatures`);
+  _offerApplications[id] = r?.candidatures || [];
+  return _offerApplications[id];
+}
+
+async function showOfferDetail(id) {
   const o = _jobOffers.find(x => x.offre_id === id); if (!o) return;
   _selectedCandidateIds.clear();
   _currentOfferDetailId = id;
-  const offerApplications = _offerApplications[id] || [];
+  const offerApplications = await loadOfferApplications(id);
   const modal = document.getElementById('modal-offre');
   const approved = o.approbation_inspection?.approuvee;
   const appointmentLink = o.lien_rdv || o.lien_calendar || '';
@@ -545,7 +549,7 @@ async function approveOffer(offerId, btn) {
     if (r?.success) {
       toast(t('toast.offer_approved'), 'success');
       const idx = _jobOffers.findIndex(o => o.offre_id === offerId);
-      if (idx !== -1) _jobOffers[idx] = r.offre;
+      if (idx !== -1) _jobOffers[idx] = { ...r.offre, candidatures_stats: _jobOffers[idx].candidatures_stats };
       showOfferDetail(offerId);
       renderOfferCards(_jobOffers);
     } else {
@@ -1158,8 +1162,7 @@ let _batchEvalOfferId = null;
 function openBatchEvalModal(offerId) {
   _batchEvalOfferId = offerId;
   const o = _jobOffers.find(x => x.offre_id === offerId);
-  const apps = _offerApplications[offerId] || [];
-  const analyzedCount = apps.filter(c => c.score != null).length;
+  const analyzedCount = o?.candidatures_stats?.analyses || 0;
   const subtitle = document.getElementById('batch-eval-subtitle');
   if (subtitle) subtitle.textContent = LANG === 'en'
     ? `${analyzedCount} candidate${analyzedCount !== 1 ? 's' : ''} analyzed — ${o?.titre_poste || offerId}`
